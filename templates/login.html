@@ -1,0 +1,27 @@
+<html>
+
+<head></head>
+
+<body>
+    <div><img id="qrcode" src="{{ qrcode(url) }}"></div>
+    <script>
+        var source = new EventSource('/kyc/verifier_stream');
+        source.onmessage = function (event) {
+            const result = JSON.parse(event.data);
+            console.log(result)
+            console.log(result.message);
+            if(result.type==="callback"){
+
+            }
+            else if (result.check == 'ok' & result.id == '{{id}}') {
+                window.location.href = result.link;
+            }
+            else {
+                window.alert(result.message);
+                window.location.href = "/error/";
+            }
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,27 @@
+<html>
+
+<head>  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+
+<body>
+    <div><img id="qrcode" ></div>
+    <script>
+        var source = new EventSource('/kyc/verifier_stream');
+        source.onmessage = function (event) {
+            const result = JSON.parse(event.data);
+            console.log(result)
+
+            if (result.id == '{{id}}' && result.type==="callback") {
+                new QRCode(document.getElementById("qrcode"), result.link);
+                window.location.href = result.link;
+            }
+            else {
+                window.location.href = "/error/";
+            }
+        };
+            
+
+    </script>
+</body>
+
+</html>
