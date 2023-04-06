@@ -4,20 +4,30 @@
 </head>
 
 <body>
-    <div><img id="qrcode" ></div>
+    <div id="qrcode"></div>
     <script>
+        fetch("/kyc/get_qrcode/{{id}}").then((res)=> {
+
+            //new QRCode(document.getElementById("qrcode"), res.url);
+            //window.location.href = res.url;
+            console.log(res.json().then(obj=> new QRCode(document.getElementById("qrcode"), obj.url)))
+        
+        })
         var source = new EventSource('/kyc/verifier_stream');
         source.onmessage = function (event) {
             const result = JSON.parse(event.data);
             console.log(result)
 
-            if (result.id == '{{id}}' && result.type==="callback") {
-                new QRCode(document.getElementById("qrcode"), result.link);
-                window.location.href = result.link;
+            
+            if(result.type==="callback"){
+                if (result.id === '{{id}}' ) {
+                new QRCode(document.getElementById("qrcode"), result.url);
+                //window.location.href = result.url;
             }
-            else {
+            /*else {
                 window.location.href = "/error/";
-            }
+            }*/
+        }
         };
             
 

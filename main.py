@@ -8,12 +8,15 @@ import environment
 import redis
 import uuid
 import time
+from datetime import datetime, timedelta
+import logging
 
-
-
+issuer_key = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
+issuer_vm = "did:web:app.altme.io:issuer#key-1"   
+issuer_did = "did:web:app.altme.io:issuer"
 token = ""
 parcoursPVID = "da73f56e-ec1f-44c0-a275-ba98e25fdc6c"
-
+parcoursNonSubstantiel= "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"
 app = Flask(__name__)
 app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
 qrcode = QRcode(app)
@@ -72,7 +75,7 @@ async def create_dossier(id):  # return link of kyc ui for user
         },
     }
     response = requests.post(
-        'https://preprod.id360docaposte.com/api/1.0.0/process/'+parcoursPVID+'/enrollment/',
+        'https://preprod.id360docaposte.com/api/1.0.0/process/'+parcoursNonSubstantiel+'/enrollment/',
         headers=headers,
         json=json_data,
     )
@@ -88,7 +91,7 @@ async def create_dossier(id):  # return link of kyc ui for user
     return link_ui
 
 
-def get_dossier(id):
+async def get_dossier(id):
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token '+token,
@@ -96,7 +99,9 @@ def get_dossier(id):
 
     response = requests.get(
         'https://preprod.id360docaposte.com/api/1.0.0/enrollment/'+id+'/report/', headers=headers)
+    print("dossier "+id+" :")
     print(response)
+    return(response.json())
 
 
 @app.route('/kyc/login')
@@ -112,9 +117,9 @@ def login():
 
 @app.route('/kyc/issuer/<id>',  defaults={'red': red})
 def issuer(id,red):
-    time.sleep(5)
-    qrcodeContent=red.get(id).decode()
-    return render_template("issuer.html", url=qrcodeContent,id=id)      
+    #time.sleep(5)
+    #qrcodeContent=red.get(id).decode()
+    return render_template("issuer.html",id=id)      
 
 @app.route('/kyc/endpoint/<id>', methods=['GET', 'POST'],  defaults={'red': red})
 async def presentation_endpoint(id, red):
@@ -166,6 +171,7 @@ async def presentation_endpoint(id, red):
 
 @app.route('/kyc/verifier_stream', methods = ['GET'],  defaults={'red' : red})
 def presentation_stream(red):
+    logging.info("stream subscription")
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('verifier')
@@ -179,11 +185,90 @@ def presentation_stream(red):
 
 @app.route('/kyc/id360/<id>', methods=['GET', 'POST'],  defaults={'red': red})
 async def id360callback(id, red):
-    event_data = json.dumps({"type":"callback","id": id,"url":""})
+    url=mode.server+"/kyc/issuer_endpoint/"+id
+    event_data = json.dumps({"type":"callback","id": id,"url":url})
     red.publish('verifier', event_data)
     return jsonify("ok"), 200
  
-    
+@app.route('/kyc/get_qrcode/<id>', methods=['GET'],  defaults={'red': red})
+async def get_qrcode(id,red):
+    await loginID360()
+    dossier = await get_dossier(red.get(id).decode())
+    print(dossier)
+    try:
+        if(dossier["status"]=="OK"):
+            #return jsonify(dossier), 200
+            return jsonify({"url":mode.server+"/kyc/issuer_endpoint/"+id}),200
+        else:
+            return jsonify(dossier), 200
+    except TypeError:
+        return jsonify("not yet",200)
+
+
+@app.route('/kyc/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
+async def vc_endpoint(id, red):  
+    dossier= await get_dossier(red.get(id).decode())
+    credential = json.load(open('VerifiableId.jsonld', 'r'))
+
+    credential["issuer"] = issuer_did 
+    credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    credential['expirationDate'] =  (datetime.now() + timedelta(days= 365)).isoformat() + "Z"
+    credential["credentialSubject"]["familyName"]=dossier["extracted_data"]["identity"][0]["name"]
+    credential["credentialSubject"]["firstName"]=dossier["extracted_data"]["identity"][0]["first_names"][0]
+    credential["credentialSubject"]["dateOfBirth"]=dossier["extracted_data"]["identity"][0]["birth_date"]
+    if request.method == 'GET': 
+        credential_manifest = json.load(open('VerifiableId_credential_manifest.json', 'r'))
+        credential_manifest['id'] = str(uuid.uuid1())
+        #credential_manifest['evidence']['id'] = str(uuid.uuid1())
+        credential_manifest['issuer']['id'] = issuer_did
+        credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())    
+        credential['id'] = "urn:uuid:random" # for preview
+        credential_offer = {
+            "type": "CredentialOffer",
+            "credentialPreview": credential,
+            "expires" : (datetime.now() + timedelta(seconds = 180)).replace(microsecond=0).isoformat(),
+            "credential_manifest" : credential_manifest
+        }
+        return jsonify(credential_offer)
+
+    else :  #POST
+        credential['id'] = "urn:uuid:" + str(uuid.uuid1())
+        credential['credentialSubject']['id'] = request.form['subject_id'] # for preview
+        logging.info(request.form['subject_id'])
+        #credential['evidence'][0]['id'] = "https://github.com/TalaoDAO/context#evidence"
+
+        try :
+            presentation = json.loads(request.form['presentation']) 
+        except :
+            logging.warning("presentation does not exist")
+            return jsonify('Unauthorized'), 401
+        if request.form['subject_id'] != presentation['holder'] :
+            logging.warning("holder does not match subject")
+            return jsonify('Unauthorized'), 401
+        presentation_result = await didkit.verify_presentation(request.form['presentation'], '{}')
+        if not json.loads(presentation_result)['errors'] :
+            logging.warning("presentation failed  %s", presentation_result)
+            return jsonify('Unauthorized'), 401
+        
+        logging.info('credential = %s', credential)
+
+        # credential signature 
+        didkit_options = {
+            "proofPurpose": "assertionMethod",
+            "verificationMethod": issuer_vm
+            }
+        signed_credential =  await didkit.issue_credential(
+                json.dumps(credential),
+                didkit_options.__str__().replace("'", '"'),
+                issuer_key)
+        # followup function call through js
+        """data = json.dumps({"id" : id,
+                         'message' : 'Ok credential transfered'})
+        red.publish('altme-identity', data)
+        red.delete(id)"""
+        # cerdential sent to wallet
+        return jsonify(signed_credential)
+
 
 if __name__ == '__main__':
    app.run(host="localhost", port=3000, debug=True)
