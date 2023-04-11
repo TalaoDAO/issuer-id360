@@ -10,6 +10,13 @@ import uuid
 import time
 from datetime import datetime, timedelta
 import logging
+import sqlite3 as sql
+
+try:
+    sql.connect("database.db").cursor().execute("CREATE TABLE IF NOT EXISTS kycs (did TEXT PRIMARY KEY, status TEXT, id  TEXT)")
+except:
+    logging.warning("error DB")
+    None    
 
 issuer_key = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
 issuer_vm = "did:web:app.altme.io:issuer#key-1"   
@@ -157,6 +164,19 @@ async def presentation_endpoint(id, red):
                                      "type":"login"})
             red.publish('verifier', event_data)
             return jsonify(result), 403
+        session["did"]=json.loads(request.form['presentation'])["holder"]
+
+
+        try:
+            with sql.connect("database.db") as con:
+                cur = con.cursor()
+                cur.execute("select * from kycs where did='"+session.get("did")+"'")
+                max = cur.fetchone()
+        except sql.Error as er:
+            logging.error('SQLite error: %s', ' '.join(er.args))
+        finally:
+            con.close()
+        print(max)
         await loginID360()
         link = await create_dossier(id)
         event_data = json.dumps({"id": id,
@@ -196,7 +216,7 @@ async def get_qrcode(id,red):
     dossier = await get_dossier(red.get(id).decode())
     print(dossier)
     try:
-        if(dossier["status"]=="OK"):
+        if(dossier["status"]=="OK" or dossier["status"]=="KO"):
             #return jsonify(dossier), 200
             return jsonify({"url":mode.server+"/kyc/issuer_endpoint/"+id}),200
         else:
@@ -208,6 +228,7 @@ async def get_qrcode(id,red):
 @app.route('/kyc/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
 async def vc_endpoint(id, red):  
     dossier= await get_dossier(red.get(id).decode())
+    print(dossier["extracted_data"])
     credential = json.load(open('VerifiableId.jsonld', 'r'))
 
     credential["issuer"] = issuer_did 
@@ -245,8 +266,8 @@ async def vc_endpoint(id, red):
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
-        presentation_result = await didkit.verify_presentation(request.form['presentation'], '{}')
-        if not json.loads(presentation_result)['errors'] :
+        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+        if presentation_result['errors'] :
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
         
@@ -257,6 +278,7 @@ async def vc_endpoint(id, red):
             "proofPurpose": "assertionMethod",
             "verificationMethod": issuer_vm
             }
+        print(credential)
         signed_credential =  await didkit.issue_credential(
                 json.dumps(credential),
                 didkit_options.__str__().replace("'", '"'),

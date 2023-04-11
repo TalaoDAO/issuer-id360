@@ -1,8 +1,10 @@
 <html>
 
-<head></head>
+<head><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+
 
 <body>
+    <p>Step 1 : Scan this qrcode with your Altme wallet and then follow instructions</p>
     <div><img id="qrcode" src="{{ qrcode(url) }}"></div>
     <script>
         var source = new EventSource('/kyc/verifier_stream');
