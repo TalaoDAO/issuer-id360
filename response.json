@@ -1,0 +1,600 @@
+{
+    "enrollment": {
+        "callback_url": "https://3992-2a01-e34-eca6-33c0-f4e2-3199-a0e1-8fa5.ngrok-free.app/kyc/id360/0fee8130-d97d-11ed-8005-7d49f5a181aa",
+        "browser_callback_url": "https://3992-2a01-e34-eca6-33c0-f4e2-3199-a0e1-8fa5.ngrok-free.app/kyc/issuer/0fee8130-d97d-11ed-8005-7d49f5a181aa",
+        "client_reference": "any_string"
+    },
+    "documents": {
+        "bank_details": [],
+        "identity_document": [
+            {
+                "name": "id_document_image",
+                "status": "INVALID",
+                "files": [
+                    {
+                        "hash": "b2f8d4b5cabfeda7c407541857405682",
+                        "hash_algorithm": "MD5",
+                        "url": "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0"
+                    },
+                    {
+                        "hash": "bb5e9e58fd093ed0c82c7b9e2c4b7459",
+                        "hash_algorithm": "MD5",
+                        "url": "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=1"
+                    }
+                ]
+            }
+        ],
+        "income_tax": [],
+        "kbis": [],
+        "mandate": [],
+        "liveness": [
+            {
+                "name": "liveness_video$0",
+                "status": "COLLECTED",
+                "files": [
+                    {
+                        "hash": "5f994133281382efcc0beefee85e6c30",
+                        "hash_algorithm": "MD5",
+                        "url": "https://preprod.id360docaposte.com/api/1.0.0/document/141414/file_contents/?page_number=0"
+                    }
+                ]
+            },
+            {
+                "name": "liveness_video$1",
+                "status": "COLLECTED",
+                "files": [
+                    {
+                        "hash": "bdae585d67d42cbfe85ad53598ab539e",
+                        "hash_algorithm": "MD5",
+                        "url": "https://preprod.id360docaposte.com/api/1.0.0/document/141416/file_contents/?page_number=0"
+                    }
+                ]
+            }
+        ],
+        "pay_slip": [],
+        "proof_of_address": [],
+        "property_tax": [],
+        "selfie": [
+            {
+                "name": "selfie_image",
+                "status": "COLLECTED",
+                "files": [
+                    {
+                        "hash": "3f6cda3fedc41d3ba76e7e25889c408d",
+                        "hash_algorithm": "MD5",
+                        "url": "https://preprod.id360docaposte.com/api/1.0.0/document/141412/file_contents/?page_number=0"
+                    }
+                ]
+            }
+        ],
+        "voice": [],
+        "other": []
+    },
+    "process_uuid": "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a",
+    "previous_reports": {
+        "validator_report": {
+            "is_valid": False,
+            "validations": [
+                {
+                    "id": 1,
+                    "description": "Checks MRZ validity",
+                    "message": "MRZ of type CIF <2021 does not have the correct number of line : 0 instead of 2",
+                    "fields": [],
+                    "is_valid": False
+                }
+            ],
+            "documents": {
+                "id_document_result": "identity_document",
+                "facecomparison_result": "other",
+                "liveness_result$0": "other",
+                "liveness_result$1": "other",
+                "fake_id_photo_result": "other",
+                "phone_detection_result": "other"
+            }
+        }
+    },
+    "version": 2,
+    "oid": "1.2.250.1.566.1.1.1.1.1",
+    "identity_status": "KO",
+    "level": "LOW",
+    "environment": "PREPROD",
+    "uses_biometry": True,
+    "reason": "Finalizer Field validator [17330] ID MRZ of type CIF <2021 does not have the correct number of line : 0 instead of 2",
+    "id": 17330,
+    "status": "KO",
+    "creation_time": "2023-04-12T21:57:53.130983",
+    "starting_time": "2023-04-12T21:59:13.811194",
+    "finished_time": "2023-04-12T21:59:40.070549",
+    "client_id": 121,
+    "client_name": "Talao",
+    "process_id": 3739,
+    "process_name": "test parcours 2",
+    "process_version": 7,
+    "creator_id": 634,
+    "creator_name": "test-achille@talao",
+    "accepted_cgu": True,
+    "accepted_personal_data_processing": True,
+    "client_reference": "any_string",
+    "keep_face_capture": False,
+    "shared": False,
+    "accepted_personal_data_processing_time": "2023-04-12T21:57:59.933789",
+    "status_codes": [
+        {
+            "code": "UNKNOWN_ERROR",
+            "message": "Finalizer Field validator [17330] ID MRZ of type CIF <2021 does not have the correct number of line : 0 instead of 2"
+        }
+    ],
+    "steps": {
+        "id_document": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.178200Z",
+            "starting_time": "2023-04-12T21:59:12.580031Z",
+            "finished_time": "2023-04-12T21:59:19.347798Z",
+            "datas": {},
+            "input_files": {
+                "id_document_image": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0",
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=1"
+                ]
+            },
+            "input_files_statuses": {
+                "id_document_image": {
+                    "status": "INVALID"
+                }
+            },
+            "input_files_hashes": {
+                "id_document_image": {
+                    "algorithm": "md5",
+                    "hashes": [
+                        "b2f8d4b5cabfeda7c407541857405682",
+                        "bb5e9e58fd093ed0c82c7b9e2c4b7459"
+                    ]
+                }
+            },
+            "results": {
+                "id_document_result": [
+                    {
+                        "IDFORMATDOC": "CIF",
+                        "IDADRESSE_B": "LHDCLEENCEAD|LOMAREILLE)",
+                        "IDDATEEXPIRATION_B": "25011936",
+                        "IDDATEDELIVRANCE_B": "26011921",
+                        "IDAUTORITEDELIVRANCE_B": "PREFECTURE DES BOUCHES-DU-RHONE (13)",
+                        "IDMRZLIGNE1_B": "IDFRADORIER###################013040",
+                        "IDMRZLIGNE2_B": "101133579039ACHILLE##CHRI50109109M5",
+                        "IDMRZTYPEDOCUMENT_B": "ID",
+                        "IDMRZCODEPAYSEMISSION_B": "FRA",
+                        "IDMRZNOM_B": "DORIER",
+                        "IDMRZDEPARTEMENTEMISSION_B": "013",
+                        "IDMRZBUREAUEMISSION_B": "040",
+                        "IDMRZANNEEEMISSION_B": "71",
+                        "IDMRZMOISEMISSION_B": "01",
+                        "IDMRZNUMERODOCUMENT_B": "710113357903",
+                        "IDMRZCLECONTROLENUMERODOCUMENT_B": "9",
+                        "IDMRZPRENOMS_B": "ACHILLE CHRI5",
+                        "IDMRZPRENOMS": "ACHILLE CHRI5",
+                        "IDMRZDATENAISSANCE_B": "010910",
+                        "IDMRZDATENAISSANCE": "010910",
+                        "IDMRZCLECONTROLEDATENAISSANCE_B": "9",
+                        "IDMRZCLECONTROLEDATENAISSANCE": "9",
+                        "IDMRZSEXE_B": "M",
+                        "IDMRZCLECONTROLEGLOBALE_B": "5",
+                        "IDNUMERODOCUMENT_B": "210113357903",
+                        "IDNOM_B": "DORIER",
+                        "IDPRENOMS_B": "ACHILLE CHRISTOPHE",
+                        "IDSEXE_B": "M",
+                        "IDDATENAISSANCE_B": "10031961",
+                        "IDVILLENAISSANCE_B": "SURESNES",
+                        "SDR_APP": "SDR_ID"
+                    }
+                ]
+            }
+        },
+        "facecomparison": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.204079Z",
+            "starting_time": "2023-04-12T21:59:24.670625Z",
+            "finished_time": "2023-04-12T21:59:31.085615Z",
+            "datas": {},
+            "input_files": {
+                "id_document_image": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0"
+                ],
+                "selfie_image": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141412/file_contents/?page_number=0"
+                ]
+            },
+            "results": {
+                "facecomparison_result": [
+                    {
+                        "id": "643729becb3cbb87bbd25bfb",
+                        "submitter_id": "612f2db7183cf0005f1d7538",
+                        "application_id": "612f2db7183cf0005f1d7538",
+                        "creation_time": "2023-04-12T21:59:26.785000Z",
+                        "starting_time": "2023-04-12T21:59:26.863000Z",
+                        "start_processing_time": "2023-04-12T21:59:26.868000Z",
+                        "finished_time": "2023-04-12T21:59:30.116000Z",
+                        "job_type": "predict",
+                        "model_id": "61c0c04e18b752cfad37878f",
+                        "model_owner_id": "612f2db7183cf0005f1d7538",
+                        "document_ids": [
+                            "643729bdcb3cbb87bbd25bfa",
+                            "643729b2cb3cbb87bbd25bf0",
+                            "643729b5cb3cbb87bbd25bf1"
+                        ],
+                        "status": "PROCESSED",
+                        "http_code": 200,
+                        "result": {
+                            "images": {
+                                "0": {
+                                    "number_of_faces": 1,
+                                    "reference_image": True,
+                                    "orientation": 0
+                                },
+                                "1": {
+                                    "number_of_faces": 1,
+                                    "reference_image": False,
+                                    "orientation": 0
+                                },
+                                "2": {
+                                    "number_of_faces": 0,
+                                    "reference_image": False,
+                                    "orientation": None
+                                }
+                            },
+                            "faces": {
+                                "0_0": {
+                                    "image_number": 0,
+                                    "face_number": 0,
+                                    "box": {
+                                        "top": 475,
+                                        "right": 597,
+                                        "bottom": 1001,
+                                        "left": 231
+                                    },
+                                    "face_image_key": "0_0",
+                                    "biometric_face_vector": None
+                                },
+                                "1_0": {
+                                    "image_number": 1,
+                                    "face_number": 0,
+                                    "box": {
+                                        "top": 240,
+                                        "right": 464,
+                                        "bottom": 539,
+                                        "left": 237
+                                    },
+                                    "face_image_key": "1_0",
+                                    "biometric_face_vector": None
+                                }
+                            },
+                            "matches": [
+                                {
+                                    "reference_face": "0_0",
+                                    "matched_face": "1_0",
+                                    "score": 47.981475830078125,
+                                    "match": True,
+                                    "default_match_score_threshold": 24.0
+                                }
+                            ]
+                        },
+                        "result_type": "object",
+                        "callback_url": "http://sherlockid/private/api/1.0.0/leia/callback/facecomparison_result/",
+                        "callback_headers": {
+                            "x-api-key": "aaa46e9c3ed7d3e3fbdc40ce2232daf72a6e3960e062a05f2b30e7f3bbf260c728aaf03fd54100c0eff42a30133d28f6cc7a081da36c839b85f9ea6b9e4f1ec0"
+                        },
+                        "worker_arn": "predict-61c0c04e18b752cfad37878f-w74k2-fqb48",
+                        "additional_params": {
+                            "return_face_images": False
+                        }
+                    }
+                ]
+            }
+        },
+        "liveness$0": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.228012Z",
+            "starting_time": "2023-04-12T21:59:21.358467Z",
+            "finished_time": "2023-04-12T21:59:28.949620Z",
+            "datas": {},
+            "input_files": {
+                "liveness_video$0": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141414/file_contents/?page_number=0"
+                ]
+            },
+            "results": {
+                "liveness_result$0": [
+                    {
+                        "id": "643729bbcb3cbb87bbd25bf9",
+                        "submitter_id": "612f2db7183cf0005f1d7538",
+                        "application_id": "612f2db7183cf0005f1d7538",
+                        "creation_time": "2023-04-12T21:59:23.220000Z",
+                        "starting_time": "2023-04-12T21:59:23.291000Z",
+                        "start_processing_time": "2023-04-12T21:59:23.296000Z",
+                        "finished_time": "2023-04-12T21:59:27.814000Z",
+                        "job_type": "predict",
+                        "model_id": "61c0c0a6d7e4b3ab577714a4",
+                        "model_owner_id": "612f2db7183cf0005f1d7538",
+                        "document_ids": [
+                            "643729b9cb3cbb87bbd25bf8"
+                        ],
+                        "status": "PROCESSED",
+                        "http_code": 200,
+                        "result": {
+                            "challenge": "mouth",
+                            "result": True,
+                            "deep_fake": False,
+                            "deep_fake_score": 0.02319289557635784
+                        },
+                        "result_type": "object",
+                        "callback_url": "http://sherlockid/private/api/1.0.0/leia/callback/liveness_result$0/",
+                        "callback_headers": {
+                            "x-api-key": "aaa46e9c3ed7d3e3fbdc40ce2232daf72a6e3960e062a05f2b30e7f3bbf260c728aaf03fd54100c0eff42a30133d28f6cc7a081da36c839b85f9ea6b9e4f1ec0"
+                        },
+                        "worker_arn": "predict-61c0c0a6d7e4b3ab577714a4-74bf2-rsdbr",
+                        "additional_params": {
+                            "challenge": "mouth",
+                            "min_deepfake_score": 0.6
+                        }
+                    }
+                ]
+            }
+        },
+        "liveness$1": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.244465Z",
+            "starting_time": "2023-04-12T21:59:29.071980Z",
+            "finished_time": "2023-04-12T21:59:37.838006Z",
+            "datas": {},
+            "input_files": {
+                "liveness_video$1": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141416/file_contents/?page_number=0"
+                ]
+            },
+            "results": {
+                "liveness_result$1": [
+                    {
+                        "id": "643729c2cb3cbb87bbd25bfd",
+                        "submitter_id": "612f2db7183cf0005f1d7538",
+                        "application_id": "612f2db7183cf0005f1d7538",
+                        "creation_time": "2023-04-12T21:59:30.211000Z",
+                        "starting_time": "2023-04-12T21:59:30.312000Z",
+                        "start_processing_time": "2023-04-12T21:59:30.317000Z",
+                        "finished_time": "2023-04-12T21:59:36.896000Z",
+                        "job_type": "predict",
+                        "model_id": "61c0c0a6d7e4b3ab577714a4",
+                        "model_owner_id": "612f2db7183cf0005f1d7538",
+                        "document_ids": [
+                            "643729c1cb3cbb87bbd25bfc"
+                        ],
+                        "status": "PROCESSED",
+                        "http_code": 200,
+                        "result": {
+                            "challenge": "head_turn",
+                            "result": True,
+                            "deep_fake": False,
+                            "deep_fake_score": 0.025014128535985947
+                        },
+                        "result_type": "object",
+                        "callback_url": "http://sherlockid/private/api/1.0.0/leia/callback/liveness_result$1/",
+                        "callback_headers": {
+                            "x-api-key": "aaa46e9c3ed7d3e3fbdc40ce2232daf72a6e3960e062a05f2b30e7f3bbf260c728aaf03fd54100c0eff42a30133d28f6cc7a081da36c839b85f9ea6b9e4f1ec0"
+                        },
+                        "worker_arn": "predict-61c0c0a6d7e4b3ab577714a4-tlz45-nlqrk",
+                        "additional_params": {
+                            "challenge": "head_turn",
+                            "min_deepfake_score": 0.6
+                        }
+                    }
+                ]
+            }
+        },
+        "fake_photo_id": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.269257Z",
+            "starting_time": "2023-04-12T21:59:13.826317Z",
+            "finished_time": "2023-04-12T21:59:22.063035Z",
+            "datas": {},
+            "input_files": {
+                "id_document_image": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0",
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=1"
+                ]
+            },
+            "results": {
+                "fake_id_photo_result": [
+                    {
+                        "id": "643729b6cb3cbb87bbd25bf2",
+                        "submitter_id": "612f2db7183cf0005f1d7538",
+                        "application_id": "612f2db7183cf0005f1d7538",
+                        "creation_time": "2023-04-12T21:59:18.487000Z",
+                        "starting_time": "2023-04-12T21:59:18.596000Z",
+                        "start_processing_time": "2023-04-12T21:59:18.640000Z",
+                        "finished_time": "2023-04-12T21:59:20.791000Z",
+                        "job_type": "predict",
+                        "model_id": "61c0c0f3521e03e9b33a5475",
+                        "model_owner_id": "612f2db7183cf0005f1d7538",
+                        "document_ids": [
+                            "643729b2cb3cbb87bbd25bf0",
+                            "643729b5cb3cbb87bbd25bf1"
+                        ],
+                        "status": "PROCESSED",
+                        "http_code": 200,
+                        "result": {
+                            "643729b2cb3cbb87bbd25bf0": {
+                                "fake_faces_found": 1,
+                                "faces_found": 1,
+                                "faces_detail": [
+                                    {
+                                        "id": "0",
+                                        "is_fake": True,
+                                        "accuracy": 0.9882352941176471,
+                                        "box": {
+                                            "x": 233.9093017578125,
+                                            "y": 237.06494140625,
+                                            "w": 235.41748046875,
+                                            "h": 295.77569580078125
+                                        },
+                                        "orientation": 0
+                                    }
+                                ]
+                            },
+                            "643729b5cb3cbb87bbd25bf1": {
+                                "fake_faces_found": 0,
+                                "faces_found": 0,
+                                "faces_detail": []
+                            }
+                        },
+                        "result_type": "dict[object]",
+                        "callback_url": "http://sherlockid/private/api/1.0.0/leia/callback/fake_id_photo_result/",
+                        "callback_headers": {
+                            "x-api-key": "aaa46e9c3ed7d3e3fbdc40ce2232daf72a6e3960e062a05f2b30e7f3bbf260c728aaf03fd54100c0eff42a30133d28f6cc7a081da36c839b85f9ea6b9e4f1ec0"
+                        },
+                        "additional_params": {}
+                    }
+                ]
+            }
+        },
+        "phone_detection": {
+            "status": "OK",
+            "creation_time": "2023-04-12T21:57:53.292017Z",
+            "starting_time": "2023-04-12T21:59:18.586519Z",
+            "finished_time": "2023-04-12T21:59:33.403833Z",
+            "datas": {},
+            "input_files": {
+                "id_document_image": [
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0",
+                    "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=1"
+                ]
+            },
+            "results": {
+                "phone_detection_result": [
+                    {
+                        "id": "643729b7cb3cbb87bbd25bf5",
+                        "submitter_id": "612f2db7183cf0005f1d7538",
+                        "application_id": "612f2db7183cf0005f1d7538",
+                        "creation_time": "2023-04-12T21:59:19.243000Z",
+                        "starting_time": "2023-04-12T21:59:19.333000Z",
+                        "start_processing_time": "2023-04-12T21:59:19.373000Z",
+                        "finished_time": "2023-04-12T21:59:32.303000Z",
+                        "job_type": "predict",
+                        "model_id": "61c0bf10bbcaf77c992e1584",
+                        "model_owner_id": "612f2db7183cf0005f1d7538",
+                        "document_ids": [
+                            "643729b2cb3cbb87bbd25bf0",
+                            "643729b5cb3cbb87bbd25bf1"
+                        ],
+                        "status": "PROCESSED",
+                        "http_code": 200,
+                        "result": {
+                            "643729b2cb3cbb87bbd25bf0": {
+                                "box_list": [
+                                    {
+                                        "box": {
+                                            "top": 817,
+                                            "left": 6,
+                                            "bottom": 1090,
+                                            "right": 607
+                                        },
+                                        "box_id": "0",
+                                        "category": "person",
+                                        "score": 0.9579089879989624,
+                                        "mask": {
+                                            "polygons": []
+                                        }
+                                    },
+                                    {
+                                        "box": {
+                                            "top": 152,
+                                            "left": 187,
+                                            "bottom": 617,
+                                            "right": 534
+                                        },
+                                        "box_id": "1",
+                                        "category": "person",
+                                        "score": 0.9196957349777222,
+                                        "mask": {
+                                            "polygons": []
+                                        }
+                                    },
+                                    {
+                                        "box": {
+                                            "top": 23,
+                                            "left": 103,
+                                            "bottom": 935,
+                                            "right": 1433
+                                        },
+                                        "box_id": "2",
+                                        "category": "book",
+                                        "score": 0.9130659699440002,
+                                        "mask": {
+                                            "polygons": []
+                                        }
+                                    }
+                                ]
+                            },
+                            "643729b5cb3cbb87bbd25bf1": {
+                                "box_list": []
+                            }
+                        },
+                        "result_type": "dict[object]",
+                        "callback_url": "http://sherlockid/private/api/1.0.0/leia/callback/phone_detection_result/",
+                        "callback_headers": {
+                            "x-api-key": "aaa46e9c3ed7d3e3fbdc40ce2232daf72a6e3960e062a05f2b30e7f3bbf260c728aaf03fd54100c0eff42a30133d28f6cc7a081da36c839b85f9ea6b9e4f1ec0"
+                        },
+                        "additional_params": {
+                            "return_image_masks": False
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "all_status_codes": [
+        {
+            "status_code": {
+                "code": "UNKNOWN_ERROR",
+                "message": "Finalizer Field validator [17330] ID MRZ of type CIF <2021 does not have the correct number of line : 0 instead of 2"
+            },
+            "where": "ID360"
+        }
+    ],
+    "finalizer_reports": {
+        "validator_report": {
+            "is_valid": False,
+            "validations": [
+                {
+                    "id": 1,
+                    "description": "Checks MRZ validity",
+                    "message": "MRZ of type CIF <2021 does not have the correct number of line : 0 instead of 2",
+                    "fields": [],
+                    "is_valid": False
+                }
+            ],
+            "documents": {
+                "id_document_result": "identity_document",
+                "facecomparison_result": "other",
+                "liveness_result$0": "other",
+                "liveness_result$1": "other",
+                "fake_id_photo_result": "other",
+                "phone_detection_result": "other"
+            }
+        }
+    },
+    "id_verification_service": "SVID_ID360",
+    "all_input_files": {
+        "id_document_image": [
+            "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=0",
+            "https://preprod.id360docaposte.com/api/1.0.0/document/141410/file_contents/?page_number=1"
+        ],
+        "selfie_image": [
+            "https://preprod.id360docaposte.com/api/1.0.0/document/141412/file_contents/?page_number=0"
+        ],
+        "liveness_video$0": [
+            "https://preprod.id360docaposte.com/api/1.0.0/document/141414/file_contents/?page_number=0"
+        ],
+        "liveness_video$1": [
+            "https://preprod.id360docaposte.com/api/1.0.0/document/141416/file_contents/?page_number=0"
+        ]
+    },
+    "archive_reference": "2c96ad2c87702c5c0187777b56f72335"
+}

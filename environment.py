@@ -22,7 +22,7 @@ class currentMode() :
 			self.port = 5000
 		elif self.myenv == 'achille' :
 			self.server = 'http://' + extract_ip() + ':3000/'
-			self.server = "https://4c79-86-229-94-232.ngrok-free.app"
+			self.server = "https://6914-2a01-e34-eca6-33c0-aa2b-d40d-1c63-d7a3.ngrok-free.app"
 			self.IP = extract_ip()
 			self.port = 3000
 		else :

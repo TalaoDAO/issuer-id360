@@ -7,7 +7,7 @@
     <p>Step 1 : Scan this qrcode with your Altme wallet and then follow instructions</p>
     <div><img id="qrcode" src="{{ qrcode(url) }}"></div>
     <script>
-        var source = new EventSource('/kyc/verifier_stream');
+        var source = new EventSource('/id360/verifier_stream');
         source.onmessage = function (event) {
             const result = JSON.parse(event.data);
             console.log(result)
@@ -15,7 +15,7 @@
             if(result.type==="callback"){
 
             }
-            else if (result.check == 'ok' & result.id == '{{id}}') {
+            else if ((result.check == 'ok' || result.check=="ko") & result.id == '{{id}}') {
                 window.location.href = result.link;
             }
             else {

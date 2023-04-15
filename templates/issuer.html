@@ -1,35 +1,68 @@
 <html>
 
-<head>  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+<head>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 
-<body><p>Step 3 : Scan this qrcode with your Altme wallet and get your KYC card</p>
+<body>
+    <p>Step 3 : Scan this qrcode with your Altme wallet and get your KYC card</p>
     <div id="qrcode"></div>
     <script>
-        fetch("/kyc/get_qrcode/{{id}}").then((res)=> {
+        var qrcodeGen = false;
+        fetch("/id360/get_qrcode/{{id}}").then((res) => {
 
             //new QRCode(document.getElementById("qrcode"), res.url);
             //window.location.href = res.url;
-            console.log(res.json().then(obj=> new QRCode(document.getElementById("qrcode"), obj.url)))
-        
+            res.json().then(temp => {
+                if (temp.url === "error") {
+                    window.location.href = "https://{{callback}}/400"
+                }
+                else if (temp.url === "not yet") {
+                    return
+                }
+                else {
+                    console.log(temp);
+                    if (!qrcodeGen) { new QRCode(document.getElementById("qrcode"), temp.url);qrcodeGen=true }
+                }
+            })
+
+
         })
-        var source = new EventSource('/kyc/verifier_stream');
+        var source = new EventSource('/id360/verifier_stream');
         source.onmessage = function (event) {
             const result = JSON.parse(event.data);
             console.log(result)
 
-            
-            if(result.type==="callback"){
-                if (result.id === '{{id}}' ) {
-                new QRCode(document.getElementById("qrcode"), result.url);
-                //window.location.href = result.url;
+
+            if (result.type === "callback") {
+                if (result.id === '{{id}}') {
+                    if (!qrcodeGen) { new QRCode(document.getElementById("qrcode"), result.url); qrcodeGen=true}
+                    //window.location.href = result.url;
+                }
+                /*else {
+                    window.location.href = "/error/";
+                }*/
             }
-            /*else {
-                window.location.href = "/error/";
-            }*/
-        }
+            if (result.type === "callbackErr") {
+                if (result.id === '{{id}}') {
+                    console.log(result.url)
+                    window.location.href = "https://" + result.url;
+                }
+                /*else {
+                    window.location.href = "/error/";
+                }*/
+            }
+            if (result.type === "altmeTransfered") {
+                if (result.id === '{{id}}') {
+                    
+                    window.location.href = "https://{{callback}}/200";
+                }
+                /*else {
+                    window.location.href = "/error/";
+                }*/
+            }
         };
-            
+
 
     </script>
 </body>

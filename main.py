@@ -11,19 +11,23 @@ import time
 from datetime import datetime, timedelta
 import logging
 import sqlite3 as sql
-
+import pickle
+import traceback
+import sys
 try:
-    sql.connect("database.db").cursor().execute("CREATE TABLE IF NOT EXISTS kycs (did TEXT PRIMARY KEY, status TEXT, id  TEXT)")
+    sql.connect("database.db").cursor().execute(
+        "CREATE TABLE IF NOT EXISTS kycs (did TEXT PRIMARY KEY, status TEXT, id  TEXT)")
 except:
     logging.warning("error DB")
-    None    
+    None
 
-issuer_key = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
-issuer_vm = "did:web:app.altme.io:issuer#key-1"   
+issuer_key = json.dumps(json.load(open("keys.json", "r"))[
+                        'talao_Ed25519_private_key'])
+issuer_vm = "did:web:app.altme.io:issuer#key-1"
 issuer_did = "did:web:app.altme.io:issuer"
 token = ""
 parcoursPVID = "da73f56e-ec1f-44c0-a275-ba98e25fdc6c"
-parcoursNonSubstantiel= "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"
+parcoursNonSubstantiel = "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"
 app = Flask(__name__)
 app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
 qrcode = QRcode(app)
@@ -31,7 +35,7 @@ qrcode = QRcode(app)
 myenv = os.getenv('MYENV')
 if not myenv:
     myenv = 'thierry'
-myenv="achille"
+myenv = "achille"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 did_verifier = "did:tz:tz2NQkPq3FFA3zGAyG8kLcWatGbeXpHMu7yk"
@@ -73,8 +77,8 @@ async def create_dossier(id):  # return link of kyc ui for user
         'Content-Type': 'application/json',
     }
     json_data = {
-        'callback_url': mode.server+'/kyc/id360/'+id,
-        'browser_callback_url': mode.server+'/kyc/issuer/'+id,
+        'callback_url': mode.server+'/id360/id360/'+id,
+        'browser_callback_url': mode.server+'/id360/issuer/'+id,
         'client_reference': 'any_string',
         'callback_headers': {
             'header_name_1': id,
@@ -82,14 +86,17 @@ async def create_dossier(id):  # return link of kyc ui for user
         },
     }
     response = requests.post(
-        'https://preprod.id360docaposte.com/api/1.0.0/process/'+parcoursNonSubstantiel+'/enrollment/',
+        'https://preprod.id360docaposte.com/api/1.0.0/process/' +
+            parcoursNonSubstantiel+'/enrollment/',
         headers=headers,
         json=json_data,
     )
 
     print(response.json())
     idDossier = response.json()["id"]
-    red.set(id,  idDossier)
+    newObj = pickle.loads(red.get(id))
+    newObj["idDossier"] = idDossier
+    red.set(id,  pickle.dumps(newObj))
 
     api_key = response.json()["api_key"]
     link_ui = "https://preprod.id360docaposte.com/static/process_ui/index.html#/enrollment/"+api_key
@@ -103,42 +110,79 @@ async def get_dossier(id):
         'accept': 'application/json',
         'Authorization': 'Token '+token,
     }
-
+    print(id)
     response = requests.get(
-        'https://preprod.id360docaposte.com/api/1.0.0/enrollment/'+id+'/report/', headers=headers)
-    print("dossier "+id+" :")
+        'https://preprod.id360docaposte.com/api/1.0.0/enrollment/'+str(id)+'/report/', headers=headers)
+    print("dossier "+str(id)+" :")
     print(response)
-    return(response.json())
+    return (response.json())
 
-
-@app.route('/kyc/login')
-def login():
+@app.route('/id360/get_link')
+def get_link():
+    try:
+            with sql.connect("database.db") as con:
+                cur = con.cursor()
+                # print(pickle.loads(red.get(id).decode()))
+                cur.execute("select * from customers where apiKey='" +
+                            request.headers['apiKey']+"'")
+                max = cur.fetchone()
+                if max==None:
+                    return jsonify("bad apiKey"),403
+    except sql.Error as er:
+            logging.error('SQLite error: %s', ' '.join(er.args))
+    finally:
+            con.close()
     id = str(uuid.uuid1())
+    red.set(id,  "True")
+    url = mode.server+'/id360/login/' + id + '?issuer=' + did_verifier
+
+    return jsonify({"url":url}),200
+
+@app.route('/id360/login/<id>')
+def login(id):
+    try:
+        site_callback = request.args['callback']
+    except KeyError:
+        print("KeyError")
+    try:
+        if red.get(id).decode()!="True":
+            return jsonify("invalid link"),403
+    except:
+        return jsonify("invalid link"),403
+
+    id = id
     pattern = DIDAuth
     pattern['challenge'] = id
     pattern['domain'] = mode.server
     red.set(id,  json.dumps(pattern))
-    url = mode.server+'/kyc/endpoint/' + id + '?issuer=' + did_verifier
+    url = mode.server+'/id360/endpoint/' + id + '?issuer=' + did_verifier+"&callback="+site_callback
 
-    return render_template("login.html", url=url,id=id)        
+    return render_template("login.html", url=url, id=id)
 
-@app.route('/kyc/issuer/<id>',  defaults={'red': red})
-def issuer(id,red):
-    #time.sleep(5)
-    #qrcodeContent=red.get(id).decode()
-    return render_template("issuer.html",id=id)      
 
-@app.route('/kyc/endpoint/<id>', methods=['GET', 'POST'],  defaults={'red': red})
+@app.route('/id360/issuer/<id>',  defaults={'red': red})
+def issuer(id, red):
+    # time.sleep(5)
+    # qrcodeContent=red.get(id).decode()
+    print(pickle.loads(red.get(id)))
+    return render_template("issuer.html", id=id,callback=pickle.loads(red.get(id))["callback"])
+
+
+@app.route('/id360/endpoint/<id>', methods=['GET', 'POST'],  defaults={'red': red})
 async def presentation_endpoint(id, red):
+    try:
+        site_callback = request.args['callback']
+    except KeyError:
+        print("KeyErrorEndpoint")
     try:
         my_pattern = json.loads(red.get(id).decode())
     except:
         event_data = json.dumps({"id": id,
                                  "message": "redis decode failed",
                                  "check": "ko",
-                                     "type":"login"})
+                                     "type": "login","url":site_callback})
         red.publish('verifier', event_data)
-        return jsonify("server error"), 500
+        return jsonify("server error"), 500 
 
     if request.method == 'GET':
         return jsonify(my_pattern)
@@ -147,87 +191,168 @@ async def presentation_endpoint(id, red):
         # red.delete(id)
         print(request)
         try:
-            result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge":id,"domain":mode.server})))
+            result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
             print(result)
-            result=False
+            result = False
         except:
             event_data = json.dumps({"id": id,
                                     "check": "ko",
                                      "message": "presentation is not correct",
-                                     "type":"login"})
+                                     "type": "login"})
             red.publish('verifier', event_data)
             return jsonify("presentation is not correct"), 403
         if result:
             event_data = json.dumps({"id": id,
                                     "check": "ko",
                                      "message": result,
-                                     "type":"login"})
+                                     "type": "login"})
             red.publish('verifier', event_data)
             return jsonify(result), 403
-        session["did"]=json.loads(request.form['presentation'])["holder"]
-
+        red.set(id,  pickle.dumps(
+            {"did": json.loads(request.form['presentation'])["holder"],"callback":site_callback}))
+        print(pickle.loads(red.get(id))["callback"])
+        # session["did"]=json.loads(request.form['presentation'])["holder"]
 
         try:
             with sql.connect("database.db") as con:
                 cur = con.cursor()
-                cur.execute("select * from kycs where did='"+session.get("did")+"'")
+                print(pickle.loads(red.get(id)))
+                # print(pickle.loads(red.get(id).decode()))
+                cur.execute("select * from kycs where did='" +
+                            pickle.loads(red.get(id))["did"]+"'")
                 max = cur.fetchone()
         except sql.Error as er:
             logging.error('SQLite error: %s', ' '.join(er.args))
         finally:
             con.close()
         print(max)
-        await loginID360()
-        link = await create_dossier(id)
-        event_data = json.dumps({"id": id,
-                                    "message": "presentation is verified",
-                                     "check": "ok", 
-                                     "link":link,
-                                     "type":"login"
-                                    })
-        red.publish('verifier', event_data)
+        if (max == None or max[1] == "KO"):
+            newObj = pickle.loads(red.get(id))
+            if max == None:
+                newObj["first"] = True
+            else:
+                newObj["first"] = False
+            print(newObj["first"])
+            red.set(id, pickle.dumps(newObj))
+            await loginID360()
+            link = await create_dossier(id)
+            event_data = json.dumps({"id": id,
+                                        "message": "presentation is verified",
+                                        "check": "ok",
+                                        "link": link,
+                                        "type": "login"
+                                        })
+            print("sent "+link)
+            red.publish('verifier', event_data)
 
-        return jsonify("ok"), 200
+            return jsonify("ok"), 200
+        elif max[1] == "OK":
+            newObj = pickle.loads(red.get(id))
+            newObj["did"]=json.loads(request.form['presentation'])["holder"]
+            newObj["idDossier"]=max[2]
+            newObj["first"]=False
+            """red.set(id, pickle.dumps({"did": json.loads(request.form['presentation'])[
+                    "holder"], "idDossier": max[2], "first": False}))"""
+            red.set(id,pickle.dumps(newObj))
+            event_data = json.dumps({"id": id,
+                                        "message": "presentation is verified",
+                                        "check": "ok",
+                                        "link": mode.server+"/id360/issuer/"+id,
+                                        "type": "login"
+                                        })
+            red.publish('verifier', event_data)
 
-@app.route('/kyc/verifier_stream', methods = ['GET'],  defaults={'red' : red})
+            print("sent "+mode.server+"/id360/issuer/"+id)
+            return jsonify("ok"), 200  # si kyc deja dispo dans la db
+
+
+@app.route('/id360/verifier_stream', methods=['GET'],  defaults={'red': red})
 def presentation_stream(red):
     logging.info("stream subscription")
+
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('verifier')
         for message in pubsub.listen():
-            if message['type']=='message':
+            if message['type'] == 'message':
                 yield 'data: %s\n\n' % message['data'].decode()
-    headers = { "Content-Type" : "text/event-stream",
-                "Cache-Control" : "no-cache",
-                "X-Accel-Buffering" : "no"}
+    headers = {"Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no"}
     return Response(event_stream(red), headers=headers)
 
-@app.route('/kyc/id360/<id>', methods=['GET', 'POST'],  defaults={'red': red})
+
+@app.route('/id360/id360/<id>', methods=['GET', 'POST'],  defaults={'red': red})
 async def id360callback(id, red):
-    url=mode.server+"/kyc/issuer_endpoint/"+id
-    event_data = json.dumps({"type":"callback","id": id,"url":url})
+    await loginID360()
+    idDossier = pickle.loads(red.get(id))["idDossier"]
+    did = pickle.loads(red.get(id))["did"]
+    dossier = await get_dossier(idDossier)
+    if(dossier["status"]!="OK"):
+        url = pickle.loads(red.get(id))["callback"]+"/400"
+        event_data = json.dumps({"type": "callbackErr", "id": id, "url": url})
+        red.publish('verifier', event_data)
+        return jsonify("ok"), 200
+    url = mode.server+"/id360/issuer_endpoint/"+id
+    event_data = json.dumps({"type": "callback", "id": id, "url": url})
     red.publish('verifier', event_data)
     return jsonify("ok"), 200
- 
-@app.route('/kyc/get_qrcode/<id>', methods=['GET'],  defaults={'red': red})
-async def get_qrcode(id,red):
+
+
+@app.route('/id360/get_qrcode/<id>', methods=['GET'],  defaults={'red': red})
+async def get_qrcode(id, red):
     await loginID360()
-    dossier = await get_dossier(red.get(id).decode())
+    idDossier = pickle.loads(red.get(id))["idDossier"]
+    did = pickle.loads(red.get(id))["did"]
+    dossier = await get_dossier(idDossier)
     print(dossier)
+    if pickle.loads(red.get(id))["first"] == True:
+        try:
+            with sql.connect("database.db") as con:
+                cur = con.cursor()
+                cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",
+                            (did, dossier["status"], idDossier))
+                con.commit()
+                msg = "kyc successfully added"
+        except sql.Error as er: 
+            print('SQLite error: %s' % (' '.join(er.args)))
+            print("Exception class is: ", er.__class__)
+            print('SQLite traceback: ')
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            print(traceback.format_exception(exc_type, exc_value, exc_tb))
+
+        finally:
+            con.close()
+            logging.info("msg db %s", str(msg))
+    else:
+        try:
+            with sql.connect("database.db") as con:
+                cur = con.cursor()
+                print("update kycs set status='"+dossier["status"]+"',id="+str(idDossier)+" where did='"+did+"'")
+                cur.execute("update kycs set status='"+dossier["status"]+"',id="+str(idDossier)+" where did='"+did+"'")
+                con.commit()
+                msg = "kyc successfully updated"
+        except:
+            con.rollback()
+            msg = "error in update operation"
+            
+        finally:
+            con.close()
+            logging.info("msg db %s", str(msg))
     try:
-        if(dossier["status"]=="OK" or dossier["status"]=="KO"):
+        if(dossier["status"]=="OK" ): #or dossier["status"]=="KO"
             #return jsonify(dossier), 200
-            return jsonify({"url":mode.server+"/kyc/issuer_endpoint/"+id}),200
+            return jsonify({"url":mode.server+"/id360/issuer_endpoint/"+id}),200
         else:
-            return jsonify(dossier), 200
+            return jsonify({"url":"error"}),200
+
     except TypeError:
-        return jsonify("not yet",200)
+        return jsonify({"url":"not yet"}),200
 
 
-@app.route('/kyc/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
+@app.route('/id360/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
 async def vc_endpoint(id, red):  
-    dossier= await get_dossier(red.get(id).decode())
+    dossier= await get_dossier(pickle.loads(red.get(id))["idDossier"])
     print(dossier["extracted_data"])
     credential = json.load(open('VerifiableId.jsonld', 'r'))
 
@@ -267,7 +392,7 @@ async def vc_endpoint(id, red):
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
         presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-        if presentation_result['errors'] :
+        if presentation_result['errors'] : #HERE
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
         
@@ -289,8 +414,14 @@ async def vc_endpoint(id, red):
         red.publish('altme-identity', data)
         red.delete(id)"""
         # cerdential sent to wallet
+        event_data = json.dumps({"type": "altmeTransfered", "id": id})
+        red.publish('verifier', event_data)
         return jsonify(signed_credential)
 
 
 if __name__ == '__main__':
    app.run(host="localhost", port=3000, debug=True)
+
+#qr code
+#followup
+#api link
