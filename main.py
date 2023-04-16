@@ -352,6 +352,8 @@ async def get_qrcode(id, red):
 
 @app.route('/id360/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
 async def vc_endpoint(id, red):  
+    await loginID360()
+
     dossier= await get_dossier(pickle.loads(red.get(id))["idDossier"])
     print(dossier["extracted_data"])
     credential = json.load(open('VerifiableId.jsonld', 'r'))
