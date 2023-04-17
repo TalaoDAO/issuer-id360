@@ -152,8 +152,8 @@ def login(id):
 
     id = id
     pattern = DIDAuth
-    pattern['challenge'] = id
-    pattern['domain'] = mode.server
+    #pattern['challenge'] = id
+    #pattern['domain'] = mode.server
     red.set(id,  json.dumps(pattern))
     url = mode.server+'/id360/endpoint/' + id + '?issuer=' + did_verifier+"&callback="+site_callback
 
@@ -193,7 +193,10 @@ async def presentation_endpoint(id, red):
         print(request.form['presentation'])
         try:
             #result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-            result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
+            result = json.loads(await didkit.verify_presentation(request.form['presentation'], 
+                                                                 #json.dumps({"challenge": id, "domain": mode.server})
+                                                                 '{}'
+                                                                 ))
             print(result)
             result = False
         except:
