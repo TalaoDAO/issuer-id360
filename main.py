@@ -192,8 +192,8 @@ async def presentation_endpoint(id, red):
         print(request)
         print(request.form['presentation'])
         try:
-            result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-            #result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
+            #result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+            result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
             print(result)
             result = False
         except:
@@ -396,7 +396,8 @@ async def vc_endpoint(id, red):
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
-        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+        print(request.form['presentation'])
+        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
         if presentation_result['errors'] : #HERE
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
