@@ -114,7 +114,7 @@ async def get_dossier(id):
     response = requests.get(
         'https://preprod.id360docaposte.com/api/1.0.0/enrollment/'+str(id)+'/report/', headers=headers)
     print("dossier "+str(id)+" :")
-    print(response)
+    #print(response)
     return (response.json())
 
 @app.route('/id360/get_link')
@@ -144,11 +144,11 @@ def login(id):
         site_callback = request.args['callback']
     except KeyError:
         print("KeyError")
-    try:
+    """try:
         if red.get(id).decode()!="True":
             return jsonify("invalid link"),403
     except:
-        return jsonify("invalid link"),403
+        return jsonify("invalid link"),403"""
 
     id = id
     pattern = DIDAuth
@@ -189,7 +189,7 @@ async def presentation_endpoint(id, red):
 
     if request.method == 'POST':
         # red.delete(id)
-        print(request)
+        #print(request)
         print(request.form['presentation'])
         try:
             #result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
@@ -290,7 +290,7 @@ async def id360callback(id, red):
     idDossier = pickle.loads(red.get(id))["idDossier"]
     did = pickle.loads(red.get(id))["did"]
     dossier = await get_dossier(idDossier)
-    print(dossier)
+    #print(dossier)
     if(dossier["status"]!="OK"):
         url = pickle.loads(red.get(id))["callback"]+"/400"
         event_data = json.dumps({"type": "callbackErr", "id": id, "url": url})
@@ -308,7 +308,7 @@ async def get_qrcode(id, red):
     idDossier = pickle.loads(red.get(id))["idDossier"]
     did = pickle.loads(red.get(id))["did"]
     dossier = await get_dossier(idDossier)
-    print(dossier)
+    #print(dossier)
     if pickle.loads(red.get(id))["first"] == True:
         try:
             with sql.connect("database.db") as con:
@@ -358,7 +358,7 @@ async def vc_endpoint(id, red):
     await loginID360()
 
     dossier= await get_dossier(pickle.loads(red.get(id))["idDossier"])
-    print(dossier["extracted_data"])
+    #print(dossier["extracted_data"])
     credential = json.load(open('VerifiableId.jsonld', 'r'))
 
     credential["issuer"] = issuer_did 
@@ -396,22 +396,20 @@ async def vc_endpoint(id, red):
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
-        print("request.form['presentation']")
         print(request.form['presentation'])
-        print("request.form['presentation']")
-        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
+        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
         if presentation_result['errors'] : #HERE
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
-        
-        logging.info('credential = %s', credential)
+        print(presentation_result)
+        #logging.info('credential = %s', credential)
 
         # credential signature 
         didkit_options = {
             "proofPurpose": "assertionMethod",
             "verificationMethod": issuer_vm
             }
-        print(credential)
+        #print(credential)
         signed_credential =  await didkit.issue_credential(
                 json.dumps(credential),
                 didkit_options.__str__().replace("'", '"'),
