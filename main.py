@@ -190,6 +190,7 @@ async def presentation_endpoint(id, red):
     if request.method == 'POST':
         # red.delete(id)
         print(request)
+        print(request.form['presentation'])
         try:
             result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
             #result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
