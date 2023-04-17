@@ -288,6 +288,7 @@ async def id360callback(id, red):
     idDossier = pickle.loads(red.get(id))["idDossier"]
     did = pickle.loads(red.get(id))["did"]
     dossier = await get_dossier(idDossier)
+    print(dossier)
     if(dossier["status"]!="OK"):
         url = pickle.loads(red.get(id))["callback"]+"/400"
         event_data = json.dumps({"type": "callbackErr", "id": id, "url": url})
@@ -310,10 +311,9 @@ async def get_qrcode(id, red):
         try:
             with sql.connect("database.db") as con:
                 cur = con.cursor()
-                cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",
-                            (did, dossier["status"], idDossier))
+                cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",(did, dossier["status"], idDossier))
                 con.commit()
-                msg = "kyc successfully added"
+                loggin.info("kyc successfully added")
         except sql.Error as er: 
             print('SQLite error: %s' % (' '.join(er.args)))
             print("Exception class is: ", er.__class__)
@@ -323,7 +323,6 @@ async def get_qrcode(id, red):
 
         finally:
             con.close()
-            logging.info("msg db %s", str(msg))
     else:
         try:
             with sql.connect("database.db") as con:
