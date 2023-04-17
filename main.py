@@ -191,7 +191,8 @@ async def presentation_endpoint(id, red):
         # red.delete(id)
         print(request)
         try:
-            result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
+            result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+            #result = json.loads(await didkit.verify_presentation(request.form['presentation'], json.dumps({"challenge": id, "domain": mode.server})))
             print(result)
             result = False
         except:
@@ -313,7 +314,7 @@ async def get_qrcode(id, red):
                 cur = con.cursor()
                 cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",(did, dossier["status"], idDossier))
                 con.commit()
-                loggin.info("kyc successfully added")
+                logging.info("kyc successfully added")
         except sql.Error as er: 
             print('SQLite error: %s' % (' '.join(er.args)))
             print("Exception class is: ", er.__class__)
@@ -347,6 +348,8 @@ async def get_qrcode(id, red):
 
     except TypeError:
         return jsonify({"url":"not yet"}),200
+    except KeyError:
+        return jsonify({"url":"error"}),500
 
 
 @app.route('/id360/issuer_endpoint/<id>', methods = ['GET','POST'],  defaults={'red' : red})
