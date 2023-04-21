@@ -10,7 +10,7 @@
     <nav class=" nav-02 ">
         <div class="nav-02__box">
             <div class="nav-02__logo"><a class="nav-02__link" href="https://altme.io/" target="_self">
-                    <img loading="lazy" class="nav-02__logo_img" src="/static/altmeIcon.png" height="70" alt="Logo" />
+                    <img loading="lazy" class="nav-02__logo_img" src="/id360/static/altmeIcon.png" height="70" alt="Logo" />
                 </a></div>
 
             <div class="nav-02__list_wrapper  ">
@@ -62,7 +62,7 @@
         <div id="progressBox">
             <p id="inProgress">In progress</p>
             <p id="yourId">Your ID verification is in progress, please come back in a few minutes. </p>
-            <img id="folder" src="/static/folder.png">
+            <img id="folder" src="/id360/static/folder.png">
         </div>
     </div>
     <!--<div id="qrcode"></div>-->
@@ -81,12 +81,12 @@
                         <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--twitter"
                                 href="https://twitter.com/Altme_io" target="_blank"><img loading="lazy"
                                     class="social-buttons__icon" alt="twitter icon"
-                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/twitter.svg" /></a>
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/id360/static/img/icons/social/black/twitter.svg" /></a>
                         </div>
                         <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--linkedin"
                                 href="https://www.linkedin.com/company/altme-web3/" target="_blank"><img loading="lazy"
                                     class="social-buttons__icon" alt="linkedin icon"
-                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/linkedin.svg" /></a>
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/id360/static/img/icons/social/black/linkedin.svg" /></a>
                         </div>
 
                     </div>
@@ -150,13 +150,13 @@
             let arrow=document.createElement("img")
             document.getElementById("newBox").appendChild(arrow);
             arrow.setAttribute('id','arrowImg')
-            arrow.setAttribute('src','/static/Arrow-right.png')
+            arrow.setAttribute('src','/id360/static/Arrow-right.png')
 
 
             let card=document.createElement("img")
             document.getElementById("newBox").appendChild(card);
             card.setAttribute('id','card')
-            card.setAttribute('src','/static/card.png')
+            card.setAttribute('src','/id360/static/card.png')
             new QRCode(document.getElementById("qrcode"), url)
 
             document.getElementById("inProgress").innerHTML="Your ID has been verified !"
