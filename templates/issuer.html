@@ -2,17 +2,101 @@
 
 <head>
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
 
 <body>
-    <p>Step 3 : Scan this qrcode with your Altme wallet and get your KYC card</p>
-    <div id="qrcode"></div>
+    <nav class=" nav-02 ">
+        <div class="nav-02__box">
+            <div class="nav-02__logo"><a class="nav-02__link" href="https://altme.io/" target="_self">
+                    <img loading="lazy" class="nav-02__logo_img" src="/static/altmeIcon.png" height="70" alt="Logo" />
+                </a></div>
+
+            <div class="nav-02__list_wrapper  ">
+                <div class="nav-02__list nav-02__list--desktop">
+                    <div class="nav-02__item">
+                        <a class="button   button--black-outline  button--empty "
+                            href="https://altme.io/#slider-07-879531" target="_self">
+                            <p class="linkP"> Wallet features
+                            </p>
+                        </a>
+                    </div>
+                    <div class="nav-02__item" id="newsNav">
+                        <a class="button   button--black-outline  button--empty "
+                            href="https://altme.io/#posts-05-876621" target="_self">
+                            <p class="linkP">News</p>
+
+                        </a>
+                    </div>
+                    <div class="nav-02__item" id="roadmapNav">
+                        <a href="https://altme.io/#features-09-390941" target="_self">
+                            <p class="linkP">Roadmap</p>
+
+                        </a>
+                    </div>
+                    <div class="nav-02__item" id="faqNav">
+                        <a class="button   button--black-outline  button--empty " href="#superFaq" target="_self">
+                            <p class="linkP">FAQ</p>
+                        </a>
+                    </div>
+                    <div class="nav-02__item">
+
+                        <a data-stripe-product-id="" data-stripe-mode="payment" data-successful-payment-url=""
+                            data-cancel-payment-url="" class="button button--accent-bg "
+                            href="/cdn-cgi/l/email-protection#e094888985929299a0818c948d85ce898f" target="_blank">
+                            <div class="contactSpan">
+                                <p class="contactP">Contact</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </nav>
+    <div id="mainBox">
+        <div id="progressBox">
+            <p id="inProgress">In progress</p>
+            <p id="yourId">Your ID verification is in progress, please come back in a few minutes. </p>
+            <img id="folder" src="/static/folder.png">
+        </div>
+    </div>
+    <!--<div id="qrcode"></div>-->
+    <div class="bg-white-color ">
+        <footer class="footer-02" id="footer">
+            <div class="container">
+                <div class="footer-02__wrapper">
+                    <div class="footer-02__text content_box">
+                        <p id="line1Footer">&copy; 2022&nbsp; TALAO - Altme All rights reserved, <a
+                                href="https://altme.io/cgu/" target="_blank">CGU</a>, <a
+                                href="https://altme.io/privacy/" target="_blank">Privacy</a></p>
+                        <p id="line2Footer" hidden><strong>Built with TzKT API, Spruce Didkit 0.4.0</strong>&nbsp;</p>
+                    </div>
+                    <div class="social-buttons  ">
+
+                        <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--twitter"
+                                href="https://twitter.com/Altme_io" target="_blank"><img loading="lazy"
+                                    class="social-buttons__icon" alt="twitter icon"
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/twitter.svg" /></a>
+                        </div>
+                        <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--linkedin"
+                                href="https://www.linkedin.com/company/altme-web3/" target="_blank"><img loading="lazy"
+                                    class="social-buttons__icon" alt="linkedin icon"
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/linkedin.svg" /></a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
     <script>
         var qrcodeGen = false;
-        fetch("/id360/get_qrcode/{{id}}").then((res) => {
-
-            //new QRCode(document.getElementById("qrcode"), res.url);
-            //window.location.href = res.url;
+        fetch("/id360/get_qrcode/{{code}}").then((res) => {
             res.json().then(temp => {
                 if (temp.url === "error") {
                     window.location.href = "https://{{callback}}/400"
@@ -21,49 +105,64 @@
                     return
                 }
                 else {
-                    console.log(temp);
-                    if (!qrcodeGen) { new QRCode(document.getElementById("qrcode"), temp.url);qrcodeGen=true }
+                    if (!qrcodeGen) { displayQrCode(temp.url); qrcodeGen = true }
                 }
             })
 
 
         })
-        var source = new EventSource('/id360/verifier_stream');
+        var source = new EventSource('/id360/qr_code_stream');
         source.onmessage = function (event) {
             const result = JSON.parse(event.data);
             console.log(result)
-
-
             if (result.type === "callback") {
-                if (result.id === '{{id}}') {
-                    if (!qrcodeGen) { new QRCode(document.getElementById("qrcode"), result.url); qrcodeGen=true}
-                    //window.location.href = result.url;
+                if (result.code === '{{code}}') {
+                    if (!qrcodeGen) { displayQrCode(result.url); qrcodeGen = true }
                 }
-                /*else {
-                    window.location.href = "/error/";
-                }*/
             }
             if (result.type === "callbackErr") {
-                if (result.id === '{{id}}') {
+                if (result.code === '{{code}}') {
                     console.log(result.url)
                     window.location.href = "https://" + result.url;
                 }
-                /*else {
-                    window.location.href = "/error/";
-                }*/
-            }
-            if (result.type === "altmeTransfered") {
-                if (result.id === '{{id}}') {
-                    
-                    window.location.href = "https://{{callback}}/200";
-                }
-                /*else {
-                    window.location.href = "/error/";
-                }*/
             }
         };
+        var source = new EventSource('/id360/issuer_stream');
+        source.onmessage = function (event) {
+            const result = JSON.parse(event.data);
+            console.log(result)
+            if (result.code === '{{code}}') {
+
+                window.location.href = "https://{{callback}}/200"; //route => args
+            }
+        }
+        function displayQrCode(url){
+            let element = document.getElementById('folder');
+            element.remove();
+            let newBox=document.createElement("div")
+            document.getElementById("progressBox").appendChild(newBox);
+            newBox.setAttribute('id','newBox')
+
+            let qrcode=document.createElement("div")
+            document.getElementById("newBox").appendChild(qrcode);
+            qrcode.setAttribute('id','qrcode')
+
+            let arrow=document.createElement("img")
+            document.getElementById("newBox").appendChild(arrow);
+            arrow.setAttribute('id','arrowImg')
+            arrow.setAttribute('src','/static/Arrow-right.png')
 
 
+            let card=document.createElement("img")
+            document.getElementById("newBox").appendChild(card);
+            card.setAttribute('id','card')
+            card.setAttribute('src','/static/card.png')
+            new QRCode(document.getElementById("qrcode"), url)
+
+            document.getElementById("inProgress").innerHTML="Your ID has been verified !"
+            document.getElementById("yourId").innerHTML="Scan this final QR code with Altme to get your ID"
+            document.getElementById("yourId").setAttribute("id","ScanToGet")
+        }
     </script>
 </body>
 
