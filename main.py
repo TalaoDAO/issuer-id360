@@ -196,7 +196,7 @@ async def presentation_endpoint(code, red):
                                                                  '{}'
                                                                  ))
             print(result)
-            result = False
+            result['errors'] = []
         except:
             event_data = json.dumps({"code": code,
                                     "check": "ko",
@@ -421,7 +421,7 @@ async def vc_endpoint(code, red):
             return jsonify('Unauthorized'), 401
         print(request.form['presentation'])
         presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-        presentation_result['errors']=False
+        presentation_result['errors']=[]
         if presentation_result['errors'] : #HERE
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
@@ -451,6 +451,10 @@ async def vc_endpoint(code, red):
         red.publish('issuer', event_data) 
         return jsonify(signed_credential)
 
+@app.route('/id360/static/<filename>',methods=['GET'])
+def serve_static(filename):
+    logging.info(filename)
+    return send_file('./static/'+filename, download_name=filename)
 
 if __name__ == '__main__':
    app.run(host="localhost", port=3000, debug=True)
