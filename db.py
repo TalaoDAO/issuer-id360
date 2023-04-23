@@ -4,23 +4,26 @@ import logging
 import traceback
 import sys
 
-def test_api_key(api_key):
+DATABASE_NAME = 'issuer_database.db'
+
+def test_api_key(client_id, client_secret):
+    if not isinstance(client_id, str) or not isinstance(client_secret, str) :
+        return False
     try:
-            with sql.connect("database.db") as con: #args : client code , vc , apiKey in headers
-                cur = con.cursor()
-                cur.execute("select * from customers where apiKey='" +api_key+"'")
-                customer = cur.fetchone()
-                if not customer:
-                    return False
-                return True
+        con = sql.connect(DATABASE_NAME) 
+        cur = con.cursor()
+        request = "select * from customers where client_secret='" + client_secret + "' and client_id='" + client_id + "'"
+        cur.execute(request)
+        data = cur.fetchone()
+        con.close()
+        return data
     except sql.Error as er:
-            logging.error('SQLite error: %s', ' '.join(er.args))
-    finally:
-            con.close()
+        logging.error('Database error: %s', ' '.join(er.args))
+        con.close()
 
 def get_user_kyc(did):
     try: 
-            with sql.connect("database.db") as con: #rajouter date kyc dans la table
+            with sql.connect(DATABASE_NAME) as con: #rajouter date kyc dans la table
                 cur = con.cursor()
                 cur.execute("select * from kycs where did='" +did+"'")
                 return cur.fetchone() 
@@ -28,9 +31,11 @@ def get_user_kyc(did):
             logging.error('SQLite error: %s', ' '.join(er.args))
     finally:
             con.close()
+
+
 def insert_kyc(did,status,id_dossier):
     try:
-            with sql.connect("database.db") as con:
+            with sql.connect(DATABASE_NAME) as con:
                 cur = con.cursor()
                 cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",(did,status,id_dossier))
                 con.commit()
@@ -44,9 +49,11 @@ def insert_kyc(did,status,id_dossier):
 
     finally:
             con.close()
+
+
 def update_kyc(did,status,id_dossier):
     try:
-            with sql.connect("database.db") as con:
+            with sql.connect(DATABASE_NAME) as con:
                 cur = con.cursor()
                 print("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 cur.execute("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")

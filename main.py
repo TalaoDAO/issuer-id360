@@ -1,6 +1,12 @@
+"""
+Issuer for ID360
+
+Flow is available at https://swimlanes.io/u/LHNjN55XM
+
+"""
 import requests
 import json
-from flask import Flask, render_template, request, jsonify, redirect, session, Response, send_file
+from flask import Flask, render_template, request, jsonify, Response, send_file
 from flask_qrcode import QRcode
 import didkit
 import os
@@ -11,32 +17,22 @@ import time
 from datetime import datetime, timedelta
 import logging
 import pickle
-import traceback
-import sys
 import random
 import string
 import db
 import ciso8601
 
-issuer_key = json.dumps(json.load(open("keys.json", "r"))[
-                        'talao_Ed25519_private_key'])
-username=json.load(open("keys.json", "r"))['username']
-password=json.load(open("keys.json", "r"))['password']
-issuer_vm = "did:web:app.altme.io:issuer#key-1"
-issuer_did = "did:web:app.altme.io:issuer"
-token = ""
-parcours_PVID = "da73f56e-ec1f-44c0-a275-ba98e25fdc6c"
-parcours_non_substantiel = "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"
-app = Flask(__name__)
-app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
-qrcode = QRcode(app)
-
-myenv = os.getenv('MYENV')
-if not myenv:
-    myenv = 'thierry'
-myenv = "achille"
-mode = environment.currentMode(myenv)
-red = redis.Redis(host='127.0.0.1', port=6379, db=0)
+ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
+TALAO_USERNAME = json.load(open("keys.json", "r"))['username']
+TALAO_PASSWORD = json.load(open("keys.json", "r"))['password']
+ISSUER_VM = "did:web:app.altme.io:issuer#key-1"
+ISSUER_DID = "did:web:app.altme.io:issuer"
+CREDENTIAL_LIFE = 360 # in days
+AUTHENTICATION_DELAY = 600 # in seconds
+CODE_LIFE = 600 # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
+QRCODE_AUTHENTICATION_LIFE = 600
+JOURNEY = "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a" # SVID
+ID360_URL = 'https://preprod.id360docaposte.com/'
 DIDAuth = {
     "type": "VerifiablePresentationRequest",
     "query": [
@@ -44,39 +40,52 @@ DIDAuth = {
             "type": "DIDAuth"
         }
     ],
-    "challenge": "",
-    "domain": ""
 }
 
+app = Flask(__name__)
+app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
+qrcode = QRcode(app)
+myenv = os.getenv('MYENV')
+if not myenv:
+    myenv = 'thierry'
+myenv = "achille"
+mode = environment.currentMode(myenv)
+red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
-async def loginID360():
+
+def loginID360():
+    """
+    ID360 API call for login
+    return token if ok False if not
+    """
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',
     }
     json_data = {
-        'username': username, 
-        'password': password,
+        'username': TALAO_USERNAME, 
+        'password': TALAO_PASSWORD,
     }
-    response = requests.post(
-        'https://preprod.id360docaposte.com/api/1.0.0/user/login/', headers=headers, json=json_data) #stocker route variable
+    response = requests.post(ID360_URL + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     if response.status_code==200:
-        token = response.json()["token"]
-        return token
+        return response.json()["token"]
     else:
         logging.error(response.json())
 
 
-async def create_dossier(code,token): 
-    print("creating dossier with token "+token)
+def create_dossier(code,token): 
+    """
+    ID360 API call to create dossier on ID360
+    """
+    logging.info("creating dossier with token %s", token)
     headers = {
         'accept': 'application/json',
-        'Authorization': 'Token '+token,
+        'Authorization': 'Token ' + token,
         'Content-Type': 'application/json',
     }
     json_data = {
-        'callback_url': mode.server+'/id360/callback_id360/'+code,
-        'browser_callback_url': mode.server+'/id360/issuer/'+code,
+        'callback_url': mode.server+'/id360/callback_id360/' + code,
+        'browser_callback_url': mode.server+'/id360/issuer/' + code,
         'client_reference': 'any_string',
         'callback_headers': {
             'header_name_1': code,
@@ -84,126 +93,150 @@ async def create_dossier(code,token):
         },
     }
     response = requests.post(
-        'https://preprod.id360docaposte.com/api/1.0.0/process/' +
-            parcours_non_substantiel+'/enrollment/',
+        ID360_URL + 'api/1.0.0/process/' + JOURNEY + '/enrollment/',
         headers=headers,
         json=json_data,
     )
     if response.status_code==200:
-        print(response.json())
+        logging.info(response.json())
         id_dossier = response.json()["id"]
         temp_dict = pickle.loads(red.get(code))
         temp_dict["id_dossier"] = id_dossier
-        red.setex(code, 600, pickle.dumps(temp_dict))  
+        red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))  
 
         api_key = response.json()["api_key"]
-        link_ui = "https://preprod.id360docaposte.com/static/process_ui/index.html#/enrollment/"+api_key
-        return link_ui
+        return ID360_URL + 'static/process_ui/index.html#/enrollment/' + api_key
     else:
         logging.error(response.json())
 
 
-async def get_dossier(id_dossier,token):
+def get_dossier(id_dossier,token):
+    """
+    ID360 API call to get user data
+    
+    """
     headers = {
         'accept': 'application/json',
-        'Authorization': 'Token '+token,
+        'Authorization': 'Token ' + token,
     }
-    print(id_dossier)
-    response = requests.get('https://preprod.id360docaposte.com/api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
-    if response.status_code==200:
-        print("dossier "+str(id_dossier)+" :")
-        print(response.json())
+    response = requests.get(ID360_URL + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
+    if response.status_code == 200:
+        logging.info("dossier %s : %s", str(id_dossier), response.json())
         return response.json()
     else:
-        logging.error("error requesting dossier")
-        print(response.status_code)
+        logging.error("error requesting dossier status : %s", response.status_code)
         print(response.json())
 
-characters = string.digits+string.ascii_lowercase
+
 def code_generator():
-    code = ''.join(random.choice(characters) for i in range(6))
-    return code
+    """
+    Utils, generate a code of 6 caracteres
+    """
+    characters = string.digits+string.ascii_lowercase
+    return ''.join(random.choice(characters) for i in range(6))
+
 
 @app.route('/id360/get_code')
 def get_code():
     """
-    curl https:talao.co/id360/get_code -H "apiKey":<your_api_key>
+    This the first call customer side to get its code
+
+    curl https://talao.co/id360/get_code?client_id=<client_id> -H "apiKey":<your_api_key>
     returns {"code": <code>} 200
+
     the code returned is useful for one session for one user to get one credential
-    returns {"error": <error_description>} 403 
+    returns {"error": <error_description>} with status code
     if an error occured
     """
-    api_key=request.headers['apiKey']
-    if db.test_api_key(api_key)==False or type(api_key)!=str:
-        return jsonify({"code":"error"}),403
-
+    client_secret = request.headers.get('apiKey')
+    client_id = request.args.get('client_id')
+    if not client_id or not client_secret :
+        return jsonify("Incorrect API call"),400
+    if not db.test_api_key(client_id, client_secret) :
+        return jsonify("client not found"),404
     code = code_generator() 
-    red.setex(code,600,  "True") 
-    return jsonify({"code":code}),200 
+    red.setex(code, CODE_LIFE, 'True')
+    return jsonify({"code":code})
     
 
-@app.route('/id360/authenticate/<code>') #authenticate gerer session
+@app.route('/id360/authenticate/<code>') 
 def login(code):
-    """construciton url + description args + verifier liste callback"""
+    """
+    To redirect user to QRcode for wallet authentication
 
+    construciton url + description args + verifier liste callback"""
     try:
         site_callback = request.args['callback']
         client_id = request.args['client_id']
         vc_type = request.args['vc_type']
     except KeyError:
         logging.warning("KeyError in /authenticate")
-    """try:
-        if red.get(code).decode()!="True":
+    """
+    try:
+        if red.get(code).decode() != "True":
             return jsonify("invalid link"),403
     except:
-        return jsonify("invalid link"),403"""
+        return jsonify("invalid link"),403
+    """
+    # for thierry testing only
+    #site_callback = "test"  # for testing only
+    #client_id = "1"  # for testing only
+    #vc_type = "verifiableid"  # for testing only
+    # http://192.168.0.187:5000/id360/authenticate/111111
 
-    #pattern['challenge'] = code
-    #pattern['domain'] = mode.server
-    red.setex(code,600, pickle.dumps ({"pattern":json.dumps(DIDAuth),"callback":site_callback,"client_id":client_id,"vc_type":vc_type})) 
+    DIDAuth['challenge'] = str(uuid.uuid1())
+    DIDAuth['domain'] = mode.server
+    red.setex(code,QRCODE_AUTHENTICATION_LIFE, pickle.dumps ({
+        "pattern":json.dumps(DIDAuth),
+        "site_callback":site_callback,
+        "client_id":client_id,
+        "vc_type":vc_type
+    })) 
     url = mode.server+'/id360/endpoint/' + code
-    print(site_callback)
     return render_template("login.html", url=url, code=code)
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red}) 
 def issuer(code, red):
-    print(pickle.loads(red.get(code)))
-    return render_template("issuer.html", code=code,callback=pickle.loads(red.get(code))["callback"])
+    """
+    This is the call back for browser
+    """
+    try :
+        site_callback = pickle.loads(red.get(code))['site_callback']
+    except :
+        # TODO
+        logging.warning("delay expired to get the browser callback")
+        pass
+    return render_template("issuer.html", code=code,callback=site_callback)
 
 
 @app.route('/id360/endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
 async def presentation_endpoint(code, red):
-    """description fonction"""
-    try:
-        my_pattern = json.loads(pickle.loads(red.get(code))["pattern"])
-    except:
-        event_data = json.dumps({"code": code,
-                                 "message": "redis decode failed",
-                                 "check": "ko",
-                                     "type": "login","url":pickle.loads(red.get(code))["callback"]})
-        red.publish('verifier', event_data)
-        return jsonify("server error"), 500 
-
+    """
+    This used to authenticate the wallet
+    Protocol is defined here https://w3c-ccg.github.io/vp-request-spec/#did-authentication
+    This protocol is between the backend of the issuer and the wallet
+    """
     if request.method == 'GET':
+        try:
+            my_pattern = pickle.loads(red.get(code))["pattern"]
+        except:
+            event_data = json.dumps({"code": code,
+                                "message": "redis decode failed",
+                                "check": "ko",
+                                "type": "login","url":pickle.loads(red.get(code))["site_callback"]})
+            red.publish('verifier', event_data)
+            return jsonify("server error"), 500
         return jsonify(my_pattern)
 
     if request.method == 'POST':
-        print(request.form['presentation'])
-        try:
-            result = json.loads(await didkit.verify_presentation(request.form['presentation'], 
-                                                                 #json.dumps({"challenge": code, "domain": mode.server}) #verifier didkit version
-                                                                 '{}'
-                                                                 ))
-            print(result)
-            result['errors'] = []
-        except:
-            event_data = json.dumps({"code": code,
-                                    "check": "ko",
-                                     "message": "presentation is not correct",
-                                     "type": "login"})
-            red.publish('verifier', event_data)
-            return jsonify("presentation is not correct"), 403
+        # create the ID360 token for this journey
+        token = loginID360()
+        if not token :
+            pass # TODO
+        result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+        logging.info('result fo didkit verify = %s',  result['errors'])
+        result['errors'] = [] # FIXME 
         if result['errors']:
             event_data = json.dumps({"code": code,
                                     "check": "ko",
@@ -211,40 +244,38 @@ async def presentation_endpoint(code, red):
                                      "type": "login"})
             red.publish('verifier', event_data)
             return jsonify(result), 403
+        # update of code in redis with same delay, we add the ID360 token just created
         temp_dict = pickle.loads(red.get(code))
         temp_dict["did"]=json.loads(request.form['presentation'])["holder"]
-        red.setex(code,600,  pickle.dumps(temp_dict)) #setex
-        print(pickle.loads(red.get(code))["callback"])
-
-        kyc=db.get_user_kyc(pickle.loads(red.get(code))["did"])
-        if (not kyc  or kyc[1] == "KO"):
+        temp_dict['token'] = token
+        red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) 
+        kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
+        if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
             if not kyc:
                 temp_dict["first"] = True 
             else:
                 temp_dict["first"] = False
-            print(temp_dict["first"])
-            red.setex(code,600,  pickle.dumps(temp_dict)) #setex
-            token = await loginID360()
-            link = await create_dossier(code,token)
+            red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
+            # we create the dossier for user
+            link = create_dossier(code,token)
             event_data = json.dumps({"code": code,
                                         "message": "presentation is verified",
                                         "check": "ok",
                                         "link": link,
                                         "type": "login"
                                         })
-            print("sent "+link)
+            logging.info("sent with link = %s", link)
             red.publish('verifier', event_data)
-
-            return jsonify("ok"), 200
+            return jsonify("ok")
         elif kyc[1] == "OK":
             temp_dict = pickle.loads(red.get(code))
-            temp_dict["did"]=json.loads(request.form['presentation'])["holder"]
-            temp_dict["id_dossier"]=kyc[2] 
-            temp_dict["first"]=False
-            """red.setex(code,600,pickle.dumps({"did": json.loads(request.form['presentation'])[
+            temp_dict["did"] = json.loads(request.form['presentation'])["holder"]
+            temp_dict["id_dossier"] = kyc[2] 
+            temp_dict["first"] = False
+            """red.setex(code,CODE_LIFE ,pickle.dumps({"did": json.loads(request.form['presentation'])[
                     "holder"], "id_dossier": kyc[2], "first": False}))"""
-            red.setex(code,600,pickle.dumps(temp_dict))
+            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             event_data = json.dumps({"code": code,
                                         "message": "presentation is verified",
                                         "check": "ok",
@@ -252,15 +283,11 @@ async def presentation_endpoint(code, red):
                                         "type": "login"
                                         })
             red.publish('verifier', event_data)
-
-            print("sent "+mode.server+"/id360/issuer/"+code)
             return jsonify("ok"), 200  
 
 
 @app.route('/id360/verifier_stream', methods=['GET'],  defaults={'red': red})
 def presentation_stream(red):
-    logging.info("stream subscription")
-
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('verifier')
@@ -272,10 +299,9 @@ def presentation_stream(red):
                 "X-Accel-Buffering": "no"}
     return Response(event_stream(red), headers=headers)
 
+
 @app.route('/id360/qr_code_stream', methods=['GET'],  defaults={'red': red})
 def qr_code_stream(red):
-    logging.info("stream subscription")
-
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('qr_code')
@@ -287,10 +313,9 @@ def qr_code_stream(red):
                 "X-Accel-Buffering": "no"}
     return Response(event_stream(red), headers=headers)
 
+
 @app.route('/id360/issuer_stream', methods=['GET'],  defaults={'red': red})
 def issuer_stream(red):
-    logging.info("stream subscription")
-
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('issuer')
@@ -302,115 +327,116 @@ def issuer_stream(red):
                 "X-Accel-Buffering": "no"}
     return Response(event_stream(red), headers=headers)
 
+
 @app.route('/id360/callback_id360/<code>', methods=['GET', 'POST'],  defaults={'red': red}) 
-async def id360callback(code, red):
-    logging.info("reception of id360 callback for "+code)
-    token = await loginID360()
+def id360callback(code, red):
+    """
+    Callback route for ID360
+    """
+    logging.info("reception of id360 callback for %s", code)
+    token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
-    dossier = await get_dossier(id_dossier,token)
-    #print(dossier)
-    birth_date=dossier["extracted_data"]["identity"][0]["birth_date"]
-    #birth_date=birth_date.replace("-","/")
+    logging.info('callback for wallet DID = %s', did)
+    dossier = get_dossier(id_dossier,token)
+    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+    if not birth_date :
+        # TODO
+        pass
     timestamp = ciso8601.parse_datetime(birth_date)
     # to get time in seconds:
     timestamp=time.mktime(timestamp.timetuple())
     now= time.time()
     vc_type = pickle.loads(red.get(code))["vc_type"]
-
     if(dossier["status"]!="OK" or (vc_type=="Over18" and (now-timestamp)<31556926*18 )):
-        url = pickle.loads(red.get(code))["callback"]+"/400"
+        url = pickle.loads(red.get(code))["site_callback"] + "/400"
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
-        return jsonify("ok"), 200
-    url = mode.server+"/id360/issuer_endpoint/"+code
+        return jsonify("ok")
+    url = mode.server+"/id360/issuer_endpoint/" + code
     event_data = json.dumps({"type": "callback", "code": code, "url": url})
     red.publish('qr_code', event_data) 
-    return jsonify("ok"), 200
+    return jsonify("ok")
 
 
 @app.route('/id360/get_qrcode/<code>', methods=['GET'],  defaults={'red': red})
-async def get_qrcode(code, red):
-    token = await loginID360()
+def get_qrcode(code, red):
+    """
+    TODO
+    ?????
+    """
+    token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
-    dossier = await get_dossier(id_dossier,token)
-    print(dossier)
-    birth_date=dossier["extracted_data"]["identity"][0]["birth_date"]
-    #birth_date=birth_date.replace("-","/")
+    dossier = get_dossier(id_dossier,token)
+    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+    # TODO if birthdate == None
     timestamp = ciso8601.parse_datetime(birth_date)
     # to get time in seconds:
-    timestamp=time.mktime(timestamp.timetuple())
-    now= time.time()
-    print(timestamp)
-    print(now)
-    print(now-timestamp)
-    print((now-timestamp)>31556926*18)
+    timestamp = time.mktime(timestamp.timetuple())
+    now = time.time()
     if pickle.loads(red.get(code))["first"] == True:
         db.insert_kyc(did, dossier["status"], id_dossier)
     else:
         db.update_kyc(did, dossier["status"], id_dossier)
     try:
-        if(dossier["status"]=="OK" ): #or dossier["status"]=="KO"
-            if(vc_type=="Over18" and (now-timestamp)>31556926*18 ) or vc_type!="Over18":
-                return jsonify({"url":mode.server+"/id360/issuer_endpoint/"+code}),200
+        if(dossier["status"] == "OK" ): #or dossier["status"]=="KO"
+            if(vc_type=="Over18" and (now-timestamp)>31556926*18 ) or vc_type != "Over18":
+                return jsonify({"url" : mode.server+"/id360/issuer_endpoint/" + code})
         else:
-            return jsonify({"url":"error"}),200
-
+            return jsonify({"url":"error"})
     except TypeError:
-        return jsonify({"url":"not yet"}),200
+        return jsonify({"url":"not yet"})
     except KeyError:
         return jsonify({"url":"error"}),500
 
 
 @app.route('/id360/issuer_endpoint/<code>', methods = ['GET','POST'],  defaults={'red' : red})
 async def vc_endpoint(code, red):  
-    """gere type=vc"""
-    vc_type=pickle.loads(red.get(code))["vc_type"]
-    token = await loginID360()
+    """
+    Issuer for verifiableID and Over18 JSON-LD credentials
+    Flow is available here https://swimlanes.io/u/XAjNWWtYC
 
-    dossier= await get_dossier(pickle.loads(red.get(code))["id_dossier"],token)
-    #print(dossier["extracted_data"])
+    """
+    vc_type=pickle.loads(red.get(code))["vc_type"]
+    token = pickle.loads(red.get(code))["token"]
+    dossier= get_dossier(pickle.loads(red.get(code))["id_dossier"],token)
     if vc_type=="VerifiableId":
-        credential = json.load(open('VerifiableId.jsonld', 'r'))
+        credential = json.load(open('./verifiable_credentials/VerifiableId.jsonld', 'r'))
         credential["credentialSubject"]["familyName"]=dossier["extracted_data"]["identity"][0]["name"]
         credential["credentialSubject"]["firstName"]=dossier["extracted_data"]["identity"][0]["first_names"][0]
-        credential["credentialSubject"]["dateOfBirth"]=dossier["extracted_data"]["identity"][0]["birth_date"] #gerer infos disponibles
+        credential["credentialSubject"]["dateOfBirth"]=dossier["extracted_data"]["identity"][0].get("birth_date", "Not available") #gerer infos disponibles
+        # TODO add other data if available
     if vc_type=="Over18":
-        credential = json.load(open('Over18.jsonld', 'r'))
-        credential["credentialSubject"]["kycProvider"]="id360"
+        credential = json.load(open('./verifiable_credentials/Over18.jsonld', 'r'))
+        credential["credentialSubject"]["kycProvider"]="ID360"
         credential["credentialSubject"]["kycId"]=pickle.loads(red.get(code))["id_dossier"]
-        credential["credentialSubject"]["kycMethod"]=parcours_non_substantiel
-    credential["issuer"] = issuer_did 
+        credential["credentialSubject"]["kycMethod"] = JOURNEY
+    credential["issuer"] = ISSUER_DID
     credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-    credential['expirationDate'] =  (datetime.now() + timedelta(days= 365)).isoformat() + "Z"
+    credential['expirationDate'] =  (datetime.now() + timedelta(days= CREDENTIAL_LIFE)).isoformat() + "Z"
     
     if request.method == 'GET': 
         if vc_type=="VerifiableId":
-            credential_manifest = json.load(open('VerifiableId_credential_manifest.json', 'r'))
+            credential_manifest = json.load(open('./credential_manifest/VerifiableId_credential_manifest.json', 'r'))
         if vc_type=="Over18":
-            credential_manifest = json.load(open('Over18_credential_manifest.json', 'r'))
-
+            credential_manifest = json.load(open('./credential_manifest/Over18_credential_manifest.json', 'r'))
         credential_manifest['id'] = str(uuid.uuid1())
-        #credential_manifest['evidence']['id'] = str(uuid.uuid1())
-        credential_manifest['issuer']['id'] = issuer_did
+        credential_manifest['issuer']['id'] = ISSUER_DID
         credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())    
-        credential['id'] = "urn:uuid:random" # for preview
+        credential['id'] = "urn:uuid:random" # for preview only
         credential_offer = {
             "type": "CredentialOffer",
             "credentialPreview": credential,
-            "expires" : (datetime.now() + timedelta(seconds = 600)).replace(microsecond=0).isoformat(),
+            "expires" : (datetime.now() + timedelta(seconds = CODE_LIFE)).replace(microsecond=0).isoformat(),
             "credential_manifest" : credential_manifest
         }
         return jsonify(credential_offer)
 
     else :  #POST
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
-        credential['credentialSubject']['id'] = request.form['subject_id'] # for preview
-        logging.info(request.form['subject_id'])
-        #credential['evidence'][0]['id'] = "https://github.com/TalaoDAO/context#evidence"
-
+        credential['credentialSubject']['id'] = request.form['subject_id']
         try :
             presentation = json.loads(request.form['presentation']) 
         except :
@@ -419,48 +445,41 @@ async def vc_endpoint(code, red):
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
-        print(request.form['presentation'])
         presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-        presentation_result['errors']=[]
-        if presentation_result['errors'] : #HERE
+        presentation_result['errors']=[] # FIXME
+        if presentation_result['errors'] : 
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
-        if pickle.loads(red.get(code))["did"]!=json.loads(request.form['presentation'])["holder"]:
+        if pickle.loads(red.get(code))["did"] != json.loads(request.form['presentation'])["holder"]:
             logging.warning("invalid did  %s", presentation_result)
             return jsonify('Unauthorized'), 401
-        print(presentation_result)
-        #logging.info('credential = %s', credential)
-
         # credential signature 
         didkit_options = {
             "proofPurpose": "assertionMethod",
-            "verificationMethod": issuer_vm
+            "verificationMethod": ISSUER_VM
             }
-        print(credential)
         signed_credential =  await didkit.issue_credential(
                 json.dumps(credential),
                 didkit_options.__str__().replace("'", '"'),
-                issuer_key)
+                ISSUER_KEY)
         # followup function call through js
         """data = json.dumps({"code" : code,
                          'message' : 'Ok credential transfered'})
         red.publish('altme-identity', data)
         red.delete(code)"""
-        # cerdential sent to wallet
+        # update issuer screen
         event_data = json.dumps({"type": "altmeTransfered", "code": code})
         red.publish('issuer', event_data) 
+
+        # we delete the code and send the credential
+        red.delete(code)
         return jsonify(signed_credential)
+
 
 @app.route('/id360/static/<filename>',methods=['GET'])
 def serve_static(filename):
-    logging.info(filename)
-    return send_file('./static/'+filename, download_name=filename)
+    return send_file('./static/' + filename, download_name=filename)
 
 if __name__ == '__main__':
-   app.run(host="localhost", port=3000, debug=True)
+   app.run(host=mode.IP, port= mode.port, debug=True)
 
-
-
-#url => code
-#gerer saut d'étape
-#ajouter tous les status id360
