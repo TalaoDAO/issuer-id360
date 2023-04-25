@@ -50,6 +50,12 @@ p {
     color: #330080;
 }
 
+#invalid {
+    font-weight: 700;
+    font-size: 58px;
+    color: #330080;
+}
+
 #title2p {
     font-weight: 500;
     font-size: 20px;

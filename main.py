@@ -6,7 +6,7 @@ Flow is available at https://swimlanes.io/u/LHNjN55XM
 """
 import requests
 import json
-from flask import Flask, render_template, request, jsonify, Response, send_file
+from flask import Flask, render_template, request, jsonify, Response, send_file,session,redirect
 from flask_qrcode import QRcode
 import didkit
 import os
@@ -157,7 +157,10 @@ def get_code():
     if not db.test_api_key(client_id, client_secret) :
         return jsonify("client not found"),404
     code = code_generator() 
-    red.setex(code, CODE_LIFE, 'True') #rajouter client_id
+    red.setex(code, CODE_LIFE, pickle.dumps ({
+        "is_code_valid":"True",
+        "client_id":client_id,
+    })) #rajouter client_id
     return jsonify({"code":code})
     
 
@@ -167,42 +170,63 @@ def login(code):
     To redirect user to QRcode for wallet authentication
 
     construciton url + description args + verifier liste callback"""
+    print(pickle.loads(red.get(code)))
     try:
-        site_callback = request.args['callback']
-        client_id = request.args['client_id']
-        vc_type = request.args['vc_type']
-    except KeyError:
-        logging.warning("KeyError in /authenticate")
-    """
-    try:
-        if red.get(code).decode() != "True":
-            return jsonify("invalid link"),403
-    except:
-        return jsonify("invalid link"),403
-    """
-    # for thierry testing only
-    #site_callback = "test"  # for testing only
-    #client_id = "1"  # for testing only
-    #vc_type = "verifiableid"  # for testing only
-    # http://192.168.0.187:5000/id360/authenticate/111111
+        if(session.get('logged')==True or pickle.loads(red.get(code))["is_code_valid"]=="True"):
+            try:
+                site_callback = request.args['callback']
+                client_id = request.args['client_id']
+                vc_type = request.args['vc_type']
+            except KeyError:
+                logging.warning("KeyError in /authenticate")
+            """
+            try:
+                if pickle.loads(red.get(code))["is_code_valid"] != "True":
+                    return jsonify("invalid link"),403
+            except:
+                return jsonify("invalid link"),403
+            """
 
-    DIDAuth['challenge'] = str(uuid.uuid1())
-    DIDAuth['domain'] = mode.server
-    red.setex(code,QRCODE_AUTHENTICATION_LIFE, pickle.dumps ({
-        "pattern":json.dumps(DIDAuth),
-        "site_callback":site_callback,
-        "client_id":client_id,
-        "vc_type":vc_type,
-        "challenge":DIDAuth['challenge']
-    })) 
-    url = mode.server+'/id360/endpoint/' + code
-    print("request.MOBILE")
-    print(request.MOBILE)
-    print("request.MOBILE")
-    if not request.MOBILE:
-        return render_template("login.html", url=url, code=code)
-    else:
-        return render_template("login_mobile.html", url=url, code=code)
+            session["logged"]=True
+            red.setex(code, CODE_LIFE, pickle.dumps ({
+            "is_code_valid":"True",
+            "client_id":client_id,
+            "started":"True"
+            }))
+
+            # for thierry testing only
+            #site_callback = "test"  # for testing only
+            #client_id = "1"  # for testing only
+            #vc_type = "verifiableid"  # for testing only
+            # http://192.168.0.187:5000/id360/authenticate/111111
+
+            DIDAuth['challenge'] = str(uuid.uuid1())
+            DIDAuth['domain'] = mode.server
+            red.setex(code,QRCODE_AUTHENTICATION_LIFE, pickle.dumps ({
+                "pattern":json.dumps(DIDAuth),
+                "site_callback":site_callback,
+                "client_id":client_id,
+                "vc_type":vc_type,
+                "challenge":DIDAuth['challenge']
+            })) 
+            url = mode.server+'/id360/endpoint/' + code
+            if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
+
+                verification_title="Age"
+            else:
+                verification_title="Identity"
+
+            if(client_id=="111"):
+                pass #call depuis altme
+            if not request.MOBILE:
+                return render_template("login.html", url=url, code=code,vc_type=vc_type,verification_title=verification_title)
+            else:
+                return render_template("login_mobile.html", url=url, code=code,vc_type=vc_type,verification_title=verification_title)
+    except KeyError:
+        if not request.MOBILE:
+            return render_template("error.html")
+        else:
+            return render_template("error_mobile.html")
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red}) 
@@ -210,18 +234,28 @@ def issuer(code, red):
     """
     This is the call back for browser
     """
-    try :
-        site_callback = pickle.loads(red.get(code))['site_callback']
-    except :
-        # TODO
-        logging.warning("delay expired to get the browser callback")
-        pass
+    if(session.get('logged')==True):
+        try :
+            site_callback = pickle.loads(red.get(code))['site_callback']
+        except :
+            logging.warning("delay expired to get the browser callback")
+            if not request.MOBILE:
+                return render_template("error.html")
+            else:
+                return render_template("error_mobile.html")
+
+            
+        if not request.MOBILE:
+            return render_template("issuer.html", code=code,callback=site_callback)
+
+        else:
+            return render_template("issuer_mobile.html", code=code,callback=site_callback)
+    
+    logging.warning("invalid link")
     if not request.MOBILE:
-        return render_template("issuer.html", code=code,callback=site_callback)
-
+            return render_template("error.html")
     else:
-        return render_template("issuer_mobile.html", code=code,callback=site_callback)
-
+            return render_template("error_mobile.html")
 
 
 @app.route('/id360/endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
@@ -247,7 +281,12 @@ async def presentation_endpoint(code, red):
         # create the ID360 token for this journey
         token = loginID360()
         if not token :
-            pass # TODO
+            event_data = json.dumps({"code": code,
+                                    "check": "ko",
+                                     "message": "id360 error",
+                                     "type": "login"})
+            red.publish('verifier', event_data)
+            return jsonify(result), 500
         result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}')) # tester si challenge correspond
         logging.info('result fo didkit verify = %s',  result['errors'])
         result['errors'] = [] # FIXME 
@@ -351,17 +390,21 @@ def id360callback(code, red):
     token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
+    vc_type = pickle.loads(red.get(code))["vc_type"]
+
     logging.info('callback for wallet DID = %s', did)
     dossier = get_dossier(id_dossier,token)
-    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
-    if not birth_date :
-        # TODO
-        pass
-    timestamp = ciso8601.parse_datetime(birth_date)
-    # to get time in seconds:
-    timestamp=time.mktime(timestamp.timetuple())
-    now= time.time()
-    vc_type = pickle.loads(red.get(code))["vc_type"]
+    if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
+        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
+        if not birth_date :
+            url = pickle.loads(red.get(code))["site_callback"] + "/400"
+            event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
+            red.publish('qr_code', event_data)
+            return jsonify("ok")
+        timestamp = ciso8601.parse_datetime(birth_date)
+        # to get time in seconds:
+        timestamp=time.mktime(timestamp.timetuple())
+        now= time.time()
     if(dossier["status"]!="OK" or (vc_type=="Over18" and (now-timestamp)<31556926*18 )):
         url = pickle.loads(red.get(code))["site_callback"] + "/400"
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
@@ -376,22 +419,24 @@ def id360callback(code, red):
 @app.route('/id360/get_qrcode/<code>', methods=['GET'],  defaults={'red': red})
 def get_qrcode(code, red):
     """
-    TODO
-    ?????
+    Useful to verify data of user and send it to fronted
     """
     token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
     dossier = get_dossier(id_dossier,token)
-    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
-    if not birth_date :
-        # TODO
-        pass
-    timestamp = ciso8601.parse_datetime(birth_date)
-    # to get time in seconds:
-    timestamp = time.mktime(timestamp.timetuple())
-    now = time.time()
+    if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
+        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
+        if not birth_date :
+            url = pickle.loads(red.get(code))["site_callback"] + "/400"
+            event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
+            red.publish('qr_code', event_data)
+            return jsonify("ok")
+        timestamp = ciso8601.parse_datetime(birth_date)
+        # to get time in seconds:
+        timestamp=time.mktime(timestamp.timetuple())
+        now= time.time()
     if pickle.loads(red.get(code))["first"] == True:
         db.insert_kyc(did, dossier["status"], id_dossier)
     else:
