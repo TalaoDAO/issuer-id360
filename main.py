@@ -21,6 +21,7 @@ import random
 import string
 import db
 import ciso8601
+from flask_mobility import Mobility
 
 ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
 TALAO_USERNAME = json.load(open("keys.json", "r"))['username']
@@ -45,6 +46,7 @@ DIDAuth = {
 app = Flask(__name__)
 app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
 qrcode = QRcode(app)
+Mobility(app)
 myenv = os.getenv('MYENV')
 if not myenv:
     myenv = 'thierry'
@@ -141,21 +143,21 @@ def get_code():
     """
     This the first call customer side to get its code
 
-    curl https://talao.co/id360/get_code?client_id=<client_id> -H "apiKey":<your_api_key>
+    curl https://talao.co/id360/get_code?client_id=<client_id> -H "api-key":<your_api_key>
     returns {"code": <code>} 200
 
     the code returned is useful for one session for one user to get one credential
     returns {"error": <error_description>} with status code
     if an error occured
     """
-    client_secret = request.headers.get('apiKey')
+    client_secret = request.headers.get('api-key') #changer dans demo
     client_id = request.args.get('client_id')
     if not client_id or not client_secret :
         return jsonify("Incorrect API call"),400
     if not db.test_api_key(client_id, client_secret) :
         return jsonify("client not found"),404
     code = code_generator() 
-    red.setex(code, CODE_LIFE, 'True')
+    red.setex(code, CODE_LIFE, 'True') #rajouter client_id
     return jsonify({"code":code})
     
 
@@ -190,10 +192,17 @@ def login(code):
         "pattern":json.dumps(DIDAuth),
         "site_callback":site_callback,
         "client_id":client_id,
-        "vc_type":vc_type
+        "vc_type":vc_type,
+        "challenge":DIDAuth['challenge']
     })) 
     url = mode.server+'/id360/endpoint/' + code
-    return render_template("login.html", url=url, code=code)
+    print("request.MOBILE")
+    print(request.MOBILE)
+    print("request.MOBILE")
+    if not request.MOBILE:
+        return render_template("login.html", url=url, code=code)
+    else:
+        return render_template("login_mobile.html", url=url, code=code)
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red}) 
@@ -207,7 +216,12 @@ def issuer(code, red):
         # TODO
         logging.warning("delay expired to get the browser callback")
         pass
-    return render_template("issuer.html", code=code,callback=site_callback)
+    if not request.MOBILE:
+        return render_template("issuer.html", code=code,callback=site_callback)
+
+    else:
+        return render_template("issuer_mobile.html", code=code,callback=site_callback)
+
 
 
 @app.route('/id360/endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
@@ -234,7 +248,7 @@ async def presentation_endpoint(code, red):
         token = loginID360()
         if not token :
             pass # TODO
-        result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+        result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}')) # tester si challenge correspond
         logging.info('result fo didkit verify = %s',  result['errors'])
         result['errors'] = [] # FIXME 
         if result['errors']:
@@ -253,7 +267,7 @@ async def presentation_endpoint(code, red):
         if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
             if not kyc:
-                temp_dict["first"] = True 
+                temp_dict["first"] = True  #simplifier
             else:
                 temp_dict["first"] = False
             red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
@@ -339,7 +353,7 @@ def id360callback(code, red):
     did = pickle.loads(red.get(code))["did"]
     logging.info('callback for wallet DID = %s', did)
     dossier = get_dossier(id_dossier,token)
-    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+    birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
     if not birth_date :
         # TODO
         pass
@@ -371,7 +385,9 @@ def get_qrcode(code, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
     dossier = get_dossier(id_dossier,token)
     birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
-    # TODO if birthdate == None
+    if not birth_date :
+        # TODO
+        pass
     timestamp = ciso8601.parse_datetime(birth_date)
     # to get time in seconds:
     timestamp = time.mktime(timestamp.timetuple())
@@ -387,9 +403,9 @@ def get_qrcode(code, red):
         else:
             return jsonify({"url":"error"})
     except TypeError:
-        return jsonify({"url":"not yet"})
+        return jsonify({"url":"not_yet"})
     except KeyError:
-        return jsonify({"url":"error"}),500
+        return jsonify({"url":"error"})
 
 
 @app.route('/id360/issuer_endpoint/<code>', methods = ['GET','POST'],  defaults={'red' : red})
@@ -445,9 +461,9 @@ async def vc_endpoint(code, red):
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
             return jsonify('Unauthorized'), 401
-        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}')) 
         presentation_result['errors']=[] # FIXME
-        if presentation_result['errors'] : 
+        if presentation_result['errors'] : # push erreur sur stream
             logging.warning("presentation failed  %s", presentation_result)
             return jsonify('Unauthorized'), 401
         if pickle.loads(red.get(code))["did"] != json.loads(request.form['presentation'])["holder"]:
