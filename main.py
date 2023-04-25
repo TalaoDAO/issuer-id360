@@ -125,6 +125,9 @@ def get_dossier(id_dossier,token):
     if response.status_code == 200:
         logging.info("dossier %s : %s", str(id_dossier), response.json())
         return response.json()
+    elif response.status_code == 404:
+        logging.warning("dossier "+str(id_dossier)+" exipré")
+        return("expired")
     else:
         logging.error("error requesting dossier status : %s", response.status_code)
         print(response.json())
@@ -303,6 +306,9 @@ async def presentation_endpoint(code, red):
         temp_dict['token'] = token
         red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) 
         kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
+        dossier= get_dossier(kyc[2],token)
+        if(dossier=="expired"):
+            kyc=None
         if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
             if not kyc:
