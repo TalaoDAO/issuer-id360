@@ -523,8 +523,8 @@ def get_qrcode(code, red):
         db.insert_kyc(did, dossier["status"], id_dossier)
     else:
         print(did)
-        print(dossier["status"])
         print(dossier)
+        print(dossier["status"])
         print(id_dossier)
         db.update_kyc(did, dossier["status"], id_dossier)
     try:
