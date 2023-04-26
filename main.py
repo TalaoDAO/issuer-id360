@@ -123,7 +123,7 @@ def get_dossier(id_dossier,token):
     }
     response = requests.get(ID360_URL + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
     if response.status_code == 200:
-        logging.info("dossier %s : %s", str(id_dossier), response.json())
+        #logging.info("dossier %s : %s", str(id_dossier), response.json())
         return response.json()
     elif response.status_code == 404:
         logging.warning("dossier "+str(id_dossier)+" exipré")
