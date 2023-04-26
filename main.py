@@ -130,7 +130,8 @@ def get_dossier(id_dossier,token):
         return("expired")
     else:
         logging.error("error requesting dossier status : %s", response.status_code)
-        print(response.json())
+        #print(response.json())
+        return response.status_code
 
 
 def code_generator():
@@ -306,10 +307,11 @@ async def presentation_endpoint(code, red):
         temp_dict['token'] = token
         red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) 
         kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
-        print(kyc[2],token)
-        dossier= get_dossier(kyc[2],token)
-        if(dossier=="expired"):
-            kyc=None
+        #print(kyc[2],token)
+        if kyc:
+            dossier= get_dossier(kyc[2],token)
+            if(dossier=="expired"):
+                kyc=None
         if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
             if not kyc and dossier!="expired":
