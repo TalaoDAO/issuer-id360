@@ -402,6 +402,16 @@ def id360callback(code, red):
 
     logging.info('callback for wallet DID = %s', did)
     dossier = get_dossier(id_dossier,token)
+    try:
+        if pickle.loads(red.get(code))["first"] == True:
+            db.insert_kyc(did, dossier["status"], id_dossier)
+        else:
+            db.update_kyc(did, dossier["status"], id_dossier)
+    except KeyError:
+        url = pickle.loads(red.get(code))["site_callback"] + "/400"
+        event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
+        red.publish('qr_code', event_data)
+        return jsonify("ok")
     if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
         birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
         if not birth_date :
