@@ -316,6 +316,7 @@ async def presentation_endpoint(code, red):
                 temp_dict["first"] = True  #simplifier
             else:
                 temp_dict["first"] = False
+            print(temp_dict["first"])
             red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
             # we create the dossier for user
             link = create_dossier(code,token)
