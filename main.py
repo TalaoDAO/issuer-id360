@@ -317,10 +317,56 @@ async def presentation_endpoint(code, red):
         red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) 
         kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
         #print(kyc[2],token)
-        if kyc:
+        if not kyc:
+                temp_dict["first"] = True 
+                red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
+                # we create the dossier for user
+                link = create_dossier(code,token)
+                event_data = json.dumps({"code": code,
+                                            "message": "presentation is verified",
+                                            "check": "ok",
+                                            "link": link,
+                                            "type": "login"
+                                            })
+                logging.info("sent with link = %s", link)
+                red.publish('verifier', event_data)
+                return jsonify("ok")
+        else:
+            temp_dict["first"] = False
+            if kyc[1] == "OK":
+                temp_dict = pickle.loads(red.get(code))
+                temp_dict["did"] = json.loads(request.form['presentation'])["holder"]
+                temp_dict["id_dossier"] = kyc[2] 
+                temp_dict["first"] = False
+                """red.setex(code,CODE_LIFE ,pickle.dumps({"did": json.loads(request.form['presentation'])[
+                        "holder"], "id_dossier": kyc[2], "first": False}))"""
+                red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
+                event_data = json.dumps({"code": code,
+                                            "message": "presentation is verified",
+                                            "check": "ok",
+                                            "link": mode.server+"/id360/issuer/"+code,
+                                            "type": "login"
+                                            })
+                red.publish('verifier', event_data)
+                return jsonify("ok"), 200  
+            else:
+                red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
+                # we create the dossier for user
+                link = create_dossier(code,token)
+                event_data = json.dumps({"code": code,
+                                            "message": "presentation is verified",
+                                            "check": "ok",
+                                            "link": link,
+                                            "type": "login"
+                                            })
+                logging.info("sent with link = %s", link)
+                red.publish('verifier', event_data)
+                return jsonify("ok")
+        """if kyc:
             dossier= get_dossier(kyc[2],token)
             if(dossier=="expired"):
                 kyc=None
+            
         if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
             if not kyc and dossier!="expired":
@@ -345,8 +391,7 @@ async def presentation_endpoint(code, red):
             temp_dict["did"] = json.loads(request.form['presentation'])["holder"]
             temp_dict["id_dossier"] = kyc[2] 
             temp_dict["first"] = False
-            """red.setex(code,CODE_LIFE ,pickle.dumps({"did": json.loads(request.form['presentation'])[
-                    "holder"], "id_dossier": kyc[2], "first": False}))"""
+            #red.setex(code,CODE_LIFE ,pickle.dumps({"did": json.loads(request.form['presentation'])["holder"], "id_dossier": kyc[2], "first": False}))
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             event_data = json.dumps({"code": code,
                                         "message": "presentation is verified",
@@ -355,7 +400,7 @@ async def presentation_endpoint(code, red):
                                         "type": "login"
                                         })
             red.publish('verifier', event_data)
-            return jsonify("ok"), 200  
+            return jsonify("ok"), 200  """
 
 
 @app.route('/id360/verifier_stream', methods=['GET'],  defaults={'red': red})
