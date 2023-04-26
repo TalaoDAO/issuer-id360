@@ -246,6 +246,7 @@ def issuer(code, red):
     """
     This is the call back for browser
     """
+    
     if session.get('logged'):
         try :
             site_callback = pickle.loads(red.get(code))['site_callback']
@@ -256,7 +257,10 @@ def issuer(code, red):
             else:
                 return render_template("error_mobile.html")
 
-            
+        try:
+            return redirect(pickle.loads(red.get(code))["error"])
+        except:
+            pass
         if not request.MOBILE:
             return render_template("issuer.html", code=code,callback=site_callback)
 
@@ -483,7 +487,8 @@ def id360callback(code, red):
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
         print("deleting code 486")
-        red.delete(code)
+        #red.delete(code)
+        red.setex(code,CODE_LIFE,pickle.dumps({"error":url}))
         return jsonify("ok")
     if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
         birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
