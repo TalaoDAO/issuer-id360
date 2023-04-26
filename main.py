@@ -524,6 +524,7 @@ def get_qrcode(code, red):
     else:
         print(did)
         print(dossier["status"])
+        print(dossier)
         print(id_dossier)
         db.update_kyc(did, dossier["status"], id_dossier)
     try:
