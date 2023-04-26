@@ -248,6 +248,13 @@ def issuer(code, red):
     """
     
     if session.get('logged'):
+        try:
+            link=pickle.loads(red.get(code))["error"]
+            red.delete(code)
+            return redirect(link)
+            
+        except:
+            pass
         try :
             site_callback = pickle.loads(red.get(code))['site_callback']
         except :
@@ -257,10 +264,7 @@ def issuer(code, red):
             else:
                 return render_template("error_mobile.html")
 
-        try:
-            return redirect(pickle.loads(red.get(code))["error"])
-        except:
-            pass
+        
         if not request.MOBILE:
             return render_template("issuer.html", code=code,callback=site_callback)
 
