@@ -175,7 +175,7 @@ def login(code):
     construciton url + description args + verifier liste callback"""
     print(pickle.loads(red.get(code)))
     try:
-        if(session.get('logged')==True or pickle.loads(red.get(code))["is_code_valid"]=="True"):
+        if(session.get('logged') or pickle.loads(red.get(code))["is_code_valid"]=="True"):
             try:
                 site_callback = request.args['callback']
                 client_id = request.args['client_id']
@@ -237,7 +237,7 @@ def issuer(code, red):
     """
     This is the call back for browser
     """
-    if(session.get('logged')==True):
+    if session.get('logged'):
         try :
             site_callback = pickle.loads(red.get(code))['site_callback']
         except :
@@ -306,6 +306,7 @@ async def presentation_endpoint(code, red):
         temp_dict['token'] = token
         red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) 
         kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
+        print(kyc[2],token)
         dossier= get_dossier(kyc[2],token)
         if(dossier=="expired"):
             kyc=None
