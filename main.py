@@ -183,6 +183,12 @@ def login(code):
                 vc_type = request.args['vc_type']
             except KeyError:
                 logging.warning("KeyError in /authenticate")
+                try:
+                    red.delete(code)
+                    return redirect("https://"+request.args['callback']+"/400")
+                except:
+                    red.delete(code)
+                    return render_template("error.html")
             """
             try:
                 if pickle.loads(red.get(code))["is_code_valid"] != "True":
@@ -278,6 +284,7 @@ async def presentation_endpoint(code, red):
                                 "check": "ko",
                                 "type": "login","url":pickle.loads(red.get(code))["site_callback"]})
             red.publish('verifier', event_data)
+            red.delete(code)
             return jsonify("server error"), 500
         return jsonify(my_pattern)
 
@@ -290,6 +297,7 @@ async def presentation_endpoint(code, red):
                                      "message": "id360 error",
                                      "type": "login"})
             red.publish('verifier', event_data)
+            red.delete(code)
             return jsonify(result), 500
         result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}')) # tester si challenge correspond
         logging.info('result fo didkit verify = %s',  result['errors'])
@@ -300,6 +308,7 @@ async def presentation_endpoint(code, red):
                                      "message": result,
                                      "type": "login"})
             red.publish('verifier', event_data)
+            red.delete(code)
             return jsonify(result), 403
         # update of code in redis with same delay, we add the ID360 token just created
         temp_dict = pickle.loads(red.get(code))
@@ -413,6 +422,7 @@ def id360callback(code, red):
         url = pickle.loads(red.get(code))["site_callback"] + "/400"
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
+        red.delete(code)
         return jsonify("ok")
     if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
         birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
@@ -420,6 +430,7 @@ def id360callback(code, red):
             url = pickle.loads(red.get(code))["site_callback"] + "/400"
             event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
             red.publish('qr_code', event_data)
+            red.delete(code)
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         # to get time in seconds:
@@ -429,6 +440,7 @@ def id360callback(code, red):
         url = pickle.loads(red.get(code))["site_callback"] + "/400"
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
+        red.delete(code)
         return jsonify("ok")
     url = mode.server+"/id360/issuer_endpoint/" + code
     event_data = json.dumps({"type": "callback", "code": code, "url": url})
@@ -452,6 +464,7 @@ def get_qrcode(code, red):
             url = pickle.loads(red.get(code))["site_callback"] + "/400"
             event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
             red.publish('qr_code', event_data)
+            red.delete(code)
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         # to get time in seconds:
@@ -522,17 +535,21 @@ async def vc_endpoint(code, red):
             presentation = json.loads(request.form['presentation']) 
         except :
             logging.warning("presentation does not exist")
+            red.delete(code)
             return jsonify('Unauthorized'), 401
         if request.form['subject_id'] != presentation['holder'] :
             logging.warning("holder does not match subject")
+            red.delete(code)
             return jsonify('Unauthorized'), 401
         presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}')) 
         presentation_result['errors']=[] # FIXME
         if presentation_result['errors'] : # push erreur sur stream
             logging.warning("presentation failed  %s", presentation_result)
+            red.delete(code)
             return jsonify('Unauthorized'), 401
         if pickle.loads(red.get(code))["did"] != json.loads(request.form['presentation'])["holder"]:
             logging.warning("invalid did  %s", presentation_result)
+            red.delete(code)
             return jsonify('Unauthorized'), 401
         # credential signature 
         didkit_options = {
