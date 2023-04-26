@@ -472,6 +472,12 @@ def id360callback(code, red):
         red.publish('qr_code', event_data)
         red.delete(code)
         return jsonify("ok")
+    if(dossier["status"]!="OK"):
+        url = pickle.loads(red.get(code))["site_callback"] + "/400"
+        event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
+        red.publish('qr_code', event_data)
+        red.delete(code)
+        return jsonify("ok")
     if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
         birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
         if not birth_date :
@@ -484,7 +490,7 @@ def id360callback(code, red):
         # to get time in seconds:
         timestamp=time.mktime(timestamp.timetuple())
         now= time.time()
-    if(dossier["status"]!="OK" or (vc_type=="Over18" and (now-timestamp)<31556926*18 )):
+    if (vc_type=="Over18" and (now-timestamp)<31556926*18 ):
         url = pickle.loads(red.get(code))["site_callback"] + "/400"
         event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
