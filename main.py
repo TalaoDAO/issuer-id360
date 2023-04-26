@@ -424,6 +424,7 @@ def qr_code_stream(red):
         pubsub.subscribe('qr_code')
         for message in pubsub.listen():
             if message['type'] == 'message':
+                print(message['data'].decode())
                 yield 'data: %s\n\n' % message['data'].decode()
     headers = {"Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
@@ -458,6 +459,8 @@ def id360callback(code, red):
 
     logging.info('callback for wallet DID = %s', did)
     dossier = get_dossier(id_dossier,token)
+    if(dossier==202):
+        return jsonify("ok")
     try:
         if pickle.loads(red.get(code))["first"] == True:
             db.insert_kyc(did, dossier["status"], id_dossier)
@@ -498,6 +501,7 @@ def get_qrcode(code, red):
     """
     Useful to verify data of user and send it to fronted
     """
+    print(pickle.loads(red.get(code)))
     token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
