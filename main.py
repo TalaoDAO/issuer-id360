@@ -522,6 +522,9 @@ def get_qrcode(code, red):
     if pickle.loads(red.get(code))["first"] == True:
         db.insert_kyc(did, dossier["status"], id_dossier)
     else:
+        print(did)
+        print(dossier["status"])
+        print(id_dossier)
         db.update_kyc(did, dossier["status"], id_dossier)
     try:
         if(dossier["status"] == "OK" ): #or dossier["status"]=="KO"
