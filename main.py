@@ -312,7 +312,7 @@ async def presentation_endpoint(code, red):
             kyc=None
         if not kyc  or kyc[1] == "KO" :
             temp_dict = pickle.loads(red.get(code))
-            if not kyc:
+            if not kyc and dossier!="expired":
                 temp_dict["first"] = True  #simplifier
             else:
                 temp_dict["first"] = False
