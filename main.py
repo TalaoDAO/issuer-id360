@@ -263,6 +263,7 @@ def issuer(code, red):
     if session.get('logged'):
         try:
             link = pickle.loads(red.get(code))["error"]
+            print("delete code 266")
             red.delete(code)
             return redirect("https://"+link)
 
@@ -481,7 +482,6 @@ def id360callback(code, red):
         event_data = json.dumps(
             {"type": "callbackErr", "code": code, "url": url})
         red.publish('qr_code', event_data)
-        print("deleting code 486")
         # red.delete(code)
         red.setex(code, CODE_LIFE, pickle.dumps(
             {"error": url}))  # ERROR : KYC KO
@@ -523,7 +523,7 @@ def get_qrcode(code, red):
     """
     Useful to verify data of user and send it to fronted
     """
-    print(pickle.loads(red.get(code)))
+    logging.info(pickle.loads(red.get(code)))
     token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     did = pickle.loads(red.get(code))["did"]
