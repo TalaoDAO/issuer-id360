@@ -334,11 +334,16 @@ async def presentation_endpoint(code, red):
             red.delete(code)
             return jsonify(result), 403
         # update of code in redis with same delay, we add the ID360 token just created
+        did=json.loads(request.form['presentation'])["holder"]
         temp_dict = pickle.loads(red.get(code))
-        temp_dict["did"] = json.loads(request.form['presentation'])["holder"]
+        temp_dict["did"] = did
         temp_dict['token'] = token
         red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict))
         kyc = db.get_user_kyc(pickle.loads(red.get(code))["did"])
+        if not kyc:
+            logging.info(did+" never did kyc")
+        else:
+            logging.info(kyc)
         # print(kyc[2],token)
         if not kyc:
             temp_dict["first"] = True
