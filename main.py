@@ -535,11 +535,13 @@ def get_qrcode(code, red):
             # if(vc_type=="Over18" and (now-timestamp)>31556926*18 ) or vc_type != "Over18":
             return jsonify({"url": mode.server+"/id360/issuer_endpoint/" + code})
         else:
+            print("red delete 538")
             red.delete(code)
             return jsonify({"url": "error"})  # ERROR : kyc ko
     except TypeError:
         return jsonify({"url": "not_yet"})
     except KeyError:
+        print("red delete 545")
         red.delete(code)
         return jsonify({"url": "error"})  # ERROR : ?
 
