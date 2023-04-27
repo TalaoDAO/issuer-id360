@@ -77,7 +77,7 @@ def loginID360():
         logging.error(response.json())
 
 
-def create_dossier(code, token):
+def create_dossier(code, token, did):
     """
     ID360 API call to create dossier on ID360
     """
@@ -90,10 +90,10 @@ def create_dossier(code, token):
     json_data = {
         'callback_url': mode.server+'/id360/callback_id360/' + code,
         'browser_callback_url': mode.server+'/id360/issuer/' + code,
-        'client_reference': 'any_string',
+        'client_reference': did,
         'callback_headers': {
-            'header_name_1': code,
-            'header_name_2': 'header_value_2',
+            'code': code,
+            'api-key': 'api-key-test',
         },
     }
     response = requests.post(
@@ -109,7 +109,7 @@ def create_dossier(code, token):
         red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
 
         api_key = response.json()["api_key"]
-        return ID360_URL + 'static/process_ui/index.html#/enrollment/' + api_key
+        return ID360_URL + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
     else:
         logging.error(response.json())
 
@@ -125,16 +125,19 @@ def get_dossier(id_dossier, token):
     }
     response = requests.get(
         ID360_URL + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
+
     if response.status_code == 200:
+        #print(response.json())
+        #print(response.content)
         # logging.info("dossier %s : %s", str(id_dossier), response.json())
         return response.json()
     elif response.status_code == 404:
         logging.warning("dossier "+str(id_dossier)+" exipré")
         return ("expired")
     else:
-        logging.error("error requesting dossier status : %s",
-                      response.status_code)
-        # print(response.json())
+        #logging.error("error requesting dossier status : %s",response.status_code)
+        #print(response.json())
+        #print(response.content)
         return response.status_code
 
 
@@ -178,9 +181,9 @@ def login(code):
     To redirect user to QRcode for wallet authentication
 
     construciton url + description args + verifier liste callback"""
-    print(pickle.loads(red.get(code)))
+    #print(pickle.loads(red.get(code)))
     try:
-        if (session.get('logged') or pickle.loads(red.get(code))["is_code_valid"] == "True"):
+        #if (session.get('logged') or pickle.loads(red.get(code))["is_code_valid"] == "True"):
             try:
                 site_callback = request.args['callback']
                 client_id = request.args['client_id']
@@ -195,7 +198,7 @@ def login(code):
                     print("deleting code 192")
                     red.delete(code)
                     return render_template("error.html")
-            """
+            
             try:
                 if pickle.loads(red.get(code))["is_code_valid"] != "True":
                     if not request.MOBILE:
@@ -207,7 +210,7 @@ def login(code):
                     return render_template("error.html")
                 else:
                     return render_template("error_mobile.html")
-            """
+            
 
             session["logged"] = True
             red.setex(code, CODE_LIFE, pickle.dumps({
@@ -350,7 +353,7 @@ async def presentation_endpoint(code, red):
             red.setex(code, AUTHENTICATION_DELAY,
                       pickle.dumps(temp_dict))  # setex
             # we create the dossier for user
-            link = create_dossier(code, token)
+            link = create_dossier(code, token, did)
             event_data = json.dumps({"code": code,
                                      "message": "presentation is verified",
                                      "check": "ok",
@@ -383,7 +386,7 @@ async def presentation_endpoint(code, red):
                 red.setex(code, AUTHENTICATION_DELAY,
                           pickle.dumps(temp_dict))  # setex
                 # we create the dossier for user
-                link = create_dossier(code, token)
+                link = create_dossier(code, token, did)
                 event_data = json.dumps({"code": code,
                                          "message": "presentation is verified",
                                          "check": "ok",
@@ -393,46 +396,6 @@ async def presentation_endpoint(code, red):
                 logging.info("sent with link = %s", link)
                 red.publish('verifier', event_data)
                 return jsonify("ok")
-        """if kyc:
-            dossier= get_dossier(kyc[2],token)
-            if(dossier=="expired"):
-                kyc=None
-            
-        if not kyc  or kyc[1] == "KO" :
-            temp_dict = pickle.loads(red.get(code))
-            if not kyc and dossier!="expired":
-                temp_dict["first"] = True  #simplifier
-            else:
-                temp_dict["first"] = False
-            print(temp_dict["first"])
-            red.setex(code, AUTHENTICATION_DELAY,  pickle.dumps(temp_dict)) #setex
-            # we create the dossier for user
-            link = create_dossier(code,token)
-            event_data = json.dumps({"code": code,
-                                        "message": "presentation is verified",
-                                        "check": "ok",
-                                        "link": link,
-                                        "type": "login"
-                                        })
-            logging.info("sent with link = %s", link)
-            red.publish('verifier', event_data)
-            return jsonify("ok")
-        elif kyc[1] == "OK":
-            temp_dict = pickle.loads(red.get(code))
-            temp_dict["did"] = json.loads(request.form['presentation'])["holder"]
-            temp_dict["id_dossier"] = kyc[2] 
-            temp_dict["first"] = False
-            #red.setex(code,CODE_LIFE ,pickle.dumps({"did": json.loads(request.form['presentation'])["holder"], "id_dossier": kyc[2], "first": False}))
-            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
-            event_data = json.dumps({"code": code,
-                                        "message": "presentation is verified",
-                                        "check": "ok",
-                                        "link": mode.server+"/id360/issuer/"+code,
-                                        "type": "login"
-                                        })
-            red.publish('verifier', event_data)
-            return jsonify("ok"), 200  """
-
 
 @app.route('/id360/verifier_stream', methods=['GET'],  defaults={'red': red})
 def presentation_stream(red):
@@ -482,6 +445,12 @@ def id360callback(code, red):
     """
     Callback route for ID360
     """
+    try:
+        if request.headers["api-key"]!="api-key-test":
+            return jsonify("Unauthorized"),403
+    except KeyError:
+        return jsonify("Unauthorized"),403
+
     logging.info("reception of id360 callback for %s", code)
     token = pickle.loads(red.get(code))["token"]
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
@@ -489,9 +458,12 @@ def id360callback(code, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
 
     logging.info('callback for wallet DID = %s', did)
-    dossier = get_dossier(id_dossier, token)
-    if (dossier == 202):
-        return jsonify("ok")
+    print(request.get_json())
+
+    #dossier = get_dossier(id_dossier, token)
+    dossier=request.get_json()
+    if(dossier["status"]=="NEW" or dossier["status"]=="STARTED"):
+        return jsonify("ok"),200
     try:
         if pickle.loads(red.get(code))["first"] == True:
             db.insert_kyc(did, dossier["status"], id_dossier)
@@ -557,35 +529,7 @@ def get_qrcode(code, red):
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
     dossier = get_dossier(id_dossier, token)
-    """if(vc_type=="Over13" or vc_type=="Over15" or vc_type=="Over18"):
-        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date") # tester status kyc
-        if not birth_date :
-            url = pickle.loads(red.get(code))["site_callback"] + "/400"
-            event_data = json.dumps({"type": "callbackErr", "code": code, "url": url}) #ERROR : Age VC demandé mais pas d'âge dans le dossier
-            red.publish('qr_code', event_data)
-            print("deleting code 532")
-            red.delete(code)
-            return jsonify("ok")
-        timestamp = ciso8601.parse_datetime(birth_date)
-        # to get time in seconds:
-        timestamp=time.mktime(timestamp.timetuple())
-        now= time.time()
-    if (vc_type=="Over18" and (now-timestamp)<31556926*18 ):
-        url = pickle.loads(red.get(code))["site_callback"] + "/400"
-        event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
-        red.publish('qr_code', event_data)
-        print("deleting code 506")
-        red.setex(code,CODE_LIFE,pickle.dumps({"error":url})) #ERROR : Over18 demandé mais user mineur
-        #red.delete(code)
-        return jsonify("ok")
-    if pickle.loads(red.get(code))["first"] == True:
-        db.insert_kyc(did, dossier["status"], id_dossier)
-    else:
-        print(did)
-        print(dossier)
-        print(dossier["status"])
-        print(id_dossier)
-        db.update_kyc(did, dossier["status"], id_dossier)"""
+
     try:
         if (dossier["status"] == "OK"):  # or dossier["status"]=="KO"
             # if(vc_type=="Over18" and (now-timestamp)>31556926*18 ) or vc_type != "Over18":
@@ -622,8 +566,7 @@ async def vc_endpoint(code, red):
         credential = json.load(
             open('./verifiable_credentials/Over18.jsonld', 'r'))
         credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
-            "id_dossier"]
+        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
         credential["credentialSubject"]["kycMethod"] = JOURNEY
     credential["issuer"] = ISSUER_DID
     credential['issuanceDate'] = datetime.utcnow().replace(

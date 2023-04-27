@@ -46,7 +46,6 @@
   "credentialSubject": {
     "type" : "VerifiableId",
     "id": "",
-    "personalIdentifier": "",
     "familyName": "",
     "firstName": "",
     "dateOfBirth": ""
@@ -58,7 +57,7 @@
   "evidence": [{
     "id": "https://github.com/TalaoDAO/context#evidence",
     "type": ["DocumentVerification"],
-    "verifier": "Passbase",
+    "verifier": "",
     "evidenceDocument": "",
     "kycId": ""
   }]
