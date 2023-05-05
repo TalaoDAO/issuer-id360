@@ -148,10 +148,14 @@
     source.onmessage = function (event) {
       const result = JSON.parse(event.data);
       console.log(result)
-      if (result.code === '{{code}}') {
-
-        window.location.href = "https://{{callback}}/200"; //route => args
+      if (result.code === '{{code}}' && result.type==="altmeTransfered") {
+        if (vc_type === "VerifiableId") { window.location.href = "https://{{callback}}/200"; }
+        else {window.location.href = "https://{{callback}}/201";}
       }
+      if (result.code === '{{code}}' && result.type==="error") {
+        window.location.href = "https://{{callback}}/"+result.error;
+      }
+
     }
     function displayQrCode(url) {
       let element = document.getElementById('folder');
@@ -163,9 +167,9 @@
       let qrcode = document.createElement("a")
       document.getElementById("newBox").appendChild(qrcode);
       qrcode.setAttribute('id', 'buttonQrcode')
-      qrcode.setAttribute('href', 'https://app.altme.io/app/download?uri='+url)
+      qrcode.setAttribute('href', 'https://app.altme.io/app/download?uri=' + url)
 
-      qrcode.innerHTML="Click here to get your VC"
+      qrcode.innerHTML = "Click here to get your VC"
 
       let arrow = document.createElement("img")
       document.getElementById("newBox").appendChild(arrow);
