@@ -553,6 +553,9 @@ async def vc_endpoint(code, red):
 def serve_static(filename):
     return send_file('./static/' + filename, download_name=filename)
 
+@app.route('/id360/jeprouvemonage')
+def jeprouvemonage():
+    return render_template("jeprouvemonage.html",url="https://altme.io")
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
