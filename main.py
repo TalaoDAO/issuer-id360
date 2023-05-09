@@ -456,7 +456,10 @@ async def vc_endpoint(code, red):
         credential = json.load(
             open('./verifiable_credentials/VerifiableId.jsonld', 'r'))
         credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
-        credential["credentialSubject"]["firstName"] = dossier["extracted_data"]["identity"][0]["first_names"][0]
+        try:
+            credential["credentialSubject"]["firstName"] = dossier["extracted_data"]["identity"][0]["first_names"][0]
+        except:
+            pass
         credential["credentialSubject"]["dateOfBirth"] = dossier["extracted_data"]["identity"][0].get(
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
