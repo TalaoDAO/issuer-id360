@@ -222,8 +222,9 @@ def login(code):
             return redirect(link)
 
         else:
+            dossier = get_dossier(kyc[2],token)
             temp_dict["first"] = False
-            if kyc[1] == "OK":
+            if kyc[1] == "OK" and dossier!="expired":
                 #temp_dict = pickle.loads(red.get(code))
                 temp_dict["id_dossier"] = kyc[2]
                 red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
