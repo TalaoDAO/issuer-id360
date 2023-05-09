@@ -60,11 +60,12 @@ def update_kyc(did,status,id_dossier):
                 con.commit()
                 msg = "kyc successfully updated"
                 logging.info("msg db %s", str(msg))
-    except:
-            con.rollback()
-            msg = "error in update operation"
-            logging.info("msg db %s", str(msg))
-        #wtf            
+    except sql.Error as er: 
+            print('SQLite error: %s' % (' '.join(er.args)))
+            print("Exception class is: ", er.__class__)
+            print('SQLite traceback: ')
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            print(traceback.format_exception(exc_type, exc_value, exc_tb))          
     finally:
             con.close()
             logging.info("msg db %s", str(msg))
