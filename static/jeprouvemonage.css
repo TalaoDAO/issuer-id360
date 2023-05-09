@@ -209,3 +209,6 @@ body {
     flex-direction: column;
     margin: 0;
 }
+#qrcodeJPMA{
+    width: 216px;
+}
