@@ -64,7 +64,7 @@ def update_kyc(did,status,id_dossier):
             con.rollback()
             msg = "error in update operation"
             logging.info("msg db %s", str(msg))
-            
+        #wtf            
     finally:
             con.close()
             logging.info("msg db %s", str(msg))
