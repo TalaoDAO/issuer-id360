@@ -451,6 +451,7 @@ async def vc_endpoint(code, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
     token = pickle.loads(red.get(code))["token"]
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
+    print("dossier :")
     print(dossier)
     if vc_type == "VerifiableId":
         credential = json.load(
