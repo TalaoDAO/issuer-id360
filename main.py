@@ -199,6 +199,7 @@ def login(code):
         client_id = request.args['client_id']
         vc_type = request.args['vc_type']   
         did=pickle.loads(red.get(code))["did"]
+        logging.info("kyc status in db : ")
         kyc = db.get_user_kyc(did)
         if not kyc:
             logging.info(did+" never did kyc")
