@@ -59,9 +59,11 @@ def update_kyc(did,status,id_dossier):
                 cur.execute("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 con.commit()
                 msg = "kyc successfully updated"
+                logging.info("msg db %s", str(msg))
     except:
             con.rollback()
             msg = "error in update operation"
+            logging.info("msg db %s", str(msg))
             
     finally:
             con.close()
