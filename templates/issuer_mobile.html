@@ -73,11 +73,12 @@
         <div id="mainBox">
           <div id="progressBox">
             <p id="inProgress">Your {{verified}} has been verified</p>
+            <p id="yourId"></p>
             <div id="newBox">
               <a id="buttonQrcode" href="https://app.altme.io/app/download?uri={{url}}">Click here to get your VC</a>
               <img id="arrowImg" src="/id360/static/Arrow-right.png">
               <img id="card" src="/id360/static/{{card}}.png">
-          </div>
+            </div>
           </div>
 
         </div>
@@ -147,19 +148,7 @@
         }
       }
     };
-    var source = new EventSource('/id360/issuer_stream');
-    source.onmessage = function (event) {
-      const result = JSON.parse(event.data);
-      console.log(result)
-      if (result.code === '{{code}}' && result.type==="altmeTransfered") {
-        if (vc_type === "VerifiableId") { window.location.href = "https://{{callback}}/200"; }
-        else {window.location.href = "https://{{callback}}/201";}
-      }
-      if (result.code === '{{code}}' && result.type==="error") {
-        window.location.href = "https://{{callback}}/"+result.error;
-      }
-
-    }
+    
     function displayQrCode(url) {
       let element = document.getElementById('folder');
       element.remove();
@@ -212,6 +201,27 @@
       }
     })
 */
+    var source = new EventSource('/id360/issuer_stream');
+    source.onmessage = function (event) {
+      const result = JSON.parse(event.data);
+      //console.log(result)
+      if (result.code === '{{code}}' && result.type === "altmeTransfered") {
+        //if (vc_type === "VerifiableId") { window.location.href = "https://{{callback}}/200"; }
+        //else { window.location.href = "https://{{callback}}/201"; }
+        document.getElementById("inProgress").innerHTML="Well done !"
+        document.getElementById("yourId").innerHTML="You have successfully claimed your digital ID in Altme"
+        document.getElementById("newBox").remove()
+        let success = document.createElement("img")
+        document.getElementById("progressBox").appendChild(success)
+        success.setAttribute("id","successImg")
+        success.setAttribute("src","/id360/static/Mobile-credential-success-{{card}}.png")
+
+      }
+      if (result.code === '{{code}}' && result.type === "error") {
+        window.location.href = "https://{{callback}}/" + result.error;
+      }
+
+    }
   </script>
 </body>
 
