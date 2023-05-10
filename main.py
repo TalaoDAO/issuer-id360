@@ -475,9 +475,9 @@ async def vc_endpoint(code, red):
         credential["credentialSubject"]["dateOfBirth"] = dossier["extracted_data"]["identity"][0].get(
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
-    if vc_type == "Over18":
+    else:
         credential = json.load(
-            open('./verifiable_credentials/Over18.jsonld', 'r'))
+            open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
         credential["credentialSubject"]["kycProvider"] = "ID360"
         credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
         credential["credentialSubject"]["kycMethod"] = JOURNEY
