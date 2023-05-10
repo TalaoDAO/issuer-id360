@@ -279,12 +279,16 @@ def issuer(code, red):
                 return render_template("error.html")
             else:
                 return render_template("error_mobile.html")"""
-
+        vc_type = pickle.loads(red.get(code))["vc_type"]
+        if(vc_type=="VerifiableId"):
+            verified="ID"
+        else:
+            verified="age"
         if not request.MOBILE:
             return render_template("issuer.html", code=code,  url= mode.server+"/id360/issuer_endpoint/" + code)
 
         else:
-            return render_template("issuer_mobile.html", code=code,  url= mode.server+"/id360/issuer_endpoint/" + code)
+            return render_template("issuer_mobile.html", code=code,  url= mode.server+"/id360/issuer_endpoint/" + code,card=vc_type,verified=verified)
 
     logging.warning("invalid link")
     if not request.MOBILE:
@@ -369,8 +373,12 @@ def id360callback(code, red):
         # url = pickle.loads(red.get(code))["site_callback"] + "/400"
         # event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
         # red.publish('qr_code', event_data)
-        print("deleting code 479")
-        red.delete(code)  # ERROR : code expiré
+        event_data = json.dumps(
+            {"type": "callbackErr", "code": code, "url": url,"code_error":"413"})
+        red.publish('qr_code', event_data)
+        # red.delete(code)
+        red.setex(code, CODE_LIFE, pickle.dumps(
+            {"error": url,"code_error":"413"}))  # ERROR : saut d'étape
         return jsonify("ok")
     if (dossier["status"] != "OK"):
         url = pickle.loads(red.get(code))["site_callback"] + "/400"
@@ -456,7 +464,10 @@ async def vc_endpoint(code, red):
     if vc_type == "VerifiableId":
         credential = json.load(
             open('./verifiable_credentials/VerifiableId.jsonld', 'r'))
-        credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
+        try:
+            credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
+        except:
+            logging.error("no name in dossier")
         try:
             credential["credentialSubject"]["firstName"] = dossier["extracted_data"]["identity"][0]["first_names"][0]
         except:
