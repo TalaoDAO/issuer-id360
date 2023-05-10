@@ -475,6 +475,8 @@ async def vc_endpoint(code, red):
         credential["credentialSubject"]["dateOfBirth"] = dossier["extracted_data"]["identity"][0].get(
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
+    elif  vc_type == "AgeRange":
+        pass
     else:
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
@@ -488,12 +490,8 @@ async def vc_endpoint(code, red):
         datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
 
     if request.method == 'GET':
-        if vc_type == "VerifiableId":
-            credential_manifest = json.load(
-                open('./credential_manifest/VerifiableId_credential_manifest.json', 'r'))
-        if vc_type == "Over18":
-            credential_manifest = json.load(
-                open('./credential_manifest/Over18_credential_manifest.json', 'r'))
+        
+        credential_manifest = json.load(open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
         credential_manifest['id'] = str(uuid.uuid1())
         credential_manifest['issuer']['id'] = ISSUER_DID
         credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())
