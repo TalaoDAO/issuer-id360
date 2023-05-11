@@ -115,7 +115,7 @@ def create_dossier(code: str, token: str, did: str) -> str:
         logging.error(response.json())
 
 
-def get_dossier(id_dossier :str, token :str):
+def get_dossier(id_dossier :str, token :str) -> dict:
     """
     ID360 API call to get user data
 
@@ -144,7 +144,7 @@ def get_dossier(id_dossier :str, token :str):
         return response.status_code
 
 
-def code_generator():
+def code_generator() -> str:
     """
     Utils, generate a code of 6 caracteres
     """
@@ -184,7 +184,7 @@ def get_code():
 
 
 @app.route('/id360/authenticate/<code>')
-def login(code):
+def login(code : str):
     print(request.args)
 
     try:
@@ -250,7 +250,7 @@ def login(code):
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red})
-def issuer(code, red):
+def issuer(code : str, red):
     """
     This is the call back for browser
     """
@@ -341,7 +341,7 @@ def issuer_stream(red):
 
 
 @app.route('/id360/callback_id360/<code>', methods=['GET', 'POST'],  defaults={'red': red})
-def id360callback(code, red):
+def id360callback(code :str, red):
     """
     Callback route for ID360
     """
@@ -402,7 +402,7 @@ def id360callback(code, red):
 
 
 @app.route('/id360/issuer_endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
-async def vc_endpoint(code, red):
+async def vc_endpoint(code :str, red):
     """
     Issuer for verifiableID and Over18 JSON-LD credentials
     Flow is available here https://swimlanes.io/u/XAjNWWtYC
@@ -525,7 +525,7 @@ async def vc_endpoint(code, red):
 
 
 @app.route('/id360/static/<filename>', methods=['GET'])
-def serve_static(filename):
+def serve_static(filename : str):
     return send_file('./static/' + filename, download_name=filename)
 
 
