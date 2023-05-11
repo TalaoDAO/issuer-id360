@@ -174,7 +174,7 @@ def get_code():
     if not db.test_api_key(client_id, client_secret):
         return jsonify("client not found"), 404
     # code = code_generator()
-    code = uuid.uuid1()
+    code = str(uuid.uuid1())
     red.setex(code, CODE_LIFE, pickle.dumps({
         "is_code_valid": "True",
         "client_id": client_id,
