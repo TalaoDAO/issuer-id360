@@ -178,28 +178,7 @@
       document.getElementById("yourId").innerHTML = "Scan this final QR code with Altme to get your ID"
       //document.getElementById("yourId").setAttribute("id", "ScanToGet")
     }
-    document.getElementById('buttonMenu').addEventListener('click', () => {
-      //console.log(document.getElementById('buttonMenu').getAttribute("class"))
-      if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuInactive") {
-        document.documentElement.setAttribute("class", "noScroll");
-        document.getElementById('menuDiv').setAttribute("class", "menuActive");
-
-        document.getElementById('mainBox').setAttribute("class", "toHide");
-
-        document.getElementById('imageButtonMenu').setAttribute("class", "imgButtonMenuActive");
-        document.getElementById('imageButtonMenu').setAttribute("src", "https://talao.co/altme-identity/static/crossMenu.png")
-      }
-      else if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuActive") {
-        document.documentElement.setAttribute("class", "");
-        document.getElementById('menuDiv').setAttribute("class", "nav-02__list_wrapper");
-        document.getElementById('mainBox').setAttribute("class", "");
-
-
-        document.getElementById('imageButtonMenu').setAttribute("class", "imgButtonMenuInactive");
-        document.getElementById('imageButtonMenu').setAttribute("src", "https://talao.co/altme-identity/static/div.png")
-
-      }
-    })
+    
 */
     var source = new EventSource('/id360/issuer_stream');
     source.onmessage = function (event) {
@@ -222,6 +201,28 @@
       }
 
     }
+    document.getElementById('buttonMenu').addEventListener('click', () => {
+      //console.log(document.getElementById('buttonMenu').getAttribute("class"))
+      if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuInactive") {
+        document.documentElement.setAttribute("class", "noScroll");
+        document.getElementById('menuDiv').setAttribute("class", "menuActive");
+
+        document.getElementById('mainBox').setAttribute("class", "toHide");
+
+        document.getElementById('imageButtonMenu').setAttribute("class", "imgButtonMenuActive");
+        document.getElementById('imageButtonMenu').setAttribute("src", "https://talao.co/altme-identity/static/crossMenu.png")
+      }
+      else if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuActive") {
+        document.documentElement.setAttribute("class", "");
+        document.getElementById('menuDiv').setAttribute("class", "nav-02__list_wrapper");
+        document.getElementById('mainBox').setAttribute("class", "");
+
+
+        document.getElementById('imageButtonMenu').setAttribute("class", "imgButtonMenuInactive");
+        document.getElementById('imageButtonMenu').setAttribute("src", "https://talao.co/altme-identity/static/div.png")
+
+      }
+    })
   </script>
 </body>
 

@@ -35,6 +35,7 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 QRCODE_AUTHENTICATION_LIFE = 600
 JOURNEY = "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"  # SVID
 ID360_URL = 'https://preprod.id360docaposte.com/'
+ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
 DIDAuth = {
     "type": "VerifiablePresentationRequest",
     "query": [
@@ -170,7 +171,8 @@ def get_code():
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
         return jsonify("client not found"), 404
-    code = code_generator()
+    #code = code_generator()
+    code = uuid.uuid1()
     red.setex(code, CODE_LIFE, pickle.dumps({
         "is_code_valid": "True",
         "client_id": client_id,
@@ -188,7 +190,7 @@ def login(code):
             print(pickle.loads(red.get(code)))
             print("logged "+str(session.get('logged')))
         except:
-            logging.warning("invalid link")
+            logging.warning("invalid link3")
             if not request.MOBILE:
                 return render_template("error.html")
             else:
@@ -257,28 +259,37 @@ def issuer(code, red):
         print(pickle.loads(red.get(code)))
         print("logged "+str(session.get('logged')))
     except:
-        logging.warning("invalid link")
+        logging.warning("invalid link1")
         if not request.MOBILE:
             return render_template("error.html")
         else:
-            return render_template("error_mobile.html")
+            return render_template("error_mobile.html",error_title="Invalid link",error_description="This code does not coressond to a correct session.",card="VerifiableId")
     if session.get('logged'):
         try:
-            link = pickle.loads(red.get(code))["error"]
+            code_error = pickle.loads(red.get(code))["code_error"]
+            card = pickle.loads(red.get(code))["vc_type"]
+            if code_error=="410":
+                error_title="KYC KO"
+                error_description="Something went wrong verifiying you ID" # TODO mettre le vrai message
+            if code_error=="411":
+                error_title="Can't verify age required"
+                error_description="We could not verify required age for "+vc_type 
+            if code_error=="412":
+                error_title="Not old enough"
+                error_description="This card needs you being older" 
+            if code_error=="413":
+                error_title="You went too fast"
+                error_description="We miss some informations to let you continue" # TODO mettre le vrai message
             print("delete code 266")
             red.delete(code)
-            return redirect("https://"+link)
-
-        except:
-            pass
-        """try:
-            site_callback = pickle.loads(red.get(code))['site_callback']
-        except:
-            logging.warning("delay expired to get the browser callback")
             if not request.MOBILE:
                 return render_template("error.html")
             else:
-                return render_template("error_mobile.html")"""
+                return render_template("error_mobile.html",error_title=error_title,error_description=error_description,card=card)
+
+        except:
+            pass
+
         vc_type = pickle.loads(red.get(code))["vc_type"]
         if(vc_type=="VerifiableId"):
             verified="ID"
@@ -290,7 +301,7 @@ def issuer(code, red):
         else:
             return render_template("issuer_mobile.html", code=code,  url= mode.server+"/id360/issuer_endpoint/" + code,card=vc_type,verified=verified)
 
-    logging.warning("invalid link")
+    logging.warning("invalid link2")
     if not request.MOBILE:
         return render_template("error.html")
     else:
@@ -304,21 +315,6 @@ def presentation_stream(red):
         pubsub.subscribe('verifier')
         for message in pubsub.listen():
             if message['type'] == 'message':
-                yield 'data: %s\n\n' % message['data'].decode()
-    headers = {"Content-Type": "text/event-stream",
-               "Cache-Control": "no-cache",
-               "X-Accel-Buffering": "no"}
-    return Response(event_stream(red), headers=headers)
-
-
-@app.route('/id360/qr_code_stream', methods=['GET'],  defaults={'red': red})
-def qr_code_stream(red):
-    def event_stream(red):
-        pubsub = red.pubsub()
-        pubsub.subscribe('qr_code')
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                print(message['data'].decode())
                 yield 'data: %s\n\n' % message['data'].decode()
     headers = {"Content-Type": "text/event-stream",
                "Cache-Control": "no-cache",
@@ -370,49 +366,23 @@ def id360callback(code, red):
         else:
             db.update_kyc(did, dossier["status"], id_dossier)
     except KeyError:
-        # url = pickle.loads(red.get(code))["site_callback"] + "/400"
-        # event_data = json.dumps({"type": "callbackErr", "code": code, "url": url})
-        # red.publish('qr_code', event_data)
-        event_data = json.dumps(
-            {"type": "callbackErr", "code": code, "url": url,"code_error":"413"})
-        red.publish('qr_code', event_data)
-        # red.delete(code)
-        red.setex(code, CODE_LIFE, pickle.dumps(
-            {"error": url,"code_error":"413"}))  # ERROR : saut d'étape
+        red.setex(code, CODE_LIFE, pickle.dumps({"code_error":"413","vc_type":vc_type}))  # ERROR : saut d'étape
         return jsonify("ok")
     if (dossier["status"] != "OK"):
-        url = pickle.loads(red.get(code))["site_callback"] + "/400"
-        event_data = json.dumps(
-            {"type": "callbackErr", "code": code, "url": url,"code_error":"410"})
-        red.publish('qr_code', event_data)
-        # red.delete(code)
-        red.setex(code, CODE_LIFE, pickle.dumps(
-            {"error": url,"code_error":"410"}))  # ERROR : KYC KO
+        red.setex(code, CODE_LIFE, pickle.dumps({"code_error":"410","vc_type":vc_type}))  # ERROR : KYC KO
         return jsonify("ok")
     if (vc_type == "Over13" or vc_type == "Over15" or vc_type == "Over18"):
-        birth_date = dossier["extracted_data"]["identity"][0].get(
-            "birth_date")  # tester status kyc
+        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")  
         if not birth_date:
-            url = pickle.loads(red.get(code))["site_callback"] + "/400"
-            event_data = json.dumps(
-                {"type": "callbackErr", "code": code, "url": url,"code_error":"411"})
-            red.publish('qr_code', event_data)
             print("deleting code 495")
-            # ERROR : Age VC demandé mais pas d'âge dans le dossier
-            red.setex(code, CODE_LIFE, pickle.dumps({"error": url}))
-            # red.delete(code)
+            red.setex(code, CODE_LIFE, pickle.dumps({"vc_type":vc_type,"code_error":"411"}))  # ERROR : Age VC demandé mais pas d'âge dans le dossier
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         timestamp = time.mktime(timestamp.timetuple())
         now = time.time()
     if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
-        url = pickle.loads(red.get(code))["site_callback"] + "/400"
-        event_data = json.dumps(
-            {"type": "callbackErr", "code": code, "url": url,"code_error":"412"})
-        red.publish('qr_code', event_data)
         print("deleting code 506")
-        # ERROR : Over18 demandé mais user mineur
-        red.setex(code, CODE_LIFE, pickle.dumps({"error": url}))
+        red.setex(code, CODE_LIFE, pickle.dumps({"code_error":"412","vc_type":vc_type}))# ERROR : Over18 demandé mais user mineur
         # red.delete(code)
         return jsonify("ok")
     url = mode.server+"/id360/issuer_endpoint/" + code
@@ -420,34 +390,6 @@ def id360callback(code, red):
     red.publish('qr_code', event_data)
     return jsonify("ok")
 
-
-"""@app.route('/id360/get_qrcode/<code>', methods=['GET'],  defaults={'red': red})
-def get_qrcode(code, red):
-    
-    "Useful to verify data of user and send it to fronted
-    
-    logging.info(pickle.loads(red.get(code)))
-    token = pickle.loads(red.get(code))["token"]
-    id_dossier = pickle.loads(red.get(code))["id_dossier"]
-    did = pickle.loads(red.get(code))["did"]
-    vc_type = pickle.loads(red.get(code))["vc_type"]
-    dossier = get_dossier(id_dossier, token)
-
-    try:
-        if (dossier["status"] == "OK"):  # or dossier["status"]=="KO"
-            # if(vc_type=="Over18" and (now-timestamp)>31556926*18 ) or vc_type != "Over18":
-            return jsonify({"url": mode.server+"/id360/issuer_endpoint/" + code})
-        else:
-            print("red delete 538")
-            red.delete(code)
-            return jsonify({"url": "error","error_code":"410"})  # ERROR : kyc ko
-    except TypeError:
-        return jsonify({"url": "not_yet"})
-    except KeyError:
-        print("red delete 545")
-        red.delete(code)
-        return jsonify({"url": "error","error_code":"420"})  # ERROR : ?
-"""
 
 @app.route('/id360/issuer_endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
 async def vc_endpoint(code, red):

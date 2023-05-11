@@ -55,7 +55,7 @@
 #mainBox {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     padding: 0px;
     gap: 25px;
 
@@ -1833,9 +1833,29 @@ p {
     color: #544A62;
     max-width: 90%;
 }
-.width100{
+
+.width100 {
     width: 100%;
 }
-#successImg{
+
+#successImg {
     width: 42%;
+}
+
+#errorDescription {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 140%;
+
+
+    text-align: center;
+
+    color: #E00000;
+
+
+}
+#crossError{
+    width: 40px;
 }
