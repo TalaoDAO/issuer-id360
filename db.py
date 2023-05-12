@@ -39,7 +39,7 @@ def insert_kyc(did,status,id_dossier):
                 cur = con.cursor()
                 cur.execute("INSERT INTO kycs (did,status,id) VALUES (?,?,?)",(did,status,id_dossier))
                 con.commit()
-                logging.info("kyc successfully added")
+                logging.info("kyc successfully added to "+did)
     except sql.Error as er: 
             print('SQLite error: %s' % (' '.join(er.args)))
             print("Exception class is: ", er.__class__)
@@ -58,7 +58,7 @@ def update_kyc(did,status,id_dossier):
                 print("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 cur.execute("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 con.commit()
-                msg = "kyc successfully updated"
+                msg = "kyc successfully updated to "+did
                 logging.info("msg db %s", str(msg))
     except sql.Error as er: 
             print('SQLite error: %s' % (' '.join(er.args)))

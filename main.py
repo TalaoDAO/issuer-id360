@@ -144,14 +144,6 @@ def get_dossier(id_dossier :str, token :str) -> dict:
         return response.status_code
 
 
-def code_generator() -> str:
-    """
-    Utils, generate a code of 6 caracteres
-    """
-    characters = string.digits+string.ascii_lowercase
-    return ''.join(random.choice(characters) for i in range(6))
-
-
 @app.route('/id360/get_code')
 def get_code():
     """
@@ -267,29 +259,29 @@ def issuer(code : str, red):
         else:
             return render_template("error_mobile.html", error_title="Invalid link", error_description="This code does not coressond to a correct session.", card="VerifiableId")
     if session.get('logged'):
+        site_callback = pickle.loads(red.get(code))["site_callback"]
         try:
             code_error = pickle.loads(red.get(code))["code_error"]
             card = pickle.loads(red.get(code))["vc_type"]
+            
             if code_error == "410":
-                error_title = "KYC KO"
-                # TODO mettre le vrai message
-                error_description = "Something went wrong verifiying you ID"
+                error_title = "KYC Verification Failed"
+                error_description = "Sorry, we encountered an issue while verifying your ID. Please try again later." # TODO mettre le vrai message
             if code_error == "411":
-                error_title = "Can't verify age required"
-                error_description = "We could not verify required age for "+vc_type
+                error_title = "Age Verification Failed"
+                error_description = "We were unable to verify the required age for " + vc_type + ". Please ensure the information provided is accurate."
             if code_error == "412":
-                error_title = "Not old enough"
-                error_description = "This card needs you being older"
+                error_title = "Age Requirement Not Met"
+                error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
             if code_error == "413":
-                error_title = "You went too fast"
-                # TODO mettre le vrai message
-                error_description = "We miss some informations to let you continue"
+                error_title = "Incomplete Information"
+                error_description = "Oops! It seems like some required information is missing. Please provide all necessary details to continue."
             print("delete code 266")
             red.delete(code)
             if not request.MOBILE:
                 return render_template("error.html")
             else:
-                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card)
+                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card,url=site_callback)
 
         except:
             pass
@@ -303,7 +295,7 @@ def issuer(code : str, red):
             return render_template("issuer.html", code=code,  url=mode.server+"/id360/issuer_endpoint/" + code)
 
         else:
-            return render_template("issuer_mobile.html", code=code,  url=mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
+            return render_template("issuer_mobile.html", code=code,  url=site_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
 
     logging.warning("invalid link2")
     if not request.MOBILE:
@@ -428,7 +420,35 @@ async def vc_endpoint(code :str, red):
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
     elif vc_type == "AgeRange":
-        pass
+        birth_date = dossier["extracted_data"]["identity"][0].get(
+            "birth_date", "Not available")
+        year = birth_date.split('-')[0]
+        month = birth_date.split('-')[1]
+        day = birth_date.split('-')[2]
+        date13 = datetime(int(year) + 13, int(month), int(day))
+        date18 = datetime(int(year) + 18, int(month), int(day))
+        date25 = datetime(int(year) + 25, int(month), int(day))
+        date35 = datetime(int(year) + 35, int(month), int(day))
+        date45 = datetime(int(year) + 45, int(month), int(day))
+        date55 = datetime(int(year) + 55, int(month), int(day))
+        date65 = datetime(int(year) + 65, int(month), int(day))
+        
+        if datetime.now() < date13 :
+            credential['credentialSubject']['ageRange'] = "-13"
+        elif datetime.now() < date18 :
+            credential['credentialSubject']['ageRange'] = "14-17"
+        elif datetime.now() < date25 :
+            credential['credentialSubject']['ageRange'] = "18-24"
+        elif datetime.now() < date35 :
+            credential['credentialSubject']['ageRange'] = "25-34"
+        elif datetime.now() < date45 :
+            credential['credentialSubject']['ageRange'] = "35-44"
+        elif datetime.now() < date55 :
+            credential['credentialSubject']['ageRange'] = "45-54"
+        elif datetime.now() < date65 :
+            credential['credentialSubject']['ageRange'] = "55-64"
+        else :
+            credential['credentialSubject']['ageRange'] = "65+"
     else:
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
