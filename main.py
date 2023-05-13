@@ -405,9 +405,9 @@ async def vc_endpoint(code :str, red):
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
     print("dossier :")
     print(dossier)
+    credential = json.load(open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
+
     if vc_type == "VerifiableId":
-        credential = json.load(
-            open('./verifiable_credentials/VerifiableId.jsonld', 'r'))
         try:
             credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
         except:
@@ -450,8 +450,6 @@ async def vc_endpoint(code :str, red):
         else :
             credential['credentialSubject']['ageRange'] = "65+"
     else:
-        credential = json.load(
-            open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
         credential["credentialSubject"]["kycProvider"] = "ID360"
         credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
             "id_dossier"]
@@ -464,8 +462,7 @@ async def vc_endpoint(code :str, red):
 
     if request.method == 'GET':
 
-        credential_manifest = json.load(
-            open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
+        credential_manifest = json.load(open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
         credential_manifest['id'] = str(uuid.uuid1())
         credential_manifest['issuer']['id'] = ISSUER_DID
         credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())
