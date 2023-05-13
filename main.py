@@ -541,6 +541,8 @@ async def vc_endpoint(code :str, red):
         # we delete the code and send the credential
         print("deleting code 647")
         red.delete(code)
+        data = {"vc" :  vc_type, "count" : "1" }
+        requests.post('https://issuer.talao.co/counter/update', data=data)
         return jsonify(signed_credential)
 
 
