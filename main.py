@@ -330,6 +330,7 @@ def id360callback(code :str, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
     logging.info('callback for wallet DID = %s', did)
     dossier = request.get_json()
+    logging.info(dossier)
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
         return jsonify("ok"), 200
     try:
