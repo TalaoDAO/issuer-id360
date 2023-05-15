@@ -210,6 +210,15 @@ def login(code : str):
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
                 birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+                logging.info("birth_date "+birth_date)
+                timestamp = ciso8601.parse_datetime(birth_date)
+                timestamp = time.mktime(timestamp.timetuple())
+                now = time.time()
+                if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
+                    error_title = "Age Requirement Not Met"
+                    error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
+                    return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type,url=site_callback)
+
                 logging.info("birth_date : "+birth_date)
                 temp_dict["id_dossier"] = kyc[2]
                 red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
