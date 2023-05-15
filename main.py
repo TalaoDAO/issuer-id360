@@ -209,6 +209,8 @@ def login(code : str):
             dossier = get_dossier(kyc[2], token)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
+                birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+                logging.info("birth_date : "+birth_date)
                 temp_dict["id_dossier"] = kyc[2]
                 red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
                 link = mode.server+"/id360/issuer/"+code
