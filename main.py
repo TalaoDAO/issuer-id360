@@ -359,6 +359,8 @@ def id360callback(code: str, red):
 
     logging.info("reception of id360 callback for %s", code)
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
+    site_callback = pickle.loads(red.get(code))["site_callback"]
+
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
     logging.info('callback for wallet DID = %s', did)
@@ -373,18 +375,18 @@ def id360callback(code: str, red):
             db.update_kyc(did, dossier["status"], id_dossier)
     except KeyError:
         red.setex(code, CODE_LIFE, pickle.dumps(
-            {"code_error": "413", "vc_type": vc_type}))  # ERROR : saut d'étape
+            {"code_error": "413", "vc_type": vc_type,"site_callback":site_callback}))  # ERROR : saut d'étape
         return jsonify("ok")
     if (dossier["status"] != "OK"):
         red.setex(code, CODE_LIFE, pickle.dumps(
-            {"code_error": "410", "vc_type": vc_type}))  # ERROR : KYC KO
+            {"code_error": "410", "vc_type": vc_type,"site_callback":site_callback}))  # ERROR : KYC KO
         return jsonify("ok")
     if (vc_type == "Over13" or vc_type == "Over15" or vc_type == "Over18"):
         birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
         if not birth_date:
             # ERROR : Age VC demandé mais pas d'âge dans le dossier
             red.setex(code, CODE_LIFE, pickle.dumps(
-                {"vc_type": vc_type, "code_error": "411"}))
+                {"vc_type": vc_type, "code_error": "411","site_callback":site_callback}))
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         timestamp = time.mktime(timestamp.timetuple())
@@ -392,7 +394,7 @@ def id360callback(code: str, red):
     if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
         # ERROR : Over18 demandé mais user mineur
         red.setex(code, CODE_LIFE, pickle.dumps(
-            {"code_error": "412", "vc_type": vc_type}))
+            {"code_error": "412", "vc_type": vc_type,"site_callback":site_callback}))
         return jsonify("ok")
     url = mode.server+"/id360/issuer_endpoint/" + code
     event_data = json.dumps({"type": "callback", "code": code, "url": url})
