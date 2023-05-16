@@ -234,7 +234,7 @@ def login(code: str):
             logging.info(dossier)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
-                birth_date = dossier["extracted_data"]["identity"][0].get(
+                birth_date = dossier["identity"][0].get(
                     "birth_date")
                 logging.info("birth_date "+birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
@@ -389,7 +389,7 @@ def id360callback(code: str, red):
             {"code_error": "410", "vc_type": vc_type,"site_callback":site_callback}))  # ERROR : KYC KO
         return jsonify("ok")
     if (vc_type == "Over13" or vc_type == "Over15" or vc_type == "Over18"):
-        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+        birth_date = dossier["identity"][0].get("birth_date")
         if not birth_date:
             # ERROR : Age VC demandé mais pas d'âge dans le dossier
             red.setex(code, CODE_LIFE, pickle.dumps(
@@ -423,22 +423,22 @@ async def vc_endpoint(code: str, red):
     logging.info(dossier)
     if vc_type == "VerifiableId":
         try:
-            credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
+            credential["credentialSubject"]["familyName"] = dossier["identity"][0]["name"]
         except:
             logging.error("no familyName in dossier")
         try:
-            credential["credentialSubject"]["firstName"] = dossier["extracted_data"]["identity"][0]["first_names"][0]
+            credential["credentialSubject"]["firstName"] = dossier["identity"][0]["first_names"][0]
         except:
             logging.error("no firstName in dossier")
         try:
-            credential["credentialSubject"]["gender"] = dossier["extracted_data"]["identity"][0]["gender"]
+            credential["credentialSubject"]["gender"] = dossier["identity"][0]["gender"]
         except:
             logging.error("no firstName in dossier")
-        credential["credentialSubject"]["dateOfBirth"] = dossier["extracted_data"]["identity"][0].get(
+        credential["credentialSubject"]["dateOfBirth"] = dossier["identity"][0].get(
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
     elif vc_type == "AgeRange":
-        birth_date = dossier["extracted_data"]["identity"][0].get(
+        birth_date = dossier["identity"][0].get(
             "birth_date", "Not available")
         year = birth_date.split('-')[0]
         month = birth_date.split('-')[1]
@@ -470,9 +470,9 @@ async def vc_endpoint(code: str, red):
     elif vc_type == "DefiCompliance":
         
         try:
-            first_name = dossier["extracted_data"]["identity"][0]["first_names"][0]
-            last_name=        dossier["extracted_data"]["identity"][0]["name"]
-            birth_date = dossier["extracted_data"]["identity"][0].get("birth_date", "Not available")
+            first_name = dossier["identity"][0]["first_names"][0]
+            last_name=        dossier["identity"][0]["name"]
+            birth_date = dossier["identity"][0].get("birth_date", "Not available")
             current_date = datetime.now()
             date1 = datetime.strptime(birth_date,'%Y-%m-%d') + timedelta(weeks=18*52)
             if (current_date > date1) :
