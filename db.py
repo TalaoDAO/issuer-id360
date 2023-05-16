@@ -27,7 +27,6 @@ def get_user_kyc(did):
                 cur = con.cursor()
                 cur.execute("select * from kycs where did='" +did+"'")
                 res=cur.fetchone()
-                logging.info("from db"+str(res))
                 return res 
     except sql.Error as er:
             logging.error('SQLite error: %s', ' '.join(er.args))

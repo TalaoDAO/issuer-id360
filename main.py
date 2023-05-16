@@ -200,14 +200,12 @@ def login(code: str):
             else:
                 return render_template("error_mobile.html")
         session["logged"] = True
-
         site_callback = request.args['callback']
         client_id = request.args['client_id']
         vc_type = request.args['vc_type']
         did = pickle.loads(red.get(code))["did"]
         logging.info("kyc status in db : ")
         kyc = db.get_user_kyc(did)
-        logging.info(kyc)
         if not kyc:
             logging.info(did+" never did kyc")
         else:
@@ -219,8 +217,6 @@ def login(code: str):
         temp_dict["vc_type"] = vc_type
         temp_dict["site_callback"] = site_callback
         temp_dict["client_id"] = client_id
-        logging.info("temp_dict")
-        logging.info(temp_dict)
         if not kyc:
             temp_dict["first"] = True
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
@@ -231,7 +227,6 @@ def login(code: str):
 
         else:
             dossier = get_dossier(kyc[2], token)
-            logging.info(dossier)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
                 birth_date = dossier["identity"].get(
