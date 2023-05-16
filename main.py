@@ -204,6 +204,7 @@ def login(code: str):
         did = pickle.loads(red.get(code))["did"]
         logging.info("kyc status in db : ")
         kyc = db.get_user_kyc(did)
+        logging.info(kyc)
         if not kyc:
             logging.info(did+" never did kyc")
         else:
