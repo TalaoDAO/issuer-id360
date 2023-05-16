@@ -26,8 +26,9 @@ def get_user_kyc(did):
             with sql.connect(DATABASE_NAME) as con: #rajouter date kyc dans la table
                 cur = con.cursor()
                 cur.execute("select * from kycs where did='" +did+"'")
-                logging.info("from db"+str(cur.fetchone()))
-                return cur.fetchone() 
+                res=cur.fetchone()
+                logging.info("from db"+str(res))
+                return res 
     except sql.Error as er:
             logging.error('SQLite error: %s', ' '.join(er.args))
     finally:
