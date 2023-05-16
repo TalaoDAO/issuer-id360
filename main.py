@@ -77,7 +77,7 @@ def loginID360() -> str:
         'password': TALAO_PASSWORD,
     }
     response = requests.post(
-        ID360_URL + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+        ID360_URL_PROD + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     if response.status_code == 200:
         return response.json()["token"]
     else:
@@ -104,7 +104,7 @@ def create_dossier(code: str, token: str, did: str) -> str:
         },
     }
     response = requests.post(
-        ID360_URL + 'api/1.0.0/process/' + JOURNEY + '/enrollment/',
+        ID360_URL_PROD + 'api/1.0.0/process/' + JOURNEY_PROD + '/enrollment/',
         headers=headers,
         json=json_data,
     )
@@ -116,7 +116,7 @@ def create_dossier(code: str, token: str, did: str) -> str:
         red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
 
         api_key = response.json()["api_key"]
-        return ID360_URL + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
+        return ID360_URL_PROD + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
     else:
         logging.error(response.json())
 
@@ -131,7 +131,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'Authorization': 'Token ' + token,
     }
     response = requests.get(
-        ID360_URL + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
+        ID360_URL_PROD + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
 
     if response.status_code == 200:
         return response.json()
@@ -488,7 +488,7 @@ async def vc_endpoint(code: str, red):
         credential["credentialSubject"]["kycProvider"] = "ID360"
         credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
             "id_dossier"]
-        credential["credentialSubject"]["kycMethod"] = JOURNEY
+        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
     
     credential["issuer"] = ISSUER_DID
     credential['issuanceDate'] = datetime.utcnow().replace(
