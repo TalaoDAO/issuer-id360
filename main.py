@@ -256,7 +256,8 @@ def login(code: str):
                 link = create_dossier(code, token, did)
                 return redirect(link)
 
-    except KeyError:
+    except KeyError as e :
+        logging.error(e)
         if not request.MOBILE:
             return render_template("error.html")
         else:
