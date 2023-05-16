@@ -231,6 +231,7 @@ def login(code: str):
 
         else:
             dossier = get_dossier(kyc[2], token)
+            logging.info(dossier)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
                 birth_date = dossier["extracted_data"]["identity"][0].get(
