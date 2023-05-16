@@ -23,9 +23,12 @@ import db
 import ciso8601
 from flask_mobility import Mobility
 
-ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
+ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))[
+                        'talao_Ed25519_private_key'])
 TALAO_USERNAME = json.load(open("keys.json", "r"))['username']
 TALAO_PASSWORD = json.load(open("keys.json", "r"))['password']
+TALAO_USERNAME_PROD = json.load(open("keys.json", "r"))['username_prod']
+TALAO_PASSWORD_PROD = json.load(open("keys.json", "r"))['password_prod']
 ISSUER_VM = "did:web:app.altme.io:issuer#key-1"
 ISSUER_DID = "did:web:app.altme.io:issuer"
 CREDENTIAL_LIFE = 360  # in days
@@ -33,8 +36,11 @@ AUTHENTICATION_DELAY = 600  # in seconds
 CODE_LIFE = 600  # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
 QRCODE_AUTHENTICATION_LIFE = 600
 JOURNEY = "0dd7e3c1-c4a4-41a2-8b09-0ec992e38e2a"  # SVID
+JOURNEY_PROD = "cf30908f-d1a9-4109-8248-5b68df16c6b8"  # SVID
 ID360_URL = 'https://preprod.id360docaposte.com/'
+ID360_URL_PROD = 'https://id360docaposte.com/'
 ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
+PEP_URL = 'https://pepchecker.com/api/v1/'
 DIDAuth = {
     "type": "VerifiablePresentationRequest",
     "query": [
@@ -54,6 +60,7 @@ if not myenv:
 myenv = "achille"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
+test_api_key = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
 
 
 def loginID360() -> str:
@@ -114,7 +121,7 @@ def create_dossier(code: str, token: str, did: str) -> str:
         logging.error(response.json())
 
 
-def get_dossier(id_dossier :str, token :str) -> dict:
+def get_dossier(id_dossier: str, token: str) -> dict:
     """
     ID360 API call to get user data
 
@@ -132,8 +139,20 @@ def get_dossier(id_dossier :str, token :str) -> dict:
         logging.warning("dossier "+str(id_dossier)+" exipré")
         return ("expired")
     else:
-        logging.error("error requesting dossier status : %s",response.status_code)
+        logging.error("error requesting dossier status : %s",
+                      response.status_code)
         return response.status_code
+
+
+def pep(firstname: str, lastname: str, mod: str):
+    uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
+    if mod == 'test':
+        api_key = test_api_key
+    else:
+        api_key = mode.pep_api_key
+    response = requests.get(uri, headers={'api-key':  api_key})
+    logging.info('PEP = %s', response.json())
+    return not response.json()['sanctionList']
 
 
 @app.route('/id360/get_code')
@@ -160,12 +179,12 @@ def get_code():
         "is_code_valid": "True",
         "client_id": client_id,
         "did": did
-    }))  
+    }))
     return jsonify({"code": code})
 
 
 @app.route('/id360/authenticate/<code>')
-def login(code : str):
+def login(code: str):
 
     try:
         try:
@@ -209,7 +228,8 @@ def login(code : str):
             dossier = get_dossier(kyc[2], token)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
-                birth_date = dossier["extracted_data"]["identity"][0].get("birth_date")
+                birth_date = dossier["extracted_data"]["identity"][0].get(
+                    "birth_date")
                 logging.info("birth_date "+birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
                 timestamp = time.mktime(timestamp.timetuple())
@@ -217,7 +237,7 @@ def login(code : str):
                 if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
                     error_title = "Age Requirement Not Met"
                     error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
-                    return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type,url=site_callback)
+                    return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type, url=site_callback)
 
                 logging.info("birth_date : "+birth_date)
                 temp_dict["id_dossier"] = kyc[2]
@@ -239,7 +259,7 @@ def login(code : str):
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red})
-def issuer(code : str, red):
+def issuer(code: str, red):
     """
     This is the call back for browser
     """
@@ -259,10 +279,12 @@ def issuer(code : str, red):
             card = pickle.loads(red.get(code))["vc_type"]
             if code_error == "410":
                 error_title = "KYC Verification Failed"
-                error_description = "Sorry, we encountered an issue while verifying your ID. Please try again later." # TODO mettre le vrai message
+                # TODO mettre le vrai message
+                error_description = "Sorry, we encountered an issue while verifying your ID. Please try again later."
             if code_error == "411":
                 error_title = "Age Verification Failed"
-                error_description = "We were unable to verify the required age for " + vc_type + ". Please ensure the information provided is accurate."
+                error_description = "We were unable to verify the required age for " + \
+                    vc_type + ". Please ensure the information provided is accurate."
             if code_error == "412":
                 error_title = "Age Requirement Not Met"
                 error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
@@ -273,7 +295,7 @@ def issuer(code : str, red):
             if not request.MOBILE:
                 return render_template("error.html")
             else:
-                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card,url=site_callback)
+                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card, url=site_callback)
 
         except:
             pass
@@ -325,7 +347,7 @@ def issuer_stream(red):
 
 
 @app.route('/id360/callback_id360/<code>', methods=['GET', 'POST'],  defaults={'red': red})
-def id360callback(code :str, red):
+def id360callback(code: str, red):
     """
     Callback route for ID360
     """
@@ -379,7 +401,7 @@ def id360callback(code :str, red):
 
 
 @app.route('/id360/issuer_endpoint/<code>', methods=['GET', 'POST'],  defaults={'red': red})
-async def vc_endpoint(code :str, red):
+async def vc_endpoint(code: str, red):
     """
     Issuer for verifiableID and Over18 JSON-LD credentials
     Flow is available here https://swimlanes.io/u/XAjNWWtYC
@@ -388,22 +410,28 @@ async def vc_endpoint(code :str, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
     token = pickle.loads(red.get(code))["token"]
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
-    credential = json.load(open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
+    credential = json.load(
+        open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
 
     if vc_type == "VerifiableId":
         try:
             credential["credentialSubject"]["familyName"] = dossier["extracted_data"]["identity"][0]["name"]
         except:
-            logging.error("no name in dossier")
+            logging.error("no familyName in dossier")
         try:
             credential["credentialSubject"]["firstName"] = dossier["extracted_data"]["identity"][0]["first_names"][0]
         except:
-            pass
+            logging.error("no firstName in dossier")
+        try:
+            credential["credentialSubject"]["gender"] = dossier["extracted_data"]["identity"][0]["gender"]
+        except:
+            logging.error("no firstName in dossier")
         credential["credentialSubject"]["dateOfBirth"] = dossier["extracted_data"]["identity"][0].get(
             "birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
     elif vc_type == "AgeRange":
-        birth_date = dossier["extracted_data"]["identity"][0].get("birth_date", "Not available")
+        birth_date = dossier["extracted_data"]["identity"][0].get(
+            "birth_date", "Not available")
         year = birth_date.split('-')[0]
         month = birth_date.split('-')[1]
         day = birth_date.split('-')[2]
@@ -414,28 +442,54 @@ async def vc_endpoint(code :str, red):
         date45 = datetime(int(year) + 45, int(month), int(day))
         date55 = datetime(int(year) + 55, int(month), int(day))
         date65 = datetime(int(year) + 65, int(month), int(day))
-        
-        if datetime.now() < date13 :
+
+        if datetime.now() < date13:
             credential['credentialSubject']['ageRange'] = "-13"
-        elif datetime.now() < date18 :
+        elif datetime.now() < date18:
             credential['credentialSubject']['ageRange'] = "14-17"
-        elif datetime.now() < date25 :
+        elif datetime.now() < date25:
             credential['credentialSubject']['ageRange'] = "18-24"
-        elif datetime.now() < date35 :
+        elif datetime.now() < date35:
             credential['credentialSubject']['ageRange'] = "25-34"
-        elif datetime.now() < date45 :
+        elif datetime.now() < date45:
             credential['credentialSubject']['ageRange'] = "35-44"
-        elif datetime.now() < date55 :
+        elif datetime.now() < date55:
             credential['credentialSubject']['ageRange'] = "45-54"
-        elif datetime.now() < date65 :
+        elif datetime.now() < date65:
             credential['credentialSubject']['ageRange'] = "55-64"
-        else :
+        else:
             credential['credentialSubject']['ageRange'] = "65+"
+    elif vc_type == "DefiCompliance":
+        
+        try:
+            first_name = dossier["extracted_data"]["identity"][0]["first_names"][0]
+            last_name=        dossier["extracted_data"]["identity"][0]["name"]
+            birth_date = dossier["extracted_data"]["identity"][0].get("birth_date", "Not available")
+            current_date = datetime.now()
+            date1 = datetime.strptime(birth_date,'%Y-%m-%d') + timedelta(weeks=18*52)
+            if (current_date > date1) :
+                credential['credentialSubject']['ageCheck'] = "Succeeded"
+            else :
+                credential['credentialSubject']['ageCheck'] = "Failed"
+            # check sanction list
+            if pep(first_name, last_name, "test", mode) :
+                pep_result = "Succeeded"
+            else :
+                pep_result = "Failed"
+            credential['credentialSubject']['sanctionListCheck'] = pep_result        
+            # AML compliance 
+            if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" :
+                credential['credentialSubject']['amlComplianceCheck'] = "Succeeded"
+            else :
+                credential['credentialSubject']['amlComplianceCheck'] = "Failed"
+        except:
+            logging.error("miss data to issue a DefiCompliance VC")
     else:
         credential["credentialSubject"]["kycProvider"] = "ID360"
         credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
             "id_dossier"]
         credential["credentialSubject"]["kycMethod"] = JOURNEY
+    
     credential["issuer"] = ISSUER_DID
     credential['issuanceDate'] = datetime.utcnow().replace(
         microsecond=0).isoformat() + "Z"
@@ -444,7 +498,8 @@ async def vc_endpoint(code :str, red):
 
     if request.method == 'GET':
 
-        credential_manifest = json.load(open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
+        credential_manifest = json.load(
+            open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
         credential_manifest['id'] = str(uuid.uuid1())
         credential_manifest['issuer']['id'] = ISSUER_DID
         credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())
@@ -510,13 +565,14 @@ async def vc_endpoint(code :str, red):
 
         # we delete the code and send the credential
         red.delete(code)
-        data = {"vc" :  vc_type.lower(), "count" : "1" }
-        logging.info(requests.post('https://issuer.talao.co/counter/update', data=data).json())
+        data = {"vc":  vc_type.lower(), "count": "1"}
+        logging.info(requests.post(
+            'https://issuer.talao.co/counter/update', data=data).json())
         return jsonify(signed_credential)
 
 
 @app.route('/id360/static/<filename>', methods=['GET'])
-def serve_static(filename : str):
+def serve_static(filename: str):
     return send_file('./static/' + filename, download_name=filename)
 
 
@@ -527,4 +583,3 @@ def jeprouvemonage():
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
-
