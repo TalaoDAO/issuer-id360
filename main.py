@@ -73,8 +73,8 @@ def loginID360() -> str:
         'Content-Type': 'application/json',
     }
     json_data = {
-        'username': TALAO_USERNAME,
-        'password': TALAO_PASSWORD,
+        'username': TALAO_USERNAME_PROD,
+        'password': TALAO_PASSWORD_PROD,
     }
     response = requests.post(
         ID360_URL_PROD + 'api/1.0.0/user/login/', headers=headers, json=json_data)
