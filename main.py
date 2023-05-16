@@ -79,9 +79,12 @@ def loginID360() -> str:
     response = requests.post(
         ID360_URL_PROD + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     if response.status_code == 200:
-        return response.json()["token"]
+        token=response.json()["token"]
+        logging.info("token :"+str(token))
+        return token
     else:
-        logging.error(response.json())
+        error=response.json()
+        logging.error(error)
 
 
 def create_dossier(code: str, token: str, did: str) -> str:
@@ -216,7 +219,8 @@ def login(code: str):
         temp_dict["vc_type"] = vc_type
         temp_dict["site_callback"] = site_callback
         temp_dict["client_id"] = client_id
-
+        logging.info("temp_dict")
+        logging.info(temp_dict)
         if not kyc:
             temp_dict["first"] = True
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
