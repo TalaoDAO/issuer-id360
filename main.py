@@ -54,10 +54,7 @@ app = Flask(__name__)
 app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
 qrcode = QRcode(app)
 Mobility(app)
-myenv = os.getenv('MYENV')
-if not myenv:
-    myenv = 'thierry'
-myenv = "achille"
+myenv="aws"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 test_api_key_PEP = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
