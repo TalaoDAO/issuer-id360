@@ -490,7 +490,7 @@ async def vc_endpoint(code: str, red):
             else :
                 credential['credentialSubject']['ageCheck'] = "Failed"
             # check sanction list
-            if pep(first_name, last_name, "test", mode) :
+            if pep(first_name, last_name, "test") :
                 pep_result = "Succeeded"
             else :
                 pep_result = "Failed"
