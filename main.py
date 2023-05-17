@@ -494,6 +494,7 @@ async def vc_endpoint(code: str, red):
                 pep_result = "Succeeded"
             else :
                 pep_result = "Failed"
+            logging.info("pep_result "+pep_result)
             credential['credentialSubject']['sanctionListCheck'] = pep_result        
             # AML compliance 
             if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" :
