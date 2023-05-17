@@ -378,7 +378,7 @@ def id360callback(code: str, red):
     vc_type = pickle.loads(red.get(code))["vc_type"]
     logging.info('callback for wallet DID = %s', did)
     dossier = request.get_json()
-    logging.info(dossier)
+    #logging.info(dossier)
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
         return jsonify("ok"), 200
     try:
@@ -426,7 +426,7 @@ async def vc_endpoint(code: str, red):
     token = pickle.loads(red.get(code))["token"]
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
     credential = json.load(open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-    logging.info(dossier)
+    #logging.info(dossier)
     if vc_type == "VerifiableId":
         try:
             credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
