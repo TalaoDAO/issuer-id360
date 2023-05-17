@@ -159,6 +159,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
 
 
 def pep(firstname: str, lastname: str, mod: str):
+    logging.info("testing pep for "+firstname+" "+lastname)
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
     if mod == 'test':
         api_key = test_api_key
@@ -603,3 +604,5 @@ def jeprouvemonage():
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
+
+#https://talao.co/id360/authenticate/25f1fcf3-f4b9-11ed-acf9-0a1628958560?vc_type=DefiCompliance&client_id=200&callback=https://app.altme.io/app/download
