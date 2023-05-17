@@ -440,9 +440,11 @@ async def vc_endpoint(code: str, red):
             credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
         except:
             logging.error("no firstName in dossier")
-        credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get(
-            "birth_date", "Not available")  # gerer infos disponibles
+        credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
+        credential["credentialSubject"]["kycProvider"] = "ID360"
+        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
     elif vc_type == "AgeRange":
         birth_date = dossier["identity"].get(
             "birth_date", "Not available")
@@ -474,8 +476,7 @@ async def vc_endpoint(code: str, red):
         else:
             credential['credentialSubject']['ageRange'] = "65+"
         credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
-            "id_dossier"]
+        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
         credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
     elif vc_type == "DefiCompliance":
 
@@ -587,9 +588,10 @@ async def vc_endpoint(code: str, red):
 
         # we delete the code and send the credential
         red.delete(code)
+        if vc_type=="DefiCompliance":
+            vc_type="defi"
         data = {"vc":  vc_type.lower(), "count": "1"}
-        logging.info(requests.post(
-            'https://issuer.talao.co/counter/update', data=data).json())
+        logging.info(requests.post('https://issuer.talao.co/counter/update', data=data).json())
         return jsonify(signed_credential)
 
 
