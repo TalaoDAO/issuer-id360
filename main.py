@@ -60,8 +60,8 @@ if not myenv:
 myenv = "achille"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
-test_api_key = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
-
+test_api_key_PEP = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
+prod_api_key_PEP =json.load(open("keys.json", "r"))['pepApiKey']
 
 def loginID360() -> str:
     """
@@ -161,10 +161,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
 def pep(firstname: str, lastname: str, mod: str):
     logging.info("testing pep for "+firstname+" "+lastname)
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
-    if mod == 'test':
-        api_key = test_api_key
-    else:
-        api_key = mode.pep_api_key
+    api_key = prod_api_key_PEP
     response = requests.get(uri, headers={'api-key':  api_key})
     logging.info('PEP = %s', response.json())
     return not response.json()['sanctionList']
@@ -605,4 +602,4 @@ def jeprouvemonage():
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
 
-#https://talao.co/id360/authenticate/25f1fcf3-f4b9-11ed-acf9-0a1628958560?vc_type=DefiCompliance&client_id=200&callback=https://app.altme.io/app/download
+#https://talao.co/id360/authenticate/450467e9-f4ba-11ed-a39d-0a1628958560?vc_type=DefiCompliance&client_id=200&callback=https://app.altme.io/app/download
