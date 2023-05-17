@@ -481,7 +481,7 @@ async def vc_endpoint(code: str, red):
         
         try:
             first_name = dossier["identity"]["first_names"][0]
-            last_name=        dossier["identity"]["name"]
+            last_name= dossier["identity"]["name"]
             birth_date = dossier["identity"].get("birth_date", "Not available")
             current_date = datetime.now()
             date1 = datetime.strptime(birth_date,'%Y-%m-%d') + timedelta(weeks=18*52)
@@ -501,7 +501,8 @@ async def vc_endpoint(code: str, red):
                 credential['credentialSubject']['amlComplianceCheck'] = "Succeeded"
             else :
                 credential['credentialSubject']['amlComplianceCheck'] = "Failed"
-        except:
+        except KeyError as e :
+            logging.error(e)
             logging.error("miss data to issue a DefiCompliance VC")
     else:
         credential["credentialSubject"]["kycProvider"] = "ID360"
