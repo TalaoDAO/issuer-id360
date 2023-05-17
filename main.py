@@ -163,6 +163,7 @@ def pep(firstname: str, lastname: str, mod: str):
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
     api_key = prod_api_key_PEP
     response = requests.get(uri, headers={'api-key':  api_key})
+    logging.info(uri+" "+api_key)
     logging.info('PEP = %s', response.json())
     return not response.json()['sanctionList']
 
