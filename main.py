@@ -137,10 +137,21 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         ID360_URL_PROD + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
 
     if response.status_code == 200:
-        return response.json()
+        dossier=response.json()
+        birth_date= dossier["identity"].get("birth_date")
+        birth_year=birth_date.split("-")[0]
+        timestamp = ciso8601.parse_datetime(birth_date)
+        timestamp = time.mktime(timestamp.timetuple())
+        now = time.time()
+        logging.info(timestamp)
+        logging.info(now)
+        if(timestamp>now):
+            return "expired"
+        
+        return dossier
     elif response.status_code == 404:
         logging.warning("dossier "+str(id_dossier)+" exipré")
-        return ("expired")
+        return "expired"
     else:
         logging.error("error requesting dossier status : %s",
                       response.status_code)
