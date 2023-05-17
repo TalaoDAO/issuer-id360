@@ -138,7 +138,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
 
     if response.status_code == 200:
         dossier=response.json()
-        birth_date= dossier["identity"].get("birth_date")
+        """birth_date= dossier["identity"].get("birth_date")
         birth_year=birth_date.split("-")[0]
         timestamp = ciso8601.parse_datetime(birth_date)
         timestamp = time.mktime(timestamp.timetuple())
@@ -147,7 +147,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         logging.info(now)
         if(timestamp>now):
             return "expired"
-        
+        """
         return dossier
     elif response.status_code == 404:
         logging.warning("dossier "+str(id_dossier)+" exipré")
