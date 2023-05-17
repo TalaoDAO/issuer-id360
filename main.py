@@ -597,7 +597,11 @@ async def vc_endpoint(code: str, red):
 
 @app.route('/id360/static/<filename>', methods=['GET'])
 def serve_static(filename: str):
-    return send_file('./static/' + filename, download_name=filename)
+    try:
+        return send_file('./static/' + filename, download_name=filename)
+    except FileNotFoundError:
+        logging.error(filename+" not found")
+        return jsonify("not found"),404
 
 
 @app.route('/id360/jeprouvemonage')
