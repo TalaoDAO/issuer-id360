@@ -393,7 +393,7 @@ def id360callback(code: str, red):
     if (dossier["status"] != "OK"):
         red.setex(code, CODE_LIFE, pickle.dumps(
             {"code_error": "410", "vc_type": vc_type,"site_callback":site_callback}))  # ERROR : KYC KO
-        return jsonify("ok")
+        return jsonify("KYC KO"),412
     if (vc_type == "Over13" or vc_type == "Over15" or vc_type == "Over18"):
         birth_date = dossier["identity"].get("birth_date")
         if not birth_date:
@@ -473,6 +473,10 @@ async def vc_endpoint(code: str, red):
             credential['credentialSubject']['ageRange'] = "55-64"
         else:
             credential['credentialSubject']['ageRange'] = "65+"
+        credential["credentialSubject"]["kycProvider"] = "ID360"
+        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
+            "id_dossier"]
+        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
     elif vc_type == "DefiCompliance":
         
         try:
