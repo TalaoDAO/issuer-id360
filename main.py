@@ -136,16 +136,6 @@ def get_dossier(id_dossier: str, token: str) -> dict:
 
     if response.status_code == 200:
         dossier = response.json()
-        """birth_date= dossier["identity"].get("birth_date")
-        birth_year=birth_date.split("-")[0]
-        timestamp = ciso8601.parse_datetime(birth_date)
-        timestamp = time.mktime(timestamp.timetuple())
-        now = time.time()
-        logging.info(timestamp)
-        logging.info(now)
-        if(timestamp>now):
-            return "expired"
-        """
         return dossier
     elif response.status_code == 404:
         logging.warning("dossier "+str(id_dossier)+" exipré")
@@ -172,6 +162,14 @@ def check_country(country_code: str):
         if code==country_code:
             return False
     return True
+
+
+def check_birth_date(birth_date :str):
+    year=birth_date.split("-")[0]
+    if int(year)>2023:
+        return str(int(year)-100)+"-"+birth_date.split("-")[1]+"-"+birth_date.split("-")[2]
+    else:
+        return birth_date
 
 
 @app.route('/id360/get_code')
@@ -245,8 +243,7 @@ def login(code: str):
             dossier = get_dossier(kyc[2], token)
             temp_dict["first"] = False
             if kyc[1] == "OK" and dossier != "expired":
-                birth_date = dossier["identity"].get(
-                    "birth_date")
+                birth_date = check_birth_date(dossier["identity"].get("birth_date"))
                 logging.info("birth_date "+birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
                 timestamp = time.mktime(timestamp.timetuple())
@@ -402,7 +399,7 @@ def id360callback(code: str, red):
             {"code_error": "410", "vc_type": vc_type, "site_callback": site_callback}))  # ERROR : KYC KO
         return jsonify("KYC KO"), 412
     if (vc_type == "Over13" or vc_type == "Over15" or vc_type == "Over18"):
-        birth_date = dossier["identity"].get("birth_date")
+        birth_date = check_birth_date(dossier["identity"].get("birth_date"))
         if not birth_date:
             # ERROR : Age VC demandé mais pas d'âge dans le dossier
             red.setex(code, CODE_LIFE, pickle.dumps(
@@ -454,8 +451,7 @@ async def vc_endpoint(code: str, red):
         credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
         credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
     elif vc_type == "AgeRange":
-        birth_date = dossier["identity"].get(
-            "birth_date", "Not available")
+        birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
         year = birth_date.split('-')[0]
         month = birth_date.split('-')[1]
         day = birth_date.split('-')[2]
@@ -491,7 +487,7 @@ async def vc_endpoint(code: str, red):
         try:
             first_name = dossier["identity"]["first_names"][0]
             last_name = dossier["identity"]["name"]
-            birth_date = dossier["identity"].get("birth_date", "Not available")
+            birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
             country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
             if check_country(country_emission):
                 country_result = "Succeeded"
@@ -511,7 +507,7 @@ async def vc_endpoint(code: str, red):
                 pep_result = "Succeeded"
             else:
                 pep_result = "Failed"
-            logging.info("pep_result "+pep_result)
+            #logging.info("pep_result "+pep_result)
             credential['credentialSubject']['sanctionListCheck'] = pep_result
             # AML compliance
             if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" and credential['credentialSubject']['countryCheck'] == "Succeeded":
