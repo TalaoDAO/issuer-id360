@@ -526,8 +526,10 @@ async def vc_endpoint(code: str, red):
     credential["issuer"] = ISSUER_DID
     credential['issuanceDate'] = datetime.utcnow().replace(
         microsecond=0).isoformat() + "Z"
-    credential['expirationDate'] = (
-        datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+    if(vc_type=="DefiCompliance"):
+        credential['expirationDate'] = (datetime.now() + timedelta(days=90)).isoformat() + "Z"
+    else:
+        credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
 
     if request.method == 'GET':
 
