@@ -166,6 +166,16 @@ def pep(firstname: str, lastname: str, mod: str):
     return not response.json()['sanctionList']
 
 
+def check_country(country_code: str):
+    banned_countries=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
+    print(len(banned_countries))
+    for code in banned_countries:
+        print(code)
+        if code==country_code:
+            return False
+        return True
+
+
 @app.route('/id360/get_code')
 def get_code():
     """
@@ -442,9 +452,9 @@ async def vc_endpoint(code: str, red):
             logging.error("no firstName in dossier")
         credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
-        credential["evidence"]["verifier"] = "Altme"
-
-        credential["evidence"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+        credential["evidence"][0]["verifier"] = "Altme"
+        credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
+        credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
     elif vc_type == "AgeRange":
         birth_date = dossier["identity"].get(
             "birth_date", "Not available")
@@ -484,6 +494,12 @@ async def vc_endpoint(code: str, red):
             first_name = dossier["identity"]["first_names"][0]
             last_name = dossier["identity"]["name"]
             birth_date = dossier["identity"].get("birth_date", "Not available")
+            country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
+            if check_country(country_emission):
+                country_result = "Succeeded"
+            else:
+                country_result = "Failed"
+            credential['credentialSubject']['countryCheck'] = country_result
             current_date = datetime.now()
             date1 = datetime.strptime(
                 birth_date, '%Y-%m-%d') + timedelta(weeks=18*52)
@@ -500,7 +516,7 @@ async def vc_endpoint(code: str, red):
             logging.info("pep_result "+pep_result)
             credential['credentialSubject']['sanctionListCheck'] = pep_result
             # AML compliance
-            if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded":
+            if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" and credential['credentialSubject']['countryCheck'] == "Succeeded":
                 credential['credentialSubject']['amlComplianceCheck'] = "Succeeded"
             else:
                 credential['credentialSubject']['amlComplianceCheck'] = "Failed"
