@@ -168,12 +168,10 @@ def pep(firstname: str, lastname: str, mod: str):
 
 def check_country(country_code: str):
     banned_countries=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
-    print(len(banned_countries))
     for code in banned_countries:
-        print(code)
         if code==country_code:
             return False
-        return True
+    return True
 
 
 @app.route('/id360/get_code')
@@ -436,7 +434,7 @@ async def vc_endpoint(code: str, red):
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
     credential = json.load(
         open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-    logging.info(dossier)
+    #logging.info(dossier)
     if vc_type == "VerifiableId":
         try:
             credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
