@@ -445,7 +445,7 @@ async def vc_endpoint(code: str, red):
             credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
         except:
             logging.error("no firstName in dossier")
-        credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")  # gerer infos disponibles
+        credential["credentialSubject"]["dateOfBirth"] = check_birth_date(dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
         # TODO add other data if available
         credential["evidence"][0]["verifier"] = "Altme"
         credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
