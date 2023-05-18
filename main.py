@@ -426,7 +426,7 @@ async def vc_endpoint(code: str, red):
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
     credential = json.load(
         open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-    # logging.info(dossier)
+    logging.info(dossier)
     if vc_type == "VerifiableId":
         try:
             credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
@@ -442,9 +442,9 @@ async def vc_endpoint(code: str, red):
             logging.error("no firstName in dossier")
         credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")  # gerer infos disponibles
         # TODO add other data if available
-        credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
-        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
+        credential["evidence"]["verifier"] = "Altme"
+
+        credential["evidence"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
     elif vc_type == "AgeRange":
         birth_date = dossier["identity"].get(
             "birth_date", "Not available")
