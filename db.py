@@ -42,11 +42,9 @@ def insert_kyc(did,status,id_dossier):
                 con.commit()
                 logging.info("kyc successfully added to "+did)
     except sql.Error as er: 
-            print('SQLite error: %s' % (' '.join(er.args)))
-            print("Exception class is: ", er.__class__)
-            print('SQLite traceback: ')
+            logging.error(er.args)
             exc_type, exc_value, exc_tb = sys.exc_info()
-            print(traceback.format_exception(exc_type, exc_value, exc_tb))
+            logging.error(traceback.format_exception(exc_type, exc_value, exc_tb))
 
     finally:
             con.close()
@@ -56,17 +54,14 @@ def update_kyc(did,status,id_dossier):
     try:
             with sql.connect(DATABASE_NAME) as con:
                 cur = con.cursor()
-                print("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 cur.execute("update kycs set status='"+status+"',id="+str(id_dossier)+" where did='"+did+"'")
                 con.commit()
                 msg = "kyc successfully updated to "+did
                 logging.info("msg db %s", str(msg))
     except sql.Error as er: 
-            print('SQLite error: %s' % (' '.join(er.args)))
-            print("Exception class is: ", er.__class__)
-            print('SQLite traceback: ')
+            logging.error(er.args)
             exc_type, exc_value, exc_tb = sys.exc_info()
-            print(traceback.format_exception(exc_type, exc_value, exc_tb))          
+            logging.error(traceback.format_exception(exc_type, exc_value, exc_tb))       
     finally:
             con.close()
             logging.info("msg db %s", str(msg))

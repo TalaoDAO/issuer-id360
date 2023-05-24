@@ -17,14 +17,11 @@ import time
 from datetime import datetime, timedelta
 import logging
 import pickle
-import random
-import string
 import db
 import ciso8601
 from flask_mobility import Mobility
 
-ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))[
-                        'talao_Ed25519_private_key'])
+ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
 TALAO_USERNAME = json.load(open("keys.json", "r"))['username']
 TALAO_PASSWORD = json.load(open("keys.json", "r"))['password']
 TALAO_USERNAME_PROD = json.load(open("keys.json", "r"))['username_prod']
@@ -41,17 +38,10 @@ ID360_URL = 'https://preprod.id360docaposte.com/'
 ID360_URL_PROD = 'https://id360docaposte.com/'
 ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
 PEP_URL = 'https://pepchecker.com/api/v1/'
-DIDAuth = {
-    "type": "VerifiablePresentationRequest",
-    "query": [
-        {
-            "type": "DIDAuth"
-        }
-    ],
-}
+
 
 app = Flask(__name__)
-app.secret_key = """json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])"""
+app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
 qrcode = QRcode(app)
 Mobility(app)
 myenv="aws"
@@ -115,7 +105,6 @@ def create_dossier(code: str, token: str, did: str) -> str:
         temp_dict = pickle.loads(red.get(code))
         temp_dict["id_dossier"] = id_dossier
         red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
-
         api_key = response.json()["api_key"]
         return ID360_URL_PROD + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
     else:
@@ -131,8 +120,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
     }
-    response = requests.get(
-        ID360_URL_PROD + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
+    response = requests.get(ID360_URL_PROD + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
 
     if response.status_code == 200:
         dossier = response.json()
@@ -141,8 +129,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         logging.warning("dossier "+str(id_dossier)+" exipré")
         return "expired"
     else:
-        logging.error("error requesting dossier status : %s",
-                      response.status_code)
+        logging.error("error requesting dossier status : %s",response.status_code)
         return response.status_code
 
 
@@ -151,7 +138,6 @@ def pep(firstname: str, lastname: str, mod: str):
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
     api_key = prod_api_key_PEP
     response = requests.get(uri, headers={'api-key':  api_key})
-    logging.info(uri+" "+api_key)
     logging.info('PEP = %s', response.json())
     return not response.json()['sanctionList']
 

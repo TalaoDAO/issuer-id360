@@ -116,70 +116,7 @@
 
 
   <script>
-    /*var qrcodeGen = false;
-    fetch("/id360/get_qrcode/{{code}}").then((res) => {
-      res.json().then(temp => {
-        if (temp.url === "error") {
-          window.location.href = "https://{{callback}}/400"
-        }
-        else if (temp.url === "not_yet") {
-          return
-        }
-        else {
-          if (!qrcodeGen) { displayQrCode(temp.url); qrcodeGen = true }
-        }
-      })
-
-
-    })
-    var source = new EventSource('/id360/qr_code_stream');
-    source.onmessage = function (event) {
-      const result = JSON.parse(event.data);
-      console.log(result)
-      if (result.type === "callback") {
-        if (result.code === '{{code}}') {
-          if (!qrcodeGen) { displayQrCode(result.url); qrcodeGen = true }
-        }
-      }
-      if (result.type === "callbackErr") {
-        if (result.code === '{{code}}') {
-          console.log(result.url)
-          window.location.href = "https://" + result.url;
-        }
-      }
-    };
     
-    function displayQrCode(url) {
-      let element = document.getElementById('folder');
-      element.remove();
-      let newBox = document.createElement("div")
-      document.getElementById("progressBox").appendChild(newBox);
-      newBox.setAttribute('id', 'newBox')
-
-      let qrcode = document.createElement("a")
-      document.getElementById("newBox").appendChild(qrcode);
-      qrcode.setAttribute('id', 'buttonQrcode')
-      qrcode.setAttribute('href', 'https://app.altme.io/app/download?uri=' + url)
-
-      qrcode.innerHTML = "Click here to get your VC"
-
-      let arrow = document.createElement("img")
-      document.getElementById("newBox").appendChild(arrow);
-      arrow.setAttribute('id', 'arrowImgIssuer')
-      arrow.setAttribute('src', '/id360/static/Arrow-right.png')
-
-
-      let card = document.createElement("img")
-      document.getElementById("newBox").appendChild(card);
-      card.setAttribute('id', 'card')
-      card.setAttribute('src', '/id360/static/card.png')
-
-      document.getElementById("inProgress").innerHTML = "Your ID has been verified !"
-      document.getElementById("yourId").innerHTML = "Scan this final QR code with Altme to get your ID"
-      //document.getElementById("yourId").setAttribute("id", "ScanToGet")
-    }
-    
-*/
     var source = new EventSource('/id360/issuer_stream');
     source.onmessage = function (event) {
       const result = JSON.parse(event.data);
@@ -202,7 +139,6 @@
 
     }
     document.getElementById('buttonMenu').addEventListener('click', () => {
-      //console.log(document.getElementById('buttonMenu').getAttribute("class"))
       if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuInactive") {
         document.documentElement.setAttribute("class", "noScroll");
         document.getElementById('menuDiv').setAttribute("class", "menuActive");
