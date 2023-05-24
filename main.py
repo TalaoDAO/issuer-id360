@@ -609,5 +609,3 @@ def jeprouvemonage():
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
-
-# https://talao.co/id360/authenticate/450467e9-f4ba-11ed-a39d-0a1628958560?vc_type=DefiCompliance&client_id=200&callback=https://app.altme.io/app/download
