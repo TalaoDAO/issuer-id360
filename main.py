@@ -38,6 +38,7 @@ ID360_URL = 'https://preprod.id360docaposte.com/'
 ID360_URL_PROD = 'https://id360docaposte.com/'
 ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
 PEP_URL = 'https://pepchecker.com/api/v1/'
+BANNED_COUNTRIES=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
 
 
 app = Flask(__name__)
@@ -143,8 +144,7 @@ def pep(firstname: str, lastname: str, mod: str):
 
 
 def check_country(country_code: str):
-    banned_countries=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
-    for code in banned_countries:
+    for code in BANNED_COUNTRIES:
         if code==country_code:
             return False
     return True
@@ -600,11 +600,6 @@ def serve_static(filename: str):
     except FileNotFoundError:
         logging.error(filename+" not found")
         return jsonify("not found"),404
-
-
-@app.route('/id360/jeprouvemonage')
-def jeprouvemonage():
-    return render_template("jeprouvemonage.html", url="https://altme.io")
 
 
 if __name__ == '__main__':
