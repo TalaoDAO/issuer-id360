@@ -131,22 +131,7 @@
 
 
   <script>
-    var source = new EventSource('/id360/verifier_stream');
-    source.onmessage = function (event) {
-      const result = JSON.parse(event.data);
-      console.log(result)
-      console.log(result.message);
-      if (result.type === "callback") {
 
-      }
-      else if ((result.check == 'ok' || result.check == "ko") & result.code == '{{code}}') {
-        window.location.href = result.link;
-      }
-      else if (result.code == '{{code}}') {
-        window.alert(result.message);
-        window.location.href = "/error/";
-      }
-    };
     document.getElementById('buttonMenu').addEventListener('click', () => {
       //console.log(document.getElementById('buttonMenu').getAttribute("class"))
       if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuInactive") {

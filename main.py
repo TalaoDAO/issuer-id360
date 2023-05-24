@@ -9,7 +9,6 @@ import json
 from flask import Flask, render_template, request, jsonify, Response, send_file, session, redirect
 from flask_qrcode import QRcode
 import didkit
-import os
 import environment
 import redis
 import uuid
@@ -39,8 +38,9 @@ ID360_URL_PROD = 'https://id360docaposte.com/'
 ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
 PEP_URL = 'https://pepchecker.com/api/v1/'
 BANNED_COUNTRIES=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
-
-
+TEST_API_KEY_PEP = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
+PROD_API_KEY_PEP = json.load(open("keys.json", "r"))['pepApiKey']
+ONE_YEAR=31556926 #seconds
 app = Flask(__name__)
 app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
 qrcode = QRcode(app)
@@ -48,8 +48,7 @@ Mobility(app)
 myenv="aws"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
-test_api_key_PEP = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
-prod_api_key_PEP = json.load(open("keys.json", "r"))['pepApiKey']
+
 
 
 def loginID360() -> str:
@@ -134,23 +133,34 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         return response.status_code
 
 
-def pep(firstname: str, lastname: str, mod: str):
-    logging.info("testing pep for "+firstname+" "+lastname)
+def pep(firstname: str, lastname: str):
+    """
+    Function checking pep sanctions by name and lastname
+    see https://pepchecker.com/
+    """
+    logging.info("testing pep for "+firstname+" "+lastname) # mettre des %s
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
-    api_key = prod_api_key_PEP
+    api_key = PROD_API_KEY_PEP
     response = requests.get(uri, headers={'api-key':  api_key})
     logging.info('PEP = %s', response.json())
     return not response.json()['sanctionList']
 
 
 def check_country(country_code: str):
+    """
+    Function checking high risk countries by country code
+    see https://finance.ec.europa.eu/financial-crime/high-risk-third-countries-and-international-context-content-anti-money-laundering-and-countering_en
+    """
     for code in BANNED_COUNTRIES:
         if code==country_code:
-            return False
+            return
     return True
 
 
 def check_birth_date(birth_date :str):
+    """
+    function checking if a birth date is correctly extracted
+    """
     year=birth_date.split("-")[0]
     if int(year)>2023:
         return str(int(year)-100)+"-"+birth_date.split("-")[1]+"-"+birth_date.split("-")[2]
@@ -170,7 +180,7 @@ def get_code():
     returns {"error": <error_description>} with status code
     if an error occured
     """
-    client_secret = request.headers.get('api-key')  # changer dans demo
+    client_secret = request.headers.get('api-key')  
     client_id = request.args.get('client_id')
     did = request.args.get('did')
     if not client_id or not client_secret:
@@ -188,75 +198,78 @@ def get_code():
 
 @app.route('/id360/authenticate/<code>')
 def login(code: str):
+    """
+    first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
+    """
 
+    try:   
+        pickle.loads(red.get(code)) 
+    except:
+        logging.warning("invalid link3")
+        if not request.MOBILE:
+            return render_template("error.html")
+        else:
+            return render_template("error_mobile.html")
     try:
-        try:
-            logging.info(pickle.loads(red.get(code)))
-            logging.info("logged "+str(session.get('logged')))
-        except:
-            logging.warning("invalid link3")
-            if not request.MOBILE:
-                return render_template("error.html")
-            else:
-                return render_template("error_mobile.html")
         session["logged"] = True
-        site_callback = request.args['callback']
-        client_id = request.args['client_id']
-        vc_type = request.args['vc_type']
-        did = pickle.loads(red.get(code))["did"]
-        logging.info("kyc status in db : ")
-        kyc = db.get_user_kyc(did)
-        if not kyc:
-            logging.info(did+" never did kyc")
-        else:
-            logging.info(kyc)
-        token = loginID360()
-        temp_dict = pickle.loads(red.get(code))
-        temp_dict["did"] = did
-        temp_dict['token'] = token
-        temp_dict["vc_type"] = vc_type
-        temp_dict["site_callback"] = site_callback
-        temp_dict["client_id"] = client_id
-        if not kyc:
-            temp_dict["first"] = True
-            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
-            # we create the dossier for user
-            link = create_dossier(code, token, did)
-
-            return redirect(link)
-
-        else:
-            dossier = get_dossier(kyc[2], token)
-            temp_dict["first"] = False
-            if kyc[1] == "OK" and dossier != "expired":
-                birth_date = check_birth_date(dossier["identity"].get("birth_date"))
-                logging.info("birth_date "+birth_date)
-                timestamp = ciso8601.parse_datetime(birth_date)
-                timestamp = time.mktime(timestamp.timetuple())
-                now = time.time()
-                if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
-                    error_title = "Age Requirement Not Met"
-                    error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
-                    return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type, url=site_callback)
-
-                logging.info("birth_date : "+birth_date)
-                temp_dict["id_dossier"] = kyc[2]
-                red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
-                link = mode.server+"/id360/issuer/"+code
-                return redirect(link)
-            else:
-                red.setex(code, AUTHENTICATION_DELAY,
-                          pickle.dumps(temp_dict))  # setex
-                # we create the dossier for user
-                link = create_dossier(code, token, did)
-                return redirect(link)
-
     except KeyError as e:
         logging.error(e)
         if not request.MOBILE:
             return render_template("error.html")
         else:
             return render_template("error_mobile.html")
+    try:           
+        site_callback = request.args['callback'] 
+        client_id = request.args['client_id']
+        vc_type = request.args['vc_type']
+    except KeyError as e: #missing an arg
+        logging.error(e)
+        if not request.MOBILE:
+            return render_template("error.html")
+        else:
+            return render_template("error_mobile.html")
+    did = pickle.loads(red.get(code))["did"]
+    kyc = db.get_user_kyc(did)
+    if not kyc:
+        logging.info("%s never did kyc",did)
+    else:
+        logging.info(kyc)
+    token = loginID360()
+    temp_dict = pickle.loads(red.get(code))
+    temp_dict["did"] = did
+    temp_dict['token'] = token
+    temp_dict["vc_type"] = vc_type
+    temp_dict["site_callback"] = site_callback
+    temp_dict["client_id"] = client_id
+    if not kyc:
+        temp_dict["first"] = True
+        red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
+        # we create the dossier for user
+        link = create_dossier(code, token, did)
+        return redirect(link)
+    else:
+        dossier = get_dossier(kyc[2], token)
+        temp_dict["first"] = False
+        if kyc[1] == "OK" and dossier != "expired":
+            birth_date = check_birth_date(dossier["identity"].get("birth_date"))
+            logging.info("birth_date %s",birth_date)
+            timestamp = ciso8601.parse_datetime(birth_date)
+            timestamp = time.mktime(timestamp.timetuple())
+            now = time.time()
+            if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
+                error_title = "Age Requirement Not Met"
+                error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
+                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type, url=site_callback)
+            temp_dict["id_dossier"] = kyc[2]
+            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
+            link = mode.server+"/id360/issuer/"+code
+        else:
+            red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
+            # we create the dossier for user
+            link = create_dossier(code, token, did)
+        return redirect(link)
+
+        
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red})
@@ -265,8 +278,7 @@ def issuer(code: str, red):
     This is the call back for browser
     """
     try:
-        logging.info(pickle.loads(red.get(code)))
-        logging.info("logged "+str(session.get('logged')))
+        pickle.loads(red.get(code))
     except:
         logging.warning("invalid link1")
         if not request.MOBILE:
@@ -278,7 +290,7 @@ def issuer(code: str, red):
         try:
             code_error = pickle.loads(red.get(code))["code_error"]
             card = pickle.loads(red.get(code))["vc_type"]
-            if code_error == "410":
+            if code_error == "410": #stocker dans dict
                 error_title = "KYC Verification Failed"
                 # TODO mettre le vrai message
                 error_description = "Sorry, we encountered an issue while verifying your ID. Please try again later."
@@ -299,20 +311,18 @@ def issuer(code: str, red):
                 return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card, url=site_callback)
 
         except:
-            pass
+            vc_type = pickle.loads(red.get(code))["vc_type"]
+            if vc_type == "VerifiableId":
+                verified = "ID"
+            elif vc_type == "DefiCompliance":
+                verified = "compliance"
+            else:
+                verified = "age"
+            if not request.MOBILE:
+                return render_template("issuer.html", code=code,  url=mode.server+"/id360/issuer_endpoint/" + code)
 
-        vc_type = pickle.loads(red.get(code))["vc_type"]
-        if vc_type == "VerifiableId":
-            verified = "ID"
-        elif vc_type == "DefiCompliance":
-            verified = "compliance"
-        else:
-            verified = "age"
-        if not request.MOBILE:
-            return render_template("issuer.html", code=code,  url=mode.server+"/id360/issuer_endpoint/" + code)
-
-        else:
-            return render_template("issuer_mobile.html", code=code,  url=site_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
+            else:
+                return render_template("issuer_mobile.html", code=code,  url=site_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
 
     logging.warning("invalid link2")
     if not request.MOBILE:
@@ -321,22 +331,11 @@ def issuer(code: str, red):
         return render_template("error_mobile.html")
 
 
-@app.route('/id360/verifier_stream', methods=['GET'],  defaults={'red': red})
-def presentation_stream(red):
-    def event_stream(red):
-        pubsub = red.pubsub()
-        pubsub.subscribe('verifier')
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                yield 'data: %s\n\n' % message['data'].decode()
-    headers = {"Content-Type": "text/event-stream",
-               "Cache-Control": "no-cache",
-               "X-Accel-Buffering": "no"}
-    return Response(event_stream(red), headers=headers)
-
-
 @app.route('/id360/issuer_stream', methods=['GET'],  defaults={'red': red})
 def issuer_stream(red):
+    """
+    a stream connected to issuer frontend to know when the verifiable credential has been succesfully added
+    """
     def event_stream(red):
         pubsub = red.pubsub()
         pubsub.subscribe('issuer')
@@ -363,14 +362,12 @@ def id360callback(code: str, red):
     logging.info("reception of id360 callback for %s", code)
     id_dossier = pickle.loads(red.get(code))["id_dossier"]
     site_callback = pickle.loads(red.get(code))["site_callback"]
-
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
     logging.info('callback for wallet DID = %s', did)
     dossier = request.get_json()
-    # logging.info(dossier)
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
-        return jsonify("ok"), 200
+        return jsonify("ok")
     try:
         if pickle.loads(red.get(code))["first"] == True:
             db.insert_kyc(did, dossier["status"], id_dossier)
@@ -393,15 +390,12 @@ def id360callback(code: str, red):
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         timestamp = time.mktime(timestamp.timetuple())
-        now = time.time()
-    if (vc_type == "Over18" and (now-timestamp) < 31556926*18) or (vc_type == "Over15" and (now-timestamp) < 31556926*15) or (vc_type == "Over13" and (now-timestamp) < 31556926*13):
+        now = time.time() #ajouter constantes années secondes
+    if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
         # ERROR : Over18 demandé mais user mineur
         red.setex(code, CODE_LIFE, pickle.dumps(
             {"code_error": "412", "vc_type": vc_type, "site_callback": site_callback}))
         return jsonify("ok")
-    url = mode.server+"/id360/issuer_endpoint/" + code
-    event_data = json.dumps({"type": "callback", "code": code, "url": url})
-    red.publish('qr_code', event_data)
     return jsonify("ok")
 
 
@@ -412,112 +406,110 @@ async def vc_endpoint(code: str, red):
     Flow is available here https://swimlanes.io/u/XAjNWWtYC
 
     """
-    vc_type = pickle.loads(red.get(code))["vc_type"]
-    token = pickle.loads(red.get(code))["token"]
-    dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
-    credential = json.load(
-        open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-    #logging.info(dossier)
-    if vc_type == "VerifiableId":
-        try:
-            credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
-        except:
-            logging.error("no familyName in dossier")
-        try:
-            credential["credentialSubject"]["firstName"] = dossier["identity"]["first_names"][0]
-        except:
-            logging.error("no firstName in dossier")
-        try:
-            credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
-        except:
-            logging.error("no firstName in dossier")
-        credential["credentialSubject"]["dateOfBirth"] = check_birth_date(dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
-        # TODO add other data if available
-        credential["evidence"][0]["verifier"] = "Altme"
-        credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
-        credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
-    elif vc_type == "AgeRange":
-        birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
-        year = birth_date.split('-')[0]
-        month = birth_date.split('-')[1]
-        day = birth_date.split('-')[2]
-        date13 = datetime(int(year) + 13, int(month), int(day))
-        date18 = datetime(int(year) + 18, int(month), int(day))
-        date25 = datetime(int(year) + 25, int(month), int(day))
-        date35 = datetime(int(year) + 35, int(month), int(day))
-        date45 = datetime(int(year) + 45, int(month), int(day))
-        date55 = datetime(int(year) + 55, int(month), int(day))
-        date65 = datetime(int(year) + 65, int(month), int(day))
-
-        if datetime.now() < date13:
-            credential['credentialSubject']['ageRange'] = "-13"
-        elif datetime.now() < date18:
-            credential['credentialSubject']['ageRange'] = "14-17"
-        elif datetime.now() < date25:
-            credential['credentialSubject']['ageRange'] = "18-24"
-        elif datetime.now() < date35:
-            credential['credentialSubject']['ageRange'] = "25-34"
-        elif datetime.now() < date45:
-            credential['credentialSubject']['ageRange'] = "35-44"
-        elif datetime.now() < date55:
-            credential['credentialSubject']['ageRange'] = "45-54"
-        elif datetime.now() < date65:
-            credential['credentialSubject']['ageRange'] = "55-64"
-        else:
-            credential['credentialSubject']['ageRange'] = "65+"
-        credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
-        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
-    elif vc_type == "DefiCompliance":
-
-        try:
-            first_name = dossier["identity"]["first_names"][0]
-            last_name = dossier["identity"]["name"]
-            birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
-            country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
-            if check_country(country_emission):
-                country_result = "Succeeded"
-            else:
-                country_result = "Failed"
-            credential['credentialSubject']['countryCheck'] = country_result
-            current_date = datetime.now()
-            date1 = datetime.strptime(
-                birth_date, '%Y-%m-%d') + timedelta(weeks=18*52)
-            if (current_date > date1):
-                credential['credentialSubject']['ageCheck'] = "Succeeded"
-            else:
-                credential['credentialSubject']['ageCheck'] = "Failed"
-            # check sanction list
-            if pep(first_name, last_name, "test"):
-            #if pep("Vladimir", "Putin", "test"):
-                pep_result = "Succeeded"
-            else:
-                pep_result = "Failed"
-            #logging.info("pep_result "+pep_result)
-            credential['credentialSubject']['sanctionListCheck'] = pep_result
-            # AML compliance
-            if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" and credential['credentialSubject']['countryCheck'] == "Succeeded":
-                credential['credentialSubject']['amlComplianceCheck'] = "Succeeded"
-            else:
-                credential['credentialSubject']['amlComplianceCheck'] = "Failed"
-        except KeyError as e:
-            logging.error(e)
-            logging.error("miss data to issue a DefiCompliance VC")
-    else:
-        credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
-            "id_dossier"]
-        credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
-
-    credential["issuer"] = ISSUER_DID
-    credential['issuanceDate'] = datetime.utcnow().replace(
-        microsecond=0).isoformat() + "Z"
-    if(vc_type=="DefiCompliance"):
-        credential['expirationDate'] = (datetime.now() + timedelta(days=90)).isoformat() + "Z"
-    else:
-        credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-
     if request.method == 'GET':
+        vc_type = pickle.loads(red.get(code))["vc_type"]
+        token = pickle.loads(red.get(code))["token"]
+        dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
+        credential = json.load(
+            open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
+        if vc_type == "VerifiableId":
+            try:
+                credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
+            except:
+                logging.error("no familyName in dossier")
+            try:
+                credential["credentialSubject"]["firstName"] = dossier["identity"]["first_names"][0]
+            except:
+                logging.error("no firstName in dossier")
+            try:
+                credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
+            except:
+                logging.error("no firstName in dossier")
+            credential["credentialSubject"]["dateOfBirth"] = check_birth_date(dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
+            # TODO add other data if available
+            credential["evidence"][0]["verifier"] = "Altme"
+            credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
+            credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+        elif vc_type == "AgeRange":
+            birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
+            year = birth_date.split('-')[0]
+            month = birth_date.split('-')[1]
+            day = birth_date.split('-')[2]
+            date13 = datetime(int(year) + 13, int(month), int(day))
+            date18 = datetime(int(year) + 18, int(month), int(day))
+            date25 = datetime(int(year) + 25, int(month), int(day))
+            date35 = datetime(int(year) + 35, int(month), int(day))
+            date45 = datetime(int(year) + 45, int(month), int(day))
+            date55 = datetime(int(year) + 55, int(month), int(day))
+            date65 = datetime(int(year) + 65, int(month), int(day))
+
+            if datetime.now() < date13:
+                credential['credentialSubject']['ageRange'] = "-13"
+            elif datetime.now() < date18:
+                credential['credentialSubject']['ageRange'] = "14-17"
+            elif datetime.now() < date25:
+                credential['credentialSubject']['ageRange'] = "18-24"
+            elif datetime.now() < date35:
+                credential['credentialSubject']['ageRange'] = "25-34"
+            elif datetime.now() < date45:
+                credential['credentialSubject']['ageRange'] = "35-44"
+            elif datetime.now() < date55:
+                credential['credentialSubject']['ageRange'] = "45-54"
+            elif datetime.now() < date65:
+                credential['credentialSubject']['ageRange'] = "55-64"
+            else:
+                credential['credentialSubject']['ageRange'] = "65+"
+            credential["credentialSubject"]["kycProvider"] = "ID360"
+            credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+            credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
+        elif vc_type == "DefiCompliance":
+
+            try:
+                first_name = dossier["identity"]["first_names"][0]
+                last_name = dossier["identity"]["name"]
+                birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
+                country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
+                if check_country(country_emission):
+                    country_result = "Succeeded"
+                else:
+                    country_result = "Failed"
+                credential['credentialSubject']['countryCheck'] = country_result
+                current_date = datetime.now()
+                date1 = datetime.strptime(
+                    birth_date, '%Y-%m-%d') + timedelta(weeks=18*52)
+                if (current_date > date1):
+                    credential['credentialSubject']['ageCheck'] = "Succeeded"
+                else:
+                    credential['credentialSubject']['ageCheck'] = "Failed"
+                # check sanction list
+                if pep(first_name, last_name):
+                    pep_result = "Succeeded"
+                else:
+                    pep_result = "Failed"
+                credential['credentialSubject']['sanctionListCheck'] = pep_result
+                # AML compliance
+                if credential['credentialSubject']['sanctionListCheck'] == "Succeeded" and credential['credentialSubject']['ageCheck'] == "Succeeded" and credential['credentialSubject']['countryCheck'] == "Succeeded":
+                    credential['credentialSubject']['amlComplianceCheck'] = "Succeeded"
+                else:
+                    credential['credentialSubject']['amlComplianceCheck'] = "Failed"
+            except KeyError as e:
+                logging.error(e) #fusionner 
+                logging.error("miss data to issue a DefiCompliance VC")
+        else:
+            credential["credentialSubject"]["kycProvider"] = "ID360"
+            credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
+                "id_dossier"]
+            credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
+
+        credential["issuer"] = ISSUER_DID
+        credential['issuanceDate'] = datetime.utcnow().replace(
+            microsecond=0).isoformat() + "Z"
+        if(vc_type=="DefiCompliance"):
+            credential['expirationDate'] = (datetime.now() + timedelta(days=90)).isoformat() + "Z"
+        else:
+            credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+
+    
 
         credential_manifest = json.load(
             open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
@@ -525,6 +517,9 @@ async def vc_endpoint(code: str, red):
         credential_manifest['issuer']['id'] = ISSUER_DID
         credential_manifest['output_descriptors'][0]['id'] = str(uuid.uuid1())
         credential['id'] = "urn:uuid:random"  # for preview only
+        temp_dict = pickle.loads(red.get(code))
+        temp_dict["credential"] = credential
+        red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
         credential_offer = {
             "type": "CredentialOffer",
             "credentialPreview": credential,
@@ -533,7 +528,8 @@ async def vc_endpoint(code: str, red):
         }
         return jsonify(credential_offer)
 
-    else:  # POST
+    else:  # POST #réduire appel dossier
+        credential=json.load(pickle.loads(red.get(code))["credential"])
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
         credential['credentialSubject']['id'] = request.form['subject_id']
         try:
