@@ -406,8 +406,8 @@ async def vc_endpoint(code: str, red):
     Flow is available here https://swimlanes.io/u/XAjNWWtYC
 
     """
+    vc_type = pickle.loads(red.get(code))["vc_type"]
     if request.method == 'GET':
-        vc_type = pickle.loads(red.get(code))["vc_type"]
         token = pickle.loads(red.get(code))["token"]
         dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
         credential = json.load(
