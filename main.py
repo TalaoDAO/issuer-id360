@@ -529,7 +529,7 @@ async def vc_endpoint(code: str, red):
         return jsonify(credential_offer)
 
     else:  # POST #réduire appel dossier
-        credential=json.load(pickle.loads(red.get(code))["credential"])
+        credential=pickle.loads(red.get(code))["credential"]
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
         credential['credentialSubject']['id'] = request.form['subject_id']
         try:
