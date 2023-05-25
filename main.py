@@ -596,14 +596,6 @@ def serve_static(filename: str):
         logging.error(filename+" not found")
         return jsonify("not found"),404
 
-@app.route('/id360/bnb')
-def bnb():
-    url = "https://altme.io"
-    if not request.MOBILE:
-        return render_template("bnb.html",url=url)
-    else:
-        return render_template("bnb_mobile.html",url=url)
-
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
