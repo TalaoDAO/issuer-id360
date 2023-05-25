@@ -151,9 +151,8 @@ def check_country(country_code: str):
     Function checking high risk countries by country code
     see https://finance.ec.europa.eu/financial-crime/high-risk-third-countries-and-international-context-content-anti-money-laundering-and-countering_en
     """
-    for code in BANNED_COUNTRIES:
-        if code==country_code:
-            return
+    if country_code in BANNED_COUNTRIES :
+        return
     return True
 
 
@@ -596,6 +595,14 @@ def serve_static(filename: str):
     except FileNotFoundError:
         logging.error(filename+" not found")
         return jsonify("not found"),404
+
+@app.route('/bnb')
+def bnb():
+    url = "https://altme.io"
+    if not request.MOBILE:
+        return render_template("bnb.html",url=url)
+    else:
+        return render_template("bnb_mobile.html",url=url)
 
 
 if __name__ == '__main__':
