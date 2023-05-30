@@ -261,7 +261,7 @@ def login(code: str):
             temp_dict["id_dossier"] = kyc[2]
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             link = mode.server+"/id360/issuer/"+code
-        logging.info(dossier["identity"])
+        logging.info(dossier)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
 
         if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
