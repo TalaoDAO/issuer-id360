@@ -262,7 +262,6 @@ def login(code: str):
             # we create the dossier for user
             link = create_dossier(code, token, did)
             return redirect(link)
-        logging.info(dossier)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
 
         if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
