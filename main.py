@@ -255,17 +255,19 @@ def login(code: str):
         return redirect(link)
     else:
         dossier = get_dossier(kyc[2], token)
+        birth_date = check_birth_date(dossier["identity"].get("birth_date"))
+
         temp_dict["first"] = False
-        if kyc[1] == "OK" and dossier != "expired":
-            birth_date = check_birth_date(dossier["identity"].get("birth_date"))
-            logging.info("birth_date %s",birth_date)
-            timestamp = ciso8601.parse_datetime(birth_date)
-            timestamp = time.mktime(timestamp.timetuple())
-            now = time.time()
-            if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
-                error_title = "Age Requirement Not Met"
-                error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
-                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type, url=site_callback)
+        if kyc[1] == "OK" and dossier != "expired" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
+            if(vc_type == "Over18" or vc_type == "Over15"  or vc_type == "Over13"):
+                logging.info("birth_date %s",birth_date)
+                timestamp = ciso8601.parse_datetime(birth_date)
+                timestamp = time.mktime(timestamp.timetuple())
+                now = time.time()
+                if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
+                    error_title = "Age Requirement Not Met"
+                    error_description = "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
+                    return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=vc_type, url=site_callback)
             temp_dict["id_dossier"] = kyc[2]
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             link = mode.server+"/id360/issuer/"+code
