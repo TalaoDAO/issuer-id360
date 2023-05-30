@@ -102,11 +102,16 @@ def create_dossier(code: str, token: str, did: str) -> str:
     if response.status_code == 200:
         logging.info(response.json())
         id_dossier = response.json()["id"]
-        temp_dict = pickle.loads(red.get(code))
-        temp_dict["id_dossier"] = id_dossier
-        red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
-        api_key = response.json()["api_key"]
-        return ID360_URL_PROD + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
+        try:
+            temp_dict = pickle.loads(red.get(code))
+            temp_dict["id_dossier"] = id_dossier
+            red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
+            api_key = response.json()["api_key"]
+            return ID360_URL_PROD + 'static/process_ui/index.html#/enrollment/' + api_key+"?lang=en"
+        except:
+            logging.error(response.json())
+            return
+
     else:
         logging.error(response.json())
 
@@ -285,7 +290,12 @@ def issuer(code: str, red):
         else:
             return render_template("error_mobile.html", error_title="Invalid link", error_description="This code does not coressond to a correct session.", card="VerifiableId")
     if session.get('logged'):
-        site_callback = pickle.loads(red.get(code))["site_callback"]
+        try:
+            site_callback = pickle.loads(red.get(code))["site_callback"]
+        except:
+            error_title="Invalid link"
+            error_description="This code does not coressond to a correct session."
+            return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card)
         try:
             code_error = pickle.loads(red.get(code))["code_error"]
             card = pickle.loads(red.get(code))["vc_type"]
@@ -303,6 +313,10 @@ def issuer(code: str, red):
             if code_error == "413":
                 error_title = "Incomplete Information"
                 error_description = "Oops! It seems like some required information is missing. Please provide all necessary details to continue."
+            if code_error == "414":
+                error_title="Invalid link"
+                error_description="This code does not coressond to a correct session."
+                return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card)
             red.delete(code)
             if not request.MOBILE:
                 return render_template("error.html")
@@ -359,8 +373,15 @@ def id360callback(code: str, red):
         return jsonify("Unauthorized"), 403
 
     logging.info("reception of id360 callback for %s", code)
-    id_dossier = pickle.loads(red.get(code))["id_dossier"]
-    site_callback = pickle.loads(red.get(code))["site_callback"]
+    try:
+
+        id_dossier = pickle.loads(red.get(code))["id_dossier"]
+        site_callback = pickle.loads(red.get(code))["site_callback"]
+    except:
+        logging.error("code expired")
+        red.setex(code, CODE_LIFE, pickle.dumps({"code_error": "414", "vc_type": "VerifiableId"}))  # ERROR : REDIS EXPIRATION
+        return jsonify("ok")
+
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
     logging.info('callback for wallet DID = %s', did)
