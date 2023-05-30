@@ -261,6 +261,7 @@ def login(code: str):
             temp_dict["id_dossier"] = kyc[2]
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             link = mode.server+"/id360/issuer/"+code
+            return redirect(link)
         logging.info(dossier)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
 
