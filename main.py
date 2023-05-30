@@ -255,10 +255,15 @@ def login(code: str):
         return redirect(link)
     else:
         dossier = get_dossier(kyc[2], token)
+        temp_dict["first"] = False
+
+        if dossier=="expired":
+            temp_dict["id_dossier"] = kyc[2]
+            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
+            link = mode.server+"/id360/issuer/"+code
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
 
-        temp_dict["first"] = False
-        if kyc[1] == "OK" and dossier != "expired" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
+        if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
             if(vc_type == "Over18" or vc_type == "Over15"  or vc_type == "Over13"):
                 logging.info("birth_date %s",birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
