@@ -165,8 +165,8 @@ def check_birth_date(birth_date :str):
     """
     function checking if a birth date is correctly extracted
     """
-    if(birth_date=="Not available"):
-        return birth_date
+    if(birth_date== None):
+        return "Not available"
     year=birth_date.split("-")[0]
     if int(year)>2023:
         return str(int(year)-100)+"-"+birth_date.split("-")[1]+"-"+birth_date.split("-")[2]
