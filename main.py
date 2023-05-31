@@ -263,15 +263,15 @@ def login(code: str):
             return redirect(link)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
         logging.info(birth_date)
-        logging.info(birth_date=="Not Available")
-        logging.info(dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not Available"))
-        if dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not Available"):
+        logging.info(birth_date=="Not available")
+        logging.info(dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not available"))
+        if dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not available"):
             red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
             # we create the dossier for user
             link = create_dossier(code, token, did)
             #return redirect(link)
 
-        #if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
+        #if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not available"):
         else:
             if(vc_type == "Over18" or vc_type == "Over15"  or vc_type == "Over13"):
                 logging.info("birth_date %s",birth_date)
