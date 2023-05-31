@@ -257,14 +257,15 @@ def login(code: str):
         dossier = get_dossier(kyc[2], token)
         temp_dict["first"] = False
 
-        if dossier=="expired":
+        if dossier=="expired" or kyc[1] != "OK" or  (vc_type != "VerifiableId" and birth_date=="Not Available"):
             red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
             # we create the dossier for user
             link = create_dossier(code, token, did)
-            return redirect(link)
-        birth_date = check_birth_date(dossier["identity"].get("birth_date"))
+            #return redirect(link)
 
-        if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
+        #if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not Available"):
+        else:
+            birth_date = check_birth_date(dossier["identity"].get("birth_date"))
             if(vc_type == "Over18" or vc_type == "Over15"  or vc_type == "Over13"):
                 logging.info("birth_date %s",birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
@@ -277,10 +278,10 @@ def login(code: str):
             temp_dict["id_dossier"] = kyc[2]
             red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             link = mode.server+"/id360/issuer/"+code
-        else:
+        """else:
             red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
             # we create the dossier for user
-            link = create_dossier(code, token, did)
+            link = create_dossier(code, token, did)"""
         return redirect(link)
 
         
