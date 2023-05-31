@@ -262,6 +262,9 @@ def login(code: str):
             link = create_dossier(code, token, did)
             return redirect(link)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
+        logging.info(birth_date)
+        logging.info(birth_date=="Not Available")
+        logging.info(dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not Available"))
         if dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not Available"):
             red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
             # we create the dossier for user
