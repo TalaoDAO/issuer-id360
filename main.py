@@ -405,10 +405,11 @@ def id360callback(code: str, red):
     logging.info('callback for wallet DID = %s', did)
     dossier = request.get_json()
     token = pickle.loads(red.get(code))["token"]
-    dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
-    logging.info(dossier)
+    
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
         return jsonify("ok")
+    dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
+    logging.info(dossier)
     try:
         if pickle.loads(red.get(code))["first"] == True:
             db.insert_kyc(did, dossier["status"], id_dossier)
