@@ -20,7 +20,8 @@ import db
 import ciso8601
 from flask_mobility import Mobility
 
-ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))['talao_Ed25519_private_key'])
+ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))[
+                        'talao_Ed25519_private_key'])
 TALAO_USERNAME = json.load(open("keys.json", "r"))['username']
 TALAO_PASSWORD = json.load(open("keys.json", "r"))['password']
 TALAO_USERNAME_PROD = json.load(open("keys.json", "r"))['username_prod']
@@ -37,18 +38,18 @@ ID360_URL = 'https://preprod.id360docaposte.com/'
 ID360_URL_PROD = 'https://id360docaposte.com/'
 ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
 PEP_URL = 'https://pepchecker.com/api/v1/'
-BANNED_COUNTRIES=["AFG","BRB","BFA","KHM","CYM","COD","PRK","GIB","HTI","IRN","JAM","JOR","MLI","MAR","MOZ","MMR","PAN","PHL","SEN","SSD","SYR","TZA","TTO","UGA","ARE","VUT","YEM"]
+BANNED_COUNTRIES = ["AFG", "BRB", "BFA", "KHM", "CYM", "COD", "PRK", "GIB", "HTI", "IRN", "JAM", "JOR",
+                    "MLI", "MAR", "MOZ", "MMR", "PAN", "PHL", "SEN", "SSD", "SYR", "TZA", "TTO", "UGA", "ARE", "VUT", "YEM"]
 TEST_API_KEY_PEP = "test-4427356f-be6d-4cfa-bf22-e8172184e56d"
 PROD_API_KEY_PEP = json.load(open("keys.json", "r"))['pepApiKey']
-ONE_YEAR=31556926 #seconds
+ONE_YEAR = 31556926  # seconds
 app = Flask(__name__)
 app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
 qrcode = QRcode(app)
 Mobility(app)
-myenv="aws"
+myenv = "aws"
 mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
-
 
 
 def loginID360() -> str:
@@ -125,16 +126,18 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
     }
-    response = requests.get(ID360_URL_PROD + 'api/1.0.0/enrollment/'+str(id_dossier)+'/report/', headers=headers)
+    response = requests.get(ID360_URL_PROD + 'api/1.0.0/enrollment/' +
+                            str(id_dossier)+'/report/', headers=headers)
 
     if response.status_code == 200:
         dossier = response.json()
         return dossier
     elif response.status_code == 404:
-        logging.warning("dossier "+str(id_dossier)+" exipré")
+        logging.warning("dossier "+str(id_dossier)+" expiré")
         return "expired"
     else:
-        logging.error("error requesting dossier status : %s",response.status_code)
+        logging.error("error requesting dossier status : %s",
+                      response.status_code)
         return response.status_code
 
 
@@ -143,7 +146,7 @@ def pep(firstname: str, lastname: str):
     Function checking pep sanctions by name and lastname
     see https://pepchecker.com/
     """
-    logging.info("testing pep for "+firstname+" "+lastname) # mettre des %s
+    logging.info("testing pep for "+firstname+" "+lastname)  #  mettre des %s
     uri = PEP_URL + 'check?firstName=' + firstname + '&lastName=' + lastname
     api_key = PROD_API_KEY_PEP
     response = requests.get(uri, headers={'api-key':  api_key})
@@ -156,19 +159,19 @@ def check_country(country_code: str):
     Function checking high risk countries by country code
     see https://finance.ec.europa.eu/financial-crime/high-risk-third-countries-and-international-context-content-anti-money-laundering-and-countering_en
     """
-    if country_code in BANNED_COUNTRIES :
+    if country_code in BANNED_COUNTRIES:
         return
     return True
 
 
-def check_birth_date(birth_date :str):
+def check_birth_date(birth_date: str):
     """
     function checking if a birth date is correctly extracted
     """
-    if(birth_date== None):
+    if (birth_date == None):
         return "Not available"
-    year=birth_date.split("-")[0]
-    if int(year)>2023:
+    year = birth_date.split("-")[0]
+    if int(year) > 2023:
         return str(int(year)-100)+"-"+birth_date.split("-")[1]+"-"+birth_date.split("-")[2]
     else:
         return birth_date
@@ -186,7 +189,7 @@ def get_code():
     returns {"error": <error_description>} with status code
     if an error occured
     """
-    client_secret = request.headers.get('api-key')  
+    client_secret = request.headers.get('api-key')
     client_id = request.args.get('client_id')
     did = request.args.get('did')
     if not client_id or not client_secret:
@@ -208,8 +211,8 @@ def login(code: str):
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
 
-    try:   
-        pickle.loads(red.get(code)) 
+    try:
+        pickle.loads(red.get(code))
     except:
         logging.warning("invalid link3")
         if not request.MOBILE:
@@ -224,11 +227,11 @@ def login(code: str):
             return render_template("error.html")
         else:
             return render_template("error_mobile.html")
-    try:           
-        site_callback = request.args['callback'] 
+    try:
+        site_callback = request.args['callback']
         client_id = request.args['client_id']
         vc_type = request.args['vc_type']
-    except KeyError as e: #missing an arg
+    except KeyError as e:  # missing an arg
         logging.error(e)
         if not request.MOBILE:
             return render_template("error.html")
@@ -237,7 +240,7 @@ def login(code: str):
     did = pickle.loads(red.get(code))["did"]
     kyc = db.get_user_kyc(did)
     if not kyc:
-        logging.info("%s never did kyc",did)
+        logging.info("%s never did kyc", did)
     else:
         logging.info(kyc)
     token = loginID360()
@@ -256,25 +259,22 @@ def login(code: str):
     else:
         dossier = get_dossier(kyc[2], token)
         temp_dict["first"] = False
-        if(kyc[1] != "OK"):
-            red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
+        if (kyc[1] != "OK" or type(dossier) != dict):
+            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             # we create the dossier for user
             link = create_dossier(code, token, did)
             return redirect(link)
         birth_date = check_birth_date(dossier["identity"].get("birth_date"))
-        logging.info(birth_date)
-        logging.info(birth_date=="Not available")
-        logging.info(dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not available"))
-        if dossier=="expired"  or  (vc_type != "VerifiableId" and birth_date=="Not available"):
-            red.setex(code, AUTHENTICATION_DELAY,pickle.dumps(temp_dict))  
+        if vc_type != "VerifiableId" and birth_date == "Not available":
+            red.setex(code, AUTHENTICATION_DELAY, pickle.dumps(temp_dict))
             # we create the dossier for user
             link = create_dossier(code, token, did)
-            #return redirect(link)
+            # return redirect(link)
 
-        #if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not available"):
+        # if kyc[1] == "OK" and (vc_type == "VerifiableId" or birth_date!="Not available"):
         else:
-            if(vc_type == "Over18" or vc_type == "Over15"  or vc_type == "Over13"):
-                logging.info("birth_date %s",birth_date)
+            if (vc_type == "Over18" or vc_type == "Over15" or vc_type == "Over13"):
+                logging.info("birth_date %s", birth_date)
                 timestamp = ciso8601.parse_datetime(birth_date)
                 timestamp = time.mktime(timestamp.timetuple())
                 now = time.time()
@@ -290,8 +290,6 @@ def login(code: str):
             # we create the dossier for user
             link = create_dossier(code, token, did)"""
         return redirect(link)
-
-        
 
 
 @app.route('/id360/issuer/<code>',  defaults={'red': red})
@@ -311,13 +309,13 @@ def issuer(code: str, red):
         try:
             site_callback = pickle.loads(red.get(code))["site_callback"]
         except:
-            error_title="Invalid link"
-            error_description="This code does not coressond to a correct session."
+            error_title = "Invalid link"
+            error_description = "This code does not coressond to a correct session."
             return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card)
         try:
             code_error = pickle.loads(red.get(code))["code_error"]
             card = pickle.loads(red.get(code))["vc_type"]
-            if code_error == "410": #stocker dans dict
+            if code_error == "410":  # stocker dans dict
                 error_title = "KYC Verification Failed"
                 # TODO mettre le vrai message
                 error_description = "Sorry, we encountered an issue while verifying your ID. Please try again later."
@@ -332,8 +330,8 @@ def issuer(code: str, red):
                 error_title = "Incomplete Information"
                 error_description = "Oops! It seems like some required information is missing. Please provide all necessary details to continue."
             if code_error == "414":
-                error_title="Invalid link"
-                error_description="This code does not coressond to a correct session."
+                error_title = "Invalid link"
+                error_description = "This code does not coressond to a correct session."
                 return render_template("error_mobile.html", error_title=error_title, error_description=error_description, card=card)
             red.delete(code)
             if not request.MOBILE:
@@ -397,7 +395,8 @@ def id360callback(code: str, red):
         site_callback = pickle.loads(red.get(code))["site_callback"]
     except:
         logging.error("code expired")
-        red.setex(code, CODE_LIFE, pickle.dumps({"code_error": "414", "vc_type": "VerifiableId"}))  # ERROR : REDIS EXPIRATION
+        red.setex(code, CODE_LIFE, pickle.dumps(
+            {"code_error": "414", "vc_type": "VerifiableId"}))  # ERROR : REDIS EXPIRATION
         return jsonify("ok")
 
     did = pickle.loads(red.get(code))["did"]
@@ -405,7 +404,7 @@ def id360callback(code: str, red):
     logging.info('callback for wallet DID = %s', did)
     dossier = request.get_json()
     token = pickle.loads(red.get(code))["token"]
-    
+
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
         return jsonify("ok")
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
@@ -432,7 +431,7 @@ def id360callback(code: str, red):
             return jsonify("ok")
         timestamp = ciso8601.parse_datetime(birth_date)
         timestamp = time.mktime(timestamp.timetuple())
-        now = time.time() #ajouter constantes années secondes
+        now = time.time()  # ajouter constantes années secondes
     if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
         # ERROR : Over18 demandé mais user mineur
         red.setex(code, CODE_LIFE, pickle.dumps(
@@ -468,13 +467,17 @@ async def vc_endpoint(code: str, red):
                 credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
             except:
                 logging.error("no gender in dossier")
-            credential["credentialSubject"]["dateOfBirth"] = check_birth_date(dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
+            credential["credentialSubject"]["dateOfBirth"] = check_birth_date(
+                dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
             # TODO add other data if available
             credential["evidence"][0]["verifier"] = "Altme"
-            credential["evidence"][0]["evidenceDocument"] = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
-            credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+            credential["evidence"][0]["evidenceDocument"] = dossier["steps"][
+                "id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
+            credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))[
+                "id_dossier"]
         elif vc_type == "AgeRange":
-            birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
+            birth_date = check_birth_date(
+                dossier["identity"].get("birth_date", "Not available"))
             year = birth_date.split('-')[0]
             month = birth_date.split('-')[1]
             day = birth_date.split('-')[2]
@@ -503,14 +506,16 @@ async def vc_endpoint(code: str, red):
             else:
                 credential['credentialSubject']['ageRange'] = "65+"
             credential["credentialSubject"]["kycProvider"] = "ID360"
-            credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))["id_dossier"]
+            credential["credentialSubject"]["kycId"] = pickle.loads(red.get(code))[
+                "id_dossier"]
             credential["credentialSubject"]["kycMethod"] = JOURNEY_PROD
         elif vc_type == "DefiCompliance":
 
             try:
                 first_name = dossier["identity"]["first_names"][0]
                 last_name = dossier["identity"]["name"]
-                birth_date = check_birth_date(dossier["identity"].get("birth_date", "Not available"))
+                birth_date = check_birth_date(
+                    dossier["identity"].get("birth_date", "Not available"))
                 country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
                 if check_country(country_emission):
                     country_result = "Succeeded"
@@ -536,7 +541,7 @@ async def vc_endpoint(code: str, red):
                 else:
                     credential['credentialSubject']['amlComplianceCheck'] = "Failed"
             except KeyError as e:
-                logging.error(e) #fusionner 
+                logging.error(e)  # fusionner
                 logging.error("miss data to issue a DefiCompliance VC")
         else:
             credential["credentialSubject"]["kycProvider"] = "ID360"
@@ -547,12 +552,12 @@ async def vc_endpoint(code: str, red):
         credential["issuer"] = ISSUER_DID
         credential['issuanceDate'] = datetime.utcnow().replace(
             microsecond=0).isoformat() + "Z"
-        if(vc_type=="DefiCompliance"):
-            credential['expirationDate'] = (datetime.now() + timedelta(days=90)).isoformat() + "Z"
+        if (vc_type == "DefiCompliance"):
+            credential['expirationDate'] = (
+                datetime.now() + timedelta(days=90)).isoformat() + "Z"
         else:
-            credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-
-    
+            credential['expirationDate'] = (
+                datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
 
         credential_manifest = json.load(
             open('./credential_manifest/'+vc_type+'_credential_manifest.json', 'r'))
@@ -572,7 +577,7 @@ async def vc_endpoint(code: str, red):
         return jsonify(credential_offer)
 
     else:  # POST #réduire appel dossier
-        credential=pickle.loads(red.get(code))["credential"]
+        credential = pickle.loads(red.get(code))["credential"]
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
         credential['credentialSubject']['id'] = request.form['subject_id']
         try:
@@ -625,10 +630,11 @@ async def vc_endpoint(code: str, red):
 
         # we delete the code and send the credential
         red.delete(code)
-        if vc_type=="DefiCompliance":
-            vc_type="defi"
+        if vc_type == "DefiCompliance":
+            vc_type = "defi"
         data = {"vc":  vc_type.lower(), "count": "1"}
-        logging.info(requests.post('https://issuer.talao.co/counter/update', data=data).json())
+        logging.info(requests.post(
+            'https://issuer.talao.co/counter/update', data=data).json())
         return jsonify(signed_credential)
 
 
@@ -638,7 +644,7 @@ def serve_static(filename: str):
         return send_file('./static/' + filename, download_name=filename)
     except FileNotFoundError:
         logging.error(filename+" not found")
-        return jsonify("not found"),404
+        return jsonify("not found"), 404
 
 
 if __name__ == '__main__':
