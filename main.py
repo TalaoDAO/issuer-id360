@@ -189,7 +189,7 @@ def get_code():
     client_secret = request.headers.get('api-key')  
     client_id = request.args.get('client_id')
     did = request.args.get('did')
-    if not client_id or not client_secret:
+    if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
         return jsonify("client not found"), 404
@@ -409,7 +409,7 @@ def id360callback(code: str, red):
     if (dossier["status"] == "NEW" or dossier["status"] == "STARTED"):
         return jsonify("ok")
     dossier = get_dossier(pickle.loads(red.get(code))["id_dossier"], token)
-    logging.info(dossier)
+    #logging.info(dossier)
     try:
         if pickle.loads(red.get(code))["first"] == True:
             db.insert_kyc(did, dossier["status"], id_dossier)
