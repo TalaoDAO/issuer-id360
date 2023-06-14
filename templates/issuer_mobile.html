@@ -122,19 +122,11 @@
       const result = JSON.parse(event.data);
       //console.log(result)
       if (result.code === '{{code}}' && result.type === "altmeTransfered") {
-        //if (vc_type === "VerifiableId") { window.location.href = "https://{{callback}}/200"; }
-        //else { window.location.href = "https://{{callback}}/201"; }
-        document.getElementById("inProgress").innerHTML="Well done !"
-        document.getElementById("yourId").innerHTML="You have successfully claimed your digital ID in Altme"
-        document.getElementById("newBox").remove()
-        let success = document.createElement("img")
-        document.getElementById("progressBox").appendChild(success)
-        success.setAttribute("id","successImg")
-        success.setAttribute("src","/id360/static/Mobile-credential-success-{{card}}.png")
+        window.location.href = "https://talao.co/id360/success?card={{card}}";
 
       }
       if (result.code === '{{code}}' && result.type === "error") {
-        window.location.href = "https://{{callback}}/" + result.error;
+        window.location.href = "https://talao.co/id360/error/" + result.error;
       }
 
     }

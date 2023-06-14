@@ -1,0 +1,14 @@
+{
+    "age_verification_failed": [
+        "Age Verification Failed",
+        "We were unable to verify the required age. Please ensure the information provided is accurate."
+    ],
+    "age_requirement_failed": [
+        "Age Requirement Not Met",
+        "You must be older to obtain this verifiable credential. Please ensure you meet the age requirement."
+    ],
+    "internal_error": [
+        "Invalid link",
+        "This code does not coressond to a correct session."
+    ]
+}
