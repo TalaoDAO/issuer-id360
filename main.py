@@ -306,7 +306,7 @@ def id360callback(code: str, red):
         return jsonify("ok")
     did = pickle.loads(red.get(code))["did"]
     vc_type = pickle.loads(red.get(code))["vc_type"]
-    logging.info('callback for wallet DID = %s', did)
+    logging.info('callback for wallet DID = %s is %s', did,request.get_json()["status"])
     dossier = request.get_json()
     if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
         red.setex(code, CODE_LIFE, pickle.dumps(
