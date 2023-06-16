@@ -175,6 +175,7 @@ def get_code():
     if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
+        print(client_id, client_secret)
         return jsonify("client not found"), 404
     wallet_callback = WALLETS.get(client_id)[1]
     code = str(uuid.uuid1())
