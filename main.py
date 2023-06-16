@@ -172,11 +172,11 @@ def get_code():
     client_secret = request.headers.get('api-key')
     client_id = request.args.get('client_id')
     did = request.args.get('did')
-    wallet_callback = WALLETS[client_id][1]
     if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
         return jsonify("client not found"), 404
+    wallet_callback = WALLETS.get(client_id)[1]
     code = str(uuid.uuid1())
     red.setex(code, CODE_LIFE, pickle.dumps({
         "client_id": client_id,
