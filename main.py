@@ -191,7 +191,6 @@ def login(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    logging.warning(pickle.loads(red.get(code)))
     token = loginID360()
     if not token:
         return redirect(url_for('error', code_error="internal_error"))
