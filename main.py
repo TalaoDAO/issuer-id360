@@ -537,7 +537,7 @@ async def vc_endpoint(code: str, red):
             vc_type = "defi"
         data = {"vc":  vc_type.lower(), "count": "1"}
         try:        
-            logging.info(requests.post('https://issuer.talao.co/counter/update', data=data).json())
+            requests.post('https://issuer.talao.co/counter/update', data=data).json()
         except:
             logging.warning("error updating issuer counter")
         return jsonify(signed_credential)
