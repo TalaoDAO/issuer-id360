@@ -340,6 +340,10 @@ def id360callback(code: str, red):
             red.setex(code, CODE_LIFE, pickle.dumps(
                 {"code_error": "412", "vc_type": vc_type, "wallet_callback": wallet_callback}))
             return jsonify("ok")
+        temp_dict = pickle.loads(red.get(code))
+        temp_dict["kyc_method"]=dossier.get("id_verification_service")
+        temp_dict["level"]=dossier.get("level")
+        red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
     return jsonify("ok")
 
 
@@ -373,11 +377,9 @@ async def vc_endpoint(code: str, red):
             credential["credentialSubject"]["dateOfBirth"] = check_birth_date(
                 dossier["identity"].get("birth_date", "Not available"))  # gerer infos disponibles
             # TODO add other data if available
-            credential["evidence"][0]["verifier"] = "Altme"
-            credential["evidence"][0]["evidenceDocument"] = dossier["steps"][
-                "id_document"]["results"]["id_document_result"][0]["IDMRZTYPEDOCUMENT"]
-            credential["evidence"][0]["kycId"] = pickle.loads(red.get(code))[
-                "id_dossier"]
+            credential["evidence"][0]["id"] = "https://github.com/TalaoDAO/context/blob/main/context/VerificationMethod.jsonld/" + str(pickle.loads(red.get(code))["id_dossier"])
+            credential["evidence"][0]["verificationMethod"] = pickle.loads(red.get(code)).get("kyc_method")
+            credential["evidence"][0]["levelOfAssurance"] = pickle.loads(red.get(code)).get("level")
         elif vc_type == "AgeRange":
             birth_date = check_birth_date(
                 dossier["identity"].get("birth_date", "Not available"))
@@ -537,7 +539,7 @@ async def vc_endpoint(code: str, red):
             vc_type = "defi"
         data = {"vc":  vc_type.lower(), "count": "1"}
         try:        
-            requests.post('https://issuer.talao.co/counter/update', data=data).json()
+            requests.post('https://issuer.talao.co/counter/update', data=data)
         except:
             logging.warning("error updating issuer counter")
         return jsonify(signed_credential)

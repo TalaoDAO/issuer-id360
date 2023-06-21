@@ -13,7 +13,7 @@ class currentMode() :
 		if self.myenv == 'aws':
 			#self.server = 'localhost' + ':3000/'
 			self.server = "https://talao.co"
-			#self.server = "https://aa43-86-229-94-232.ngrok-free.app"
+			#self.server = "https://94ca-2001-861-5870-38c0-2577-b4b0-19e-3f0b.ngrok-free.app"
 			self.IP = 'localhost'
 			self.port = 3000
 
