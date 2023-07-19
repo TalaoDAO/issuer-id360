@@ -111,7 +111,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'Authorization': 'Token ' + token,
     }
     response = requests.get(URL + 'api/1.0.0/enrollment/' +
-                            str(id_dossier)+'/report/', headers=headers)
+                            str(id_dossier)+'/report?allow_draft=false', headers=headers)
     if response.status_code == 200: 
         return response.json()
     elif response.status_code == 404:
