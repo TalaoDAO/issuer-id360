@@ -68,7 +68,7 @@ def loginID360() -> str:
                       str(response.status_code))
         return
 
-        
+
 def create_dossier(code: str, token: str, did: str) -> str:
     """
     ID360 API call to create dossier on ID360
@@ -87,11 +87,15 @@ def create_dossier(code: str, token: str, did: str) -> str:
             'api-key': ID360_API_KEY,  # passer api key prod
         },
     }
-    response = requests.post(
-        URL + 'api/1.0.0/process/' + JOURNEY + '/enrollment/',
-        headers=headers,
-        json=json_data,
-    )
+    try:
+        response = requests.post(
+            URL + 'api/1.0.0/process/' + JOURNEY + '/enrollment/',
+            headers=headers,
+            json=json_data,
+        )
+    except:
+        logging.error("create_dossier request failed")
+        return
     if response.status_code == 200:
         try:
             temp_dict = pickle.loads(red.get(code))
@@ -100,9 +104,10 @@ def create_dossier(code: str, token: str, did: str) -> str:
             return
         temp_dict["id_dossier"] = response.json()["id"]
         red.setex(code, CODE_LIFE, pickle.dumps(temp_dict))
-        return URL + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=fr"
+        return URL + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=en"
     else:
-        logging.error(response.json())
+        logging.error("create_dossier returned status %s",
+                      str(response.status_code))
         return
 
 
@@ -115,8 +120,12 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
     }
-    response = requests.get(URL + 'api/1.0.0/enrollment/' +
-                            str(id_dossier)+'/report?allow_draft=false', headers=headers)
+    try:
+        response = requests.get(URL + 'api/1.0.0/enrollment/' +
+                                str(id_dossier)+'/report?allow_draft=false', headers=headers)
+    except:
+        logging.error("get_dossier request failed")
+        return 
     if response.status_code == 200: 
         return response.json()
     elif response.status_code == 404:
