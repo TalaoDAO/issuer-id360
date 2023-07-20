@@ -541,6 +541,7 @@ async def vc_endpoint(code: str, red):
             "proofPurpose": "assertionMethod",
             "verificationMethod": ISSUER_VM
         }
+        logging.info(credential)
         signed_credential = await didkit.issue_credential(
             json.dumps(credential),
             didkit_options.__str__().replace("'", '"'),
