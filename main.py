@@ -54,16 +54,21 @@ def loginID360() -> str:
         'username': USERNAME,
         'password': PASSWORD,
     }
-    response = requests.post(
-        URL + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+    try:
+        response = requests.post(
+            URL + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+    except:
+        logging.error("loginID360 request failed")
+        return
     if response.status_code == 200:
         token = response.json()["token"]
         return token
     else:
-        logging.error(response.json())
+        logging.error("loginID360 returned status %s",
+                      str(response.status_code))
         return
 
-
+        
 def create_dossier(code: str, token: str, did: str) -> str:
     """
     ID360 API call to create dossier on ID360
