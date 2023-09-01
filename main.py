@@ -443,7 +443,13 @@ async def vc_endpoint(code: str, red):
                 last_name = dossier["identity"]["name"]
                 birth_date = check_birth_date(
                     dossier["identity"].get("birth_date", "Not available"))
-                country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
+                try:
+                    country_emission = dossier["steps"]["id_document"]["results"]["id_document_result"][0]["IDMRZCODEPAYSEMISSION"]
+                except:
+                    if dossier["external_methods"].get("id_num").get("status")=="OK":
+                        country_emission = "FRA"
+                    else:
+                        loging.error('error country_emission')
                 if check_country(country_emission):
                     country_result = "Succeeded"
                 else:
