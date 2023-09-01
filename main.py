@@ -524,8 +524,8 @@ async def vc_endpoint(code: str, red):
             event_data = json.dumps(
                 {"type": "error", "code": code, "error": "431"})
             red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401"""
-        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
+            return jsonify('Unauthorized'), 401
+        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))"""
         presentation_result['errors'] = []  # FIXME
         if presentation_result['errors']:  # push erreur sur stream
             logging.warning("presentation failed  %s", presentation_result)
