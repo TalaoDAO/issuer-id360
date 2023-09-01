@@ -588,7 +588,7 @@ def error():
 def success():
     return render_template("success_mobile.html",card=request.args.get("card"))
 
-@app.route("/front")
+@app.route("/id360/front")
 def front():
             return render_template("issuer_mobile.html", code="code",  url='wallet_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code', card="VerifiableId", verified="ID")
 
