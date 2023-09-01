@@ -506,6 +506,7 @@ async def vc_endpoint(code: str, red):
         credential = pickle.loads(red.get(code))["credential"]
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
         credential['credentialSubject']['id'] = request.form['subject_id']
+        """
         try:
             presentation = json.loads(request.form['presentation'])
         except:
@@ -523,7 +524,7 @@ async def vc_endpoint(code: str, red):
             event_data = json.dumps(
                 {"type": "error", "code": code, "error": "431"})
             red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401
+            return jsonify('Unauthorized'), 401"""
         presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
         presentation_result['errors'] = []  # FIXME
         if presentation_result['errors']:  # push erreur sur stream
