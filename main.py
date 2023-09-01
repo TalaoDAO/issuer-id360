@@ -280,7 +280,11 @@ def issuer(code: str, red):
                 verified = "compliance"
             else:
                 verified = "age"
+            print(code)
+            print(vc_type)
+            print(verified)
             return render_template("issuer_mobile.html", code=code,  url=wallet_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
+
     return redirect(url_for('error', code_error="internal_error"))
 
 
@@ -584,6 +588,9 @@ def error():
 def success():
     return render_template("success_mobile.html",card=request.args.get("card"))
 
+@app.route("/front")
+def front():
+            return render_template("issuer_mobile.html", code="code",  url='wallet_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code', card="VerifiableId", verified="ID")
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
