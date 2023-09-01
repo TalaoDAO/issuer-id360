@@ -438,6 +438,7 @@ async def vc_endpoint(code: str, red):
         elif vc_type == "DefiCompliance":
 
             try:
+                logging.info(dossier)
                 first_name = dossier["identity"]["first_names"][0]
                 last_name = dossier["identity"]["name"]
                 birth_date = check_birth_date(
