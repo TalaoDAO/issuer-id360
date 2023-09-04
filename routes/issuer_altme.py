@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import logging
 from id360 import ID360_API_KEY,ISSUER_VM, ISSUER_DID, ISSUER_KEY
 import requests
+import didkit
 
 ERRORS = json.load(open("errors.json", "r"))
 WALLETS = json.load(open("wallets.json", "r"))
