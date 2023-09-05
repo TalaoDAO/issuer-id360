@@ -155,6 +155,10 @@ def check_country(country_code: str):
         return
     return True
 
+
+
+
+
 def get_code():
     """
     This the first call customer side to get its code
@@ -195,14 +199,8 @@ def login(code: str):
         return redirect(url_for('error', code_error="internal_error"))
     try:
         did = json.loads(red.get(code))["did"]
-        print("error2")
-
         wallet_callback = json.loads(red.get(code))['wallet_callback']
-        print("error3")
-
         client_id = json.loads(red.get(code))['client_id']
-        print("error4")
-
     except:
         return redirect(url_for('error', code_error="internal_error"))
     try:
@@ -242,6 +240,7 @@ def login(code: str):
             red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
             link = mode.server+"/id360/issuer/"+code
         return redirect(link)
+
 
 def issuer(code: str):
     """

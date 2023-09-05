@@ -28,7 +28,9 @@ mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 
+
 issuer_altme.init_app(app,red,mode)
+
 
 
 @app.route('/id360/static/<filename>', methods=['GET'])
