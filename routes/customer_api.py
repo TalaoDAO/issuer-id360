@@ -123,10 +123,10 @@ def get_code_customer():
     """
     This the first call customer side to get its code
 
-    curl https://talao.co/id360/get_code?client_id=<client_id> -H "api-key":<your_api_key>
+    curl https://talao.co/id360/get_code?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on> -H "api-key":<your_api_key>
     returns {"code": <code>} 200
 
-    the code returned is useful for one session for one user to get one credential
+    the code returned is useful for one session for one user
     returns {"error": <error_description>} with status code
     if an error occured
     """
