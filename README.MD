@@ -9,7 +9,7 @@ The process needs :
 First you need to ask a code to identify the session of the user:
 
 ```
-GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on> HTTP/1.1
+GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on>&api_key=<your_optional_api_key> HTTP/1.1
 
 Host: talao.co
 
@@ -67,6 +67,7 @@ When the datas are collected, the server will send this request :
 
 ```
 curl --header "Content-Type: application/json" \
+  --header "api-key: <your_optional_api_key>" \
   --request POST \
   --data '{
         "code":\<code>

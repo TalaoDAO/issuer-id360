@@ -135,17 +135,21 @@ def get_code_customer():
     client_id = request.args.get('client_id')
     callback_url = request.args.get('callback_url')   
     browser_callback_url = request.args.get('browser_callback_url')
+    api_key = request.args.get('api_key')
     if not client_id or not client_secret or not callback_url or not browser_callback_url:
         return jsonify("Bad request"), 400
     if not json.load(open("customers.json", "r")).get(client_id)==client_secret:
       logging.warning("api key error")
       return jsonify("Unauthorized"), 401
     code = str(uuid.uuid1())
-    red.setex(code, CODE_LIFE, json.dumps({
+    red_object = {
         "client_id": client_id,
         "callback_url": callback_url,
         "browser_callback_url": browser_callback_url
-    }))
+    }
+    if api_key:
+        red_object.update({"api_key":api_key})
+    red.setex(code, CODE_LIFE, json.dumps())
     return jsonify({"code": code})
 
 def login_customer(code: str):
@@ -163,14 +167,8 @@ def login_customer(code: str):
     except:
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
-    temp_dict = {
-        "token":token,
-        "client_id": client_id,
-        "callback_url": callback_url,
-        "browser_callback_url": browser_callback_url
-    }
+    temp_dict = json.loads(red.get(code)).update({"token":token})
     session["logged"] = True
-    temp_dict["first"] = True
     red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
     return redirect(create_dossier(code, token,browser_callback_url))
 
@@ -203,8 +201,12 @@ def id360callback_customer(code: str):
         logging.info("POST request to callback_url returned %s",response.status_code)
     elif status == "OK":
         token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token).get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
+        #dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token).get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
         headers = {'Content-Type': 'application/json'}
+        api_key = json.loads(red.get(code)).get("api_key")
+        if api_key:
+            headers.update({"api-key":api_key})
         dossier.update({"code" : code})
         response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier))
         logging.info("POST request to callback_url returned %s",response.status_code)
