@@ -167,7 +167,7 @@ def login_customer(code: str):
     except:
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
-    temp_dict = json.loads(red.get(code)).update({"token":token})
+    temp_dict = json.loads(red.get(code))
     logging.info(temp_dict)
     session["logged"] = True
     red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
