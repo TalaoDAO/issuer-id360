@@ -149,7 +149,7 @@ def get_code_customer():
     }
     if api_key:
         red_object.update({"api_key":api_key})
-    red.setex(code, CODE_LIFE, json.dumps())
+    red.setex(code, CODE_LIFE, json.dumps(red_object))
     return jsonify({"code": code})
 
 def login_customer(code: str):
