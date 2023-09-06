@@ -130,6 +130,7 @@ def get_code_customer():
     returns {"error": <error_description>} with status code
     if an error occured
     """
+    logging.info(request.headers)
     client_secret = request.headers.get('api-key')
     client_id = request.args.get('client_id')
     callback_url = request.args.get('callback_url')   
