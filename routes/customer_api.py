@@ -139,7 +139,7 @@ def get_code_customer():
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
         return jsonify("client not found"), 404"""
-    if not db.test_api_key(client_id, client_secret):
+    if not json.load(open("customers.json", "r")).get(client_secret)==client_id:
       logging.warning("api key error")
       return jsonify(error="client not found"), 400
     code = str(uuid.uuid1())
