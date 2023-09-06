@@ -1,13 +1,10 @@
 # KYC API
 
-
-
-The process need:
-- a callback_url, that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
-- a browser_callback_url, where we will redirect your user after the data collection process. 
+The process needs :
+- a callback_url that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
+- a browser_callback_url where we will redirect your user after the data collection process. 
 
 ## Ask for a session code
-
 
 First you need to ask a code to identify the session of the user:
 
@@ -19,10 +16,9 @@ Host: talao.co
 Content-Type: application/x-www-form-urlencoded
 
 API-KEY : <your_api_key> 
+
 ```
-
 The code returned is useful for one session for one user to get one data structure
-
 
 ```
 HTTP/1.1 200 OK
