@@ -168,8 +168,7 @@ def login_customer(code: str):
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
     temp_dict = json.loads(red.get(code))
-    logging.info(temp_dict)
-    session["logged"] = True
+    temp_dict.update({"token":token})
     red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
     return redirect(create_dossier(code, token,browser_callback_url))
 
