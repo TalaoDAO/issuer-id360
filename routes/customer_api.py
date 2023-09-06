@@ -39,7 +39,7 @@ def loginID360() -> str:
     }
     try:
         response = requests.post(
-            mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+            mode.url_customers + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     except:
         logging.error("loginID360 request failed")
         return
@@ -71,7 +71,7 @@ def create_dossier(code: str, token: str, browser_callback_url: str) -> str:
     }
     try:
         response = requests.post(
-            mode.url + 'api/1.0.0/process/' + mode.journey_customer + '/enrollment/',
+            mode.url_customers + 'api/1.0.0/process/' + mode.journey_customer + '/enrollment/',
             headers=headers,
             json=json_data,
         )
@@ -86,7 +86,7 @@ def create_dossier(code: str, token: str, browser_callback_url: str) -> str:
             return
         temp_dict["id_dossier"] = response.json()["id"]
         red.setex(code, CODE_LIFE, json.dumps(temp_dict))
-        return mode.url + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=en"
+        return mode.url_customers + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=en"
     else:
         logging.error("create_dossier returned status %s",
                       str(response.status_code))
@@ -103,7 +103,7 @@ def get_dossier(id_dossier: str, token: str) -> dict:
         'Authorization': 'Token ' + token,
     }
     try:
-        response = requests.get(mode.url + 'api/1.0.0/enrollment/' +
+        response = requests.get(mode.url_customers + 'api/1.0.0/enrollment/' +
                                 str(id_dossier)+'/report?allow_draft=false', headers=headers)
     except:
         logging.error("get_dossier request failed")
