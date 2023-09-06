@@ -29,6 +29,8 @@ class currentMode() :
 			self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
 			self.journey_customer = "5a1f40a7-0e0a-4c9c-94b1-4e9ec7736c21"
 			self.url='https://preprod.id360docaposte.com/'
+			self.url_customers='https://preprod.id360docaposte.com/'
+
 			self.username=json.load(open("keys.json", "r"))['username']
 			self.password=json.load(open("keys.json", "r"))['password']
 			self.username_customers=json.load(open("keys.json", "r"))['username']
