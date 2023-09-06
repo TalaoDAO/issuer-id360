@@ -1,20 +1,59 @@
-What we need :
+The process need:
 - a callback_url, that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
-- a browser_callback, where we will redirect your user after the data collection process. 
+- a browser_callback_url, where we will redirect your user after the data collection process. 
 
 First you need to ask a code to identify the session of the user:
 
-curl https://talao.co/id360/get_code?client_id=<client_id> -H "api-key":<your_api_key> -H "callback_url":<your_endpoint> -H "browser_callback":<website_user_will_be_redirected_on>
-
-the code returned is useful for one session for one user to get one data structure
-
-returns {"code": <code>} 200
-returns {"error": <error_description>} with status code if an error occured
-
-redirect your user browser on this route to let him complete the data collection process :
-
-https://talao.co/id360/authenticate/<code> 
-this endpoint will redirect your user on the KYC provider UI to collect his datas. We will then redirect him on the browser_callback and we will POST datas on your callback_url
+GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on> HTTP/1.1
+Host: talao.co
+Content-Type: application/x-www-form-urlencoded
+API-KEY : <your_api_key> 
 
 
+The code returned is useful for one session for one user to get one data structure
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+   "code": <code>
+}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{
+   "error": <error_description>
+}
+
+Redirect your user browser on this route with the code to let him complete the data collection process :
+
+https://talao.co/id360/authenticate_customer/<code> 
+this endpoint will redirect your user on the KYC provider UI to collect his datas. We will then redirect him on <browser_callback_url>?code=code and we will POST datas on your callback_url
+
+
+When the datas are collected, the server will send this request :
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{
+        "name": <name>,
+        "first_name": <first_name>,
+        "first_names": [
+            <first_name1>,
+            <first_name2>,
+            <first_name3>
+        ],
+        "birth_name": <birth_name>,
+        "email": <email>,
+        "address": <address>,
+        "zip_code": <zip_code>,
+        "city": <city>,
+        "country": <country>,
+        "phone_number": <phone_number>,
+        "birth_date": <birth_date>,
+        "gender": <gender>,
+        "birth_place": <birth_place>,
+        "birth_country": <birth_country>
+    }' \
+    <callback_url>?code=<code>

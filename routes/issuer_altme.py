@@ -285,7 +285,7 @@ def issuer_stream():
     headers = {"Content-Type": "text/event-stream",
                "Cache-Control": "no-cache",
                "X-Accel-Buffering": "no"}
-    return Response(event_stream(red), headers=headers)
+    return Response(event_stream(), headers=headers)
 
 def id360callback(code: str):
     """

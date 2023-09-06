@@ -13,7 +13,7 @@ import redis
 import logging
 import ciso8601
 from flask_mobility import Mobility
-from routes import issuer_altme
+from routes import issuer_altme,customer_api
 import os
 
 
@@ -30,7 +30,7 @@ red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 
 issuer_altme.init_app(app,red,mode)
-
+customer_api.init_app(app,red,mode)
 
 
 @app.route('/id360/static/<filename>', methods=['GET'])
