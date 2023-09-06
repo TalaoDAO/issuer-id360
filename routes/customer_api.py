@@ -196,6 +196,11 @@ def id360callback_customer(code: str):
     dossier = request.get_json()
     if status in ["CANCELED", "FAILED", "KO"]:
         logging.error(status)
+        response = requests.post(
+            json.loads(red.get(code))["callback_url"],
+            json={"code":code,"dossier":status}
+        )
+        logging.info(response)
     elif status == "OK":
         token = json.loads(red.get(code))["token"]
         dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
