@@ -203,7 +203,7 @@ def id360callback_customer(code: str):
         logging.info("POST request to callback_url returned %s",response.status_code)
     elif status == "OK":
         token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token).get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
         headers = {'Content-Type': 'application/json'}
         dossier.update({"code" : code})
         response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier))

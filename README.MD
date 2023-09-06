@@ -1,6 +1,13 @@
+#KYC API
+
+
+
 The process need:
 - a callback_url, that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
 - a browser_callback_url, where we will redirect your user after the data collection process. 
+
+##Ask for a session code
+
 
 First you need to ask a code to identify the session of the user:
 
@@ -33,17 +40,24 @@ Content-Type: application/json
    "error": <error_description>
 }
 
+##Redirect your user
+
 Redirect your user browser on this route with the code to let him complete the data collection process :
 
 https://talao.co/id360/authenticate_customer/<code> 
 this endpoint will redirect your user on the KYC provider UI to collect his datas. We will then redirect him on <browser_callback_url>?code=code and we will POST datas on your callback_url
 
 
+##Receive the datas
+
+
 When the datas are collected, the server will send this request :
 
+```
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{
+        "code":<code>
         "name": <name>,
         "first_name": <first_name>,
         "first_names": [
@@ -51,16 +65,13 @@ curl --header "Content-Type: application/json" \
             <first_name2>,
             <first_name3>
         ],
-        "birth_name": <birth_name>,
-        "email": <email>,
-        "address": <address>,
-        "zip_code": <zip_code>,
-        "city": <city>,
-        "country": <country>,
-        "phone_number": <phone_number>,
+        "address": <address>, //can be wrong
+        "nationality": <code_country>,
         "birth_date": <birth_date>,
         "gender": <gender>,
         "birth_place": <birth_place>,
-        "birth_country": <birth_country>
+        "birth_country": <birth_country>,
+        "country_emission": <code_country>
     }' \
-    <callback_url>?code=<code>
+    <callback_url>
+```
