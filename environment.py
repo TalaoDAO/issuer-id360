@@ -20,6 +20,8 @@ class currentMode() :
 			self.url_customers='https://preprod.id360docaposte.com/'
 			self.username=json.load(open("keys.json", "r"))['username_prod']
 			self.password=json.load(open("keys.json", "r"))['password_prod']
+			self.username_customers=json.load(open("keys.json", "r"))['username']
+			self.password_customers=json.load(open("keys.json", "r"))['password']
 		elif self.myenv == 'local':
 			self.server = "https://53ac-2a04-cec0-11df-2c18-2b28-649-42e4-ff98.ngrok-free.app"
 			self.IP = 'localhost'
@@ -29,6 +31,8 @@ class currentMode() :
 			self.url='https://preprod.id360docaposte.com/'
 			self.username=json.load(open("keys.json", "r"))['username']
 			self.password=json.load(open("keys.json", "r"))['password']
+			self.username_customers=json.load(open("keys.json", "r"))['username']
+			self.password_customers=json.load(open("keys.json", "r"))['password']
 
 
 

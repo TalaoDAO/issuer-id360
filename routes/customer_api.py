@@ -34,8 +34,8 @@ def loginID360() -> str:
         'Content-Type': 'application/json',
     }
     json_data = {
-        'username': mode.username,
-        'password': mode.password,
+        'username': mode.username_customers,
+        'password': mode.password_customers,
     }
     try:
         response = requests.post(
