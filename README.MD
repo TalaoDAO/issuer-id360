@@ -26,6 +26,13 @@ Content-Type: application/json
    "error": <error_description>
 }
 
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{
+   "error": <error_description>
+}
+
 Redirect your user browser on this route with the code to let him complete the data collection process :
 
 https://talao.co/id360/authenticate_customer/<code> 
