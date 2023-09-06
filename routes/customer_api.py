@@ -137,7 +137,7 @@ def get_code_customer():
     browser_callback_url = request.args.get('browser_callback_url')
     if not client_id or not client_secret or not callback_url or not browser_callback_url:
         return jsonify("Bad request"), 400
-    if not json.load(open("customers.json", "r")).get(client_secret)==client_id:
+    if not json.load(open("customers.json", "r")).get(client_id)==client_secret:
       logging.warning("api key error")
       return jsonify("Unauthorized"), 401
     code = str(uuid.uuid1())
