@@ -18,27 +18,37 @@ API-KEY : <your_api_key>
 
 
 The code returned is useful for one session for one user to get one data structure
-<code>
+
+
+```
 HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
    "code": \<code>
 }
-</code>
+```
+
+
+```
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
 {
    "error": <error_description>
 }
+```
 
+
+```
 HTTP/1.1 401 Unauthorized
 Content-Type: application/json
 
 {
    "error": <error_description>
 }
+```
+
 
 ## Redirect your user
 
