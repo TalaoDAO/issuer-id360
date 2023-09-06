@@ -44,7 +44,7 @@ Content-Type: application/json
 
 Redirect your user browser on this route with the code to let him complete the data collection process :
 
-https://talao.co/id360/authenticate_customer/<code> 
+https://talao.co/id360/authenticate_customer/\<code> 
 this endpoint will redirect your user on the KYC provider UI to collect his datas. We will then redirect him on <browser_callback_url>?code=code and we will POST datas on your callback_url
 
 
@@ -57,7 +57,7 @@ When the datas are collected, the server will send this request :
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{
-        "code":<code>
+        "code":\<code>
         "name": <name>,
         "first_name": <first_name>,
         "first_names": [
