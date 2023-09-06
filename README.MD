@@ -1,8 +1,8 @@
 # KYC API
 
 The process needs :
-- a callback_url that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
-- a browser_callback_url where we will redirect your user after the data collection process. 
+- a `callback_url` that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
+- a `browser_callback_url` where we will redirect your user after the data collection process. 
 
 ## Ask for a session code
 
