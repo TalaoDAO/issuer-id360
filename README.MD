@@ -11,11 +11,15 @@ The process need:
 
 First you need to ask a code to identify the session of the user:
 
+```
 GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on> HTTP/1.1
-Host: talao.co
-Content-Type: application/x-www-form-urlencoded
-API-KEY : <your_api_key> 
 
+Host: talao.co
+
+Content-Type: application/x-www-form-urlencoded
+
+API-KEY : <your_api_key> 
+```
 
 The code returned is useful for one session for one user to get one data structure
 
