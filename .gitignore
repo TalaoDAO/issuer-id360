@@ -2,3 +2,7 @@ keys.json
 wallets.json
 issuer_database.db
 in.json
+docs.json
+customers.json
+__pycache__
+routes/__pycache__

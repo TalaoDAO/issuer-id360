@@ -15,7 +15,6 @@ class currentMode() :
 			self.IP = 'localhost'
 			self.port = 3000
 			self.journey = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
-			self.journey_customer = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
 			self.url='https://id360docaposte.com/'
 			self.url_customers='https://preprod.id360docaposte.com/'
 			self.username=json.load(open("keys.json", "r"))['username_prod']
@@ -27,10 +26,8 @@ class currentMode() :
 			self.IP = 'localhost'
 			self.port = 3000
 			self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
-			self.journey_customer = "5a1f40a7-0e0a-4c9c-94b1-4e9ec7736c21"
 			self.url='https://preprod.id360docaposte.com/'
 			self.url_customers='https://preprod.id360docaposte.com/'
-
 			self.username=json.load(open("keys.json", "r"))['username']
 			self.password=json.load(open("keys.json", "r"))['password']
 			self.username_customers=json.load(open("keys.json", "r"))['username']

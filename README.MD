@@ -8,7 +8,8 @@ The process needs :
 - a `callback_url` that the server will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
 - a `browser_callback_url` where the server will redirect your user after the data collection process. 
 - a `format`, an optional argument to choose the format of datas. By default is `raw`.
-*optional*
+
+*Optional needs :*
 - an api-key that you can give us trough telegram to secure your callback reception.
 - a logo to display on the KYC UI.
 
@@ -110,4 +111,4 @@ curl --header "Content-Type: application/json" \
         "description":<error_description>
     }' \
     <callback_url>
-```
+``` 
