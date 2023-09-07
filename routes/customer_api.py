@@ -227,6 +227,6 @@ def id360callback_customer(code: str):
         api_key = json.loads(red.get(code)).get("api_key")
         if api_key:
             headers.update({"api-key":api_key})
-        response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier))
+        response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier_clean))
         logging.info("POST request to callback_url returned %s",response.status_code)
     return jsonify("ok")
