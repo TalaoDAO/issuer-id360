@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
-MY_SERVER = "https://73c3-2a04-cec0-11df-2c18-915c-8f1d-79b8-b53b.ngrok-free.app"
+MY_SERVER = "https://d775-2a04-cec0-117b-8ede-6668-c4e2-22c0-b9bc.ngrok-free.app"
 SERVER="https://talao.co"
 def init_app():
     app.add_url_rule('/start_process',  view_func=start_process, methods = ['GET'])
