@@ -52,7 +52,7 @@ def loginID360() -> str:
         return
 
 
-def create_dossier(code: str, token: str, browser_callback_url: str) -> str:
+def create_dossier(code: str, token: str, browser_callback_url: str,journey_customer: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
@@ -71,7 +71,7 @@ def create_dossier(code: str, token: str, browser_callback_url: str) -> str:
     }
     try:
         response = requests.post(
-            mode.url_customers + 'api/1.0.0/process/' + mode.journey_customer + '/enrollment/',
+            mode.url_customers + 'api/1.0.0/process/' + journey_customer + '/enrollment/',
             headers=headers,
             json=json_data,
         )
@@ -138,14 +138,15 @@ def get_code_customer():
     api_key = request.args.get('api_key')
     if not client_id or not client_secret or not callback_url or not browser_callback_url:
         return jsonify("Bad request"), 400
-    if not json.load(open("customers.json", "r")).get(client_id)==client_secret:
+    if not json.load(open("customers.json", "r")).get(client_id).get("client_secret")==client_secret:
       logging.warning("api key error")
       return jsonify("Unauthorized"), 401
     code = str(uuid.uuid1())
     red_object = {
         "client_id": client_id,
         "callback_url": callback_url,
-        "browser_callback_url": browser_callback_url
+        "browser_callback_url": browser_callback_url,
+        "journey_customer": json.load(open("customers.json", "r")).get(client_id).get("journey_customer")
     }
     if api_key:
         red_object.update({"api_key":api_key})
@@ -164,13 +165,14 @@ def login_customer(code: str):
         callback_url = json.loads(red.get(code))["callback_url"]
         browser_callback_url = json.loads(red.get(code))['browser_callback_url']
         client_id = json.loads(red.get(code))['client_id']
+        journey_customer = json.loads(red.get(code))['journey_customer']
     except:
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
     temp_dict = json.loads(red.get(code))
     temp_dict.update({"token":token})
     red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
-    return redirect(create_dossier(code, token,browser_callback_url))
+    return redirect(create_dossier(code, token,browser_callback_url,journey_customer))
 
 def id360callback_customer(code: str):
     """
