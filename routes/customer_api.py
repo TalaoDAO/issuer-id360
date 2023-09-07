@@ -196,9 +196,10 @@ def id360callback_customer(code: str):
     dossier = request.get_json()
     if status in ["CANCELED", "FAILED", "KO"]:
         logging.error(status)
+        logging.warning("dossier")
         response = requests.post(
             json.loads(red.get(code))["callback_url"],
-            json={"code":code,"dossier":status}
+            json={"code":code,"success":False,"description":""}
         )
         logging.info("POST request to callback_url returned %s",response.status_code)
     elif status == "OK":
@@ -207,11 +208,25 @@ def id360callback_customer(code: str):
         kyc_method= dossier.get("id_verification_service")
         level= dossier.get("level")
         dossier = dossier.get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
+        dossier_clean={
+            "code":code,
+            "name": dossier.get("MRZ_surname"),
+            "first_name": dossier.get("MRZ_first_name")[0],
+            "first_names": dossier.get("MRZ_first_name"),
+            "address": dossier.get("OCR_address"), #can be wrong
+            "nationality": dossier.get("MRZ_nationality"),
+            "birth_date": dossier.get("MRZ_birth_date"),
+            "gender":dossier.get("MRZ_sex"),
+            "birth_place": dossier.get("OCR_birth_place"),
+            "country_emission": dossier.get("MRZ_issuing_country"),
+            "verificationMethod":kyc_method,
+            "levelOfAssurance":level,
+            "success":True
+        }
         headers = {'Content-Type': 'application/json'}
         api_key = json.loads(red.get(code)).get("api_key")
         if api_key:
             headers.update({"api-key":api_key})
-        dossier.update({"code" : code,"levelOfAssurance":level,"verificationMethod":kyc_method})
         response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier))
         logging.info("POST request to callback_url returned %s",response.status_code)
     return jsonify("ok")

@@ -1,6 +1,6 @@
 # KYC API for verifiable credential issuance
 
-This api is used to extract identity datas from user to issue verifiables credentials in differents formats.
+This API aims to generate the data necessary for the issuance of verifiable credentials in W3C format. It offers the user an identity verification process using document verification and a 3D facial test carried out on mobile for maximum security. In particular, it offers different data formats (raw, jwt vc, jwt vc json ld) and different levels of assurance (Level Of Assurance) to satisfy the most demanding ecosystems. The course offered to the user complies with the highest standards of data protection and user privacy (GDPR).
 
 The process needs :
 - a `client_id` that you can get contacting us on contact@talao.io.
@@ -90,7 +90,6 @@ curl --header "Content-Type: application/json" \
         "birth_date": <birth_date>,
         "gender": <gender>,
         "birth_place": <birth_place>,
-        "birth_country": <birth_country>,
         "country_emission": <code_country>,
         "verificationMethod":<verification_method>,
         "levelOfAssurance":<level_of_assurance>
@@ -99,7 +98,7 @@ curl --header "Content-Type: application/json" \
     <callback_url>
 ```
 
-If the datas could not be collected for any reason, the server will send this request :
+If the datas could not be collected for any reason, the server will send this request maximum 2 hours after the beginning of the process :
 
 ```
 curl --header "Content-Type: application/json" \
