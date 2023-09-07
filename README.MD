@@ -1,19 +1,25 @@
-# KYC API
+# KYC API for verifiable credential issuance
+
+This api is used to extract identity datas from user to issue verifiables credentials in differents formats.
 
 The process needs :
-- a `callback_url` that we will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
-- a `browser_callback_url` where we will redirect your user after the data collection process. 
+- a `client_id` that you can get contacting us on contact@talao.io.
+- an `api-key` that you can get contacting us on contact@talao.io.
+- a `callback_url` that the server will call, when the datas are ready to be sent, with the datas collected. An api key can be added.
+- a `browser_callback_url` where the server will redirect your user after the data collection process. 
+- a `format`, an optional argument to choose the format of datas. By default is `raw`.
+*optional*
+- an api-key that you can give us trough telegram to secure your callback reception.
+- a logo to display on the KYC UI.
 
-## Ask for a session code
+## Get a session code
 
-First you need to ask a code to identify the session of the user:
+First you need to get a code to identify the session of the user:
 
 ```
-GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on>&api_key=<your_optional_api_key> HTTP/1.1
+GET /id360/get_code_customer?client_id=<client_id>&callback_url=<your_endpoint>&browser_callback_url=<website_user_will_be_redirected_on>&format=<format> HTTP/1.1
 
 Host: talao.co
-
-Content-Type: application/x-www-form-urlencoded
 
 API-KEY : <your_api_key> 
 ```
@@ -52,14 +58,14 @@ Content-Type: application/json
 
 ## Redirect your user
 
-Redirect your user browser on this route with the code to let him complete the data collection process :
+Redirect your user browser to this route with the code to let him complete the KYC process :
 
 `https://talao.co/id360/authenticate_customer/<code>`
 
-This endpoint will redirect your user on the KYC provider UI to collect his datas. We will then redirect him on `<browser_callback_url>?code=code` and we will POST datas on your callback_url.
+This endpoint will redirect your user to the KYC provider UI to collect his datas. The server will then redirect him to `<browser_callback_url>?code=code` and it will POST datas on your callback_url.
 
 > [!IMPORTANT]
-> There can be delay between reception of the callback with the datas and the redirection of the user.
+> The user will redirected on your <browser_callback_url> before the server send the callback to <callback_url> with the datas.
 
 ## Receive the datas
 
@@ -70,7 +76,7 @@ curl --header "Content-Type: application/json" \
   --header "api-key: <your_optional_api_key>" \
   --request POST \
   --data '{
-        "code":\<code>
+        "code":<code>
         "name": <name>,
         "first_name": <first_name>,
         "first_names": [
@@ -84,7 +90,24 @@ curl --header "Content-Type: application/json" \
         "gender": <gender>,
         "birth_place": <birth_place>,
         "birth_country": <birth_country>,
-        "country_emission": <code_country>
+        "country_emission": <code_country>,
+        "verificationMethod":<verification_method>,
+        "levelOfAssurance":<level_of_assurance>
+        "success":true
+    }' \
+    <callback_url>
+```
+
+If the datas could not be collected for any reason, the server will send this request :
+
+```
+curl --header "Content-Type: application/json" \
+  --header "api-key: <your_optional_api_key>" \
+  --request POST \
+  --data '{
+        "code":<code>
+        "success":false,
+        "description":<error_description>
     }' \
     <callback_url>
 ```

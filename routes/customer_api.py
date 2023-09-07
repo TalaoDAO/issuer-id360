@@ -201,13 +201,15 @@ def id360callback_customer(code: str):
         logging.info("POST request to callback_url returned %s",response.status_code)
     elif status == "OK":
         token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token).get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
-        #dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        kyc_method= dossier.get("id_verification_service")
+        level= dossier.get("level")
+        dossier = dossier.get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
         headers = {'Content-Type': 'application/json'}
         api_key = json.loads(red.get(code)).get("api_key")
         if api_key:
             headers.update({"api-key":api_key})
-        dossier.update({"code" : code})
+        dossier.update({"code" : code,"levelOfAssurance":level,"verificationMethod":kyc_method})
         response = requests.post(json.loads(red.get(code))["callback_url"], headers=headers, data = json.dumps(dossier))
         logging.info("POST request to callback_url returned %s",response.status_code)
     return jsonify("ok")
