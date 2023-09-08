@@ -1,4 +1,4 @@
-# KYC API for verifiable credential issuance
+# KYC API for verifiable credential issuers
 
 This API aims to generate the data necessary for the issuance of verifiable credentials in W3C format. It offers the user an identity verification process using document verification and a 3D facial test carried out on mobile for maximum security. In particular, it offers different data formats (raw, jwt vc, jwt vc json ld) and different levels of assurance (Level Of Assurance) to satisfy the most demanding ecosystems. The course offered to the user complies with the highest standards of data protection and user privacy (GDPR).
 
@@ -98,7 +98,7 @@ curl --header "Content-Type: application/json" \
     <callback_url>
 ```
 
-If the datas could not be collected for any reason, the server will send this request maximum 2 hours after the beginning of the process :
+If the datas could not be collected for any reason, the server will send this request maximum 2 hours after the beginning of the process (it usually comes after 30 seconds) :
 
 ```
 curl --header "Content-Type: application/json" \
