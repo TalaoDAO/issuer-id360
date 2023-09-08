@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
-MY_SERVER = "https://029c-2a04-cec0-117b-8ede-5f79-2192-c3b9-b5d9.ngrok-free.app"
+MY_SERVER = "https://a925-2a04-cec0-11e4-1f4a-d30b-7c0-fa1d-6002.ngrok-free.app"
 SERVER="https://talao.co"
 def init_app():
     app.add_url_rule('/start_process',  view_func=start_process, methods = ['GET'])
@@ -27,6 +27,7 @@ def start_process():
     except:
         pass
     code=response.json()["code"]
+    logging.info(code)
     return redirect(SERVER+"/id360/authenticate_customer/"+code)
 
 def view_datas():
