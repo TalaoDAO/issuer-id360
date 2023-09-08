@@ -20,7 +20,7 @@ def email(subject, to, messagetext) :
 	fromaddr = "relay@talao.io"
 	toaddr = [to]
 	msg = MIMEMultipart()
-	msg['From'] = formataddr((str(Header('preprod.jeprouvemonage.fr', 'utf-8')), fromaddr))
+	msg['From'] = formataddr((str(Header('issuer id360', 'utf-8')), fromaddr))
 	msg['To'] = ", ".join(toaddr)
 	msg['Subject'] =  subject
 	body = messagetext + signature

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import logging
 from id360 import ID360_API_KEY
 import requests
+from datetime import datetime
 
 
 red=None
@@ -143,7 +144,6 @@ def get_code_customer():
     client_id = request.args.get('client_id')
     callback_url = request.args.get('callback_url')   
     browser_callback_url = request.args.get('browser_callback_url')
-    api_key = request.args.get('api_key')
     if not client_id or not client_secret or not callback_url or not browser_callback_url:
         return jsonify("Bad request"), 400
     if not json.load(open("customers.json", "r")).get(client_id).get("client_secret")==client_secret:
@@ -156,8 +156,6 @@ def get_code_customer():
         "browser_callback_url": browser_callback_url,
         "journey_customer": json.load(open("customers.json", "r")).get(client_id).get("journey_customer")
     }
-    if api_key:
-        red_object.update({"api_key":api_key})
     red.setex(code, CODE_LIFE, json.dumps(red_object))
     return jsonify({"code": code})
 
@@ -171,8 +169,8 @@ def login_customer(code: str):
         browser_callback_url = json.loads(red.get(code))['browser_callback_url']
         client_id = json.loads(red.get(code))['client_id']
         journey_customer = json.loads(red.get(code))['journey_customer']
-    except:
-        logging.error("code invalid")
+    except KeyError as e:
+        logging.error("code invalid "+e)
         return redirect(url_for('error', code_error="internal_error"))
     return redirect(create_dossier(code, browser_callback_url,journey_customer))
 
@@ -222,7 +220,8 @@ def id360callback_customer(code: str):
             "country_emission": dossier.get("MRZ_issuing_country"),
             "verificationMethod":kyc_method,
             "levelOfAssurance":level,
-            "success":True
+            "success":True,
+            "issuanceDate":datetime.now()
         }
         headers = {'Content-Type': 'application/json'}
         api_key = json.loads(red.get(code)).get("api_key")
