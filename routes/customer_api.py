@@ -181,7 +181,6 @@ def login_customer(code: str):
         journey_customer = json.loads(red.get(code))['journey_customer']
         logging.info(journey_customer)
     except Exception as error:
-        print("An exception occurred:", error) # An exception occurred: division by zero
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
     return redirect(create_dossier(code, browser_callback_url,journey_customer))
@@ -208,7 +207,7 @@ def id360callback_customer(code: str):
     dossier = request.get_json()
     if status in ["CANCELED", "FAILED", "KO"]:
         logging.error(status)
-        logging.warning("dossier")
+        logging.warning(dossier)
         response = requests.post(
             json.loads(red.get(code))["callback_url"],
             json={"code":code,"success":False,"description":""}
