@@ -163,21 +163,20 @@ def login_customer(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
+    if not code:
+        logging.warning("code is null")
     try:
         logging.info(json.loads(red.get(code)))
         callback_url = json.loads(red.get(code))["callback_url"]
         logging.info(callback_url)
         browser_callback_url = json.loads(red.get(code))['browser_callback_url']
         logging.info(browser_callback_url)
-
         client_id = json.loads(red.get(code))['client_id']
         logging.info(client_id)
-
         journey_customer = json.loads(red.get(code))['journey_customer']
         logging.info(journey_customer)
-
     except:
-        logging.error("code invalid "+e)
+        logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
     return redirect(create_dossier(code, browser_callback_url,journey_customer))
 
