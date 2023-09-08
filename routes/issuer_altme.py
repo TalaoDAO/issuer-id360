@@ -59,18 +59,23 @@ def loginID360() -> str:
         logging.error("loginID360 request failed")
         return
     if response.status_code == 200:
-        token = response.json()["token"]
-        return token
+        red.set("token",response.json()["token"])
+        return True
     else:
         logging.error("loginID360 returned status %s",
                       str(response.status_code))
         return
 
 
-def create_dossier(code: str, token: str, did: str) -> str:
+def create_dossier(code: str, did: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
+    try:
+        token = red.get("token").decode()
+    except:
+        loginID360()
+    token = red.get("token").decode()
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -103,17 +108,21 @@ def create_dossier(code: str, token: str, did: str) -> str:
         temp_dict["id_dossier"] = response.json()["id"]
         red.setex(code, CODE_LIFE, json.dumps(temp_dict))
         return mode.url + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=en"
+    elif response.status_code == 401:
+        loginID360()
+        return create_dossier(code,did)
     else:
         logging.error("create_dossier returned status %s",
                       str(response.status_code))
         return
 
 
-def get_dossier(id_dossier: str, token: str) -> dict:
+def get_dossier(id_dossier: str) -> dict:
     """
     ID360 API call to get user data
 
     """
+    token = red.get("token").decode()
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -173,6 +182,7 @@ def get_code():
     client_secret = request.headers.get('api-key')
     client_id = request.args.get('client_id')
     did = request.args.get('did')
+    logging.info(client_id+" "+client_secret+" "+did)
     """if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
@@ -193,10 +203,6 @@ def login(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    token = loginID360()
-    if not token:
-        print("error1")
-        return redirect(url_for('error', code_error="internal_error"))
     try:
         did = json.loads(red.get(code))["did"]
         wallet_callback = json.loads(red.get(code))['wallet_callback']
@@ -210,7 +216,6 @@ def login(code: str):
     kyc = db.get_user_kyc(did)
     temp_dict = {
         "did":did,
-        "token":token,
         "vc_type":vc_type,
         "wallet_callback":wallet_callback,
         "client_id":client_id
@@ -219,17 +224,17 @@ def login(code: str):
     if not kyc:
         temp_dict["first"] = True
         red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
-        return redirect(create_dossier(code, token, did))
+        return redirect(create_dossier(code, did))
     else:
-        dossier = get_dossier(kyc[2], token)
+        dossier = get_dossier(kyc[2])
         temp_dict["first"] = False
         if (kyc[1] != "OK" or type(dossier) != dict):
             red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
-            return redirect(create_dossier(code, token, did))
+            return redirect(create_dossier(code, did))
         birth_date = dossier["identity"].get("birth_date")
         if vc_type != "VerifiableId" and birth_date == None:
             red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
-            return redirect(create_dossier(code, token, did))
+            return redirect(create_dossier(code, did))
         else:
             if (vc_type == "Over18" or vc_type == "Over15" or vc_type == "Over13"):
                 timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
@@ -313,8 +318,7 @@ def id360callback(code: str):
         red.setex(code, CODE_LIFE, json.dumps(
             {"code_error": "age_verification_failed", "vc_type": vc_type, "wallet_callback": wallet_callback}))  # ERROR : KYC KO
     elif request.get_json()["status"] == "OK":
-        token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"])
         try:
             if json.loads(red.get(code))["first"] == True:
                 db.insert_kyc(did, dossier["status"], id_dossier)
@@ -356,8 +360,7 @@ async def issuer_endpoint(code: str):
     """
     vc_type = json.loads(red.get(code))["vc_type"]
     if request.method == 'GET':
-        token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"])
         logging.info(dossier)
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))

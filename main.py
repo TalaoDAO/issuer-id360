@@ -15,6 +15,7 @@ import ciso8601
 from flask_mobility import Mobility
 from routes import issuer_altme,customer_api
 import os
+import message
 
 
 
@@ -28,9 +29,19 @@ mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 
-
 issuer_altme.init_app(app,red,mode)
 customer_api.init_app(app,red,mode)
+
+
+@app.errorhandler(500)
+def error_500(e):
+    """
+    For testing purpose
+    Send an email if problems
+    """
+    if mode.server in ['https://talao.co/']:
+        message.email('Error 500 issuer id360', 'support@talao.io', str(e))
+    return redirect(mode.server + '/')
 
 
 @app.route('/id360/static/<filename>', methods=['GET'])

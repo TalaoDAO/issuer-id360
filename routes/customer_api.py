@@ -15,6 +15,7 @@ mode=None
 CODE_LIFE = 600  # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
 AUTHENTICATION_DELAY = 600  # in seconds
 
+
 def init_app(app,red_app, mode_app) :
     global red,mode
     red=red_app
@@ -44,18 +45,23 @@ def loginID360() -> str:
         logging.error("loginID360 request failed")
         return
     if response.status_code == 200:
-        token = response.json()["token"]
-        return token
+        red.set("token",response.json()["token"])
+        return True
     else:
         logging.error("loginID360 returned status %s",
                       str(response.status_code))
         return
 
 
-def create_dossier(code: str, token: str, browser_callback_url: str,journey_customer: str) -> str:
+def create_dossier(code: str, browser_callback_url: str,journey_customer: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
+    try:
+        token = red.get("token").decode()
+    except:
+        loginID360()
+    token = red.get("token").decode()
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -93,11 +99,13 @@ def create_dossier(code: str, token: str, browser_callback_url: str,journey_cust
         return
 
 
-def get_dossier(id_dossier: str, token: str) -> dict:
+def get_dossier(id_dossier: str) -> dict:
     """
     ID360 API call to get user data
 
     """
+    token = red.get("token").decode()
+
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -157,9 +165,6 @@ def login_customer(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    token = loginID360()
-    if not token:
-        return redirect(url_for('error', code_error="internal_error"))
     try:
         logging.info(json.loads(red.get(code)))
         callback_url = json.loads(red.get(code))["callback_url"]
@@ -169,10 +174,7 @@ def login_customer(code: str):
     except:
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
-    temp_dict = json.loads(red.get(code))
-    temp_dict.update({"token":token})
-    red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
-    return redirect(create_dossier(code, token,browser_callback_url,journey_customer))
+    return redirect(create_dossier(code, browser_callback_url,journey_customer))
 
 def id360callback_customer(code: str):
     """
@@ -203,8 +205,7 @@ def id360callback_customer(code: str):
         )
         logging.info("POST request to callback_url returned %s",response.status_code)
     elif status == "OK":
-        token = json.loads(red.get(code))["token"]
-        dossier = get_dossier(json.loads(red.get(code))["id_dossier"], token)
+        dossier = get_dossier(json.loads(red.get(code))["id_dossier"])
         kyc_method= dossier.get("id_verification_service")
         level= dossier.get("level")
         dossier = dossier.get("steps").get("id_document").get("results").get("id_document_result")[0].get("result").get("extraction")
