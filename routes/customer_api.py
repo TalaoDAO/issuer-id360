@@ -46,6 +46,7 @@ def loginID360() -> str:
         logging.error("loginID360 request failed")
         return
     if response.status_code == 200:
+        logging.info("token update")
         red.set("token",response.json()["token"])
         return True
     else:
@@ -94,6 +95,9 @@ def create_dossier(code: str, browser_callback_url: str,journey_customer: str) -
         temp_dict["id_dossier"] = response.json()["id"]
         red.setex(code, CODE_LIFE, json.dumps(temp_dict))
         return mode.url_customers + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=en"
+    elif response.status_code == 401:
+        loginID360()
+        return create_dossier(code,browser_callback_url,journey_customer)
     else:
         logging.error("create_dossier returned status %s",
                       str(response.status_code))
@@ -176,7 +180,8 @@ def login_customer(code: str):
         logging.info(client_id)
         journey_customer = json.loads(red.get(code))['journey_customer']
         logging.info(journey_customer)
-    except:
+    except Exception as error:
+        print("An exception occurred:", error) # An exception occurred: division by zero
         logging.error("code invalid")
         return redirect(url_for('error', code_error="internal_error"))
     return redirect(create_dossier(code, browser_callback_url,journey_customer))
