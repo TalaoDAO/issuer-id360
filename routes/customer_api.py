@@ -163,8 +163,9 @@ def login_customer(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    if not code:
+    if code=="None":
         logging.warning("code is null")
+        return jsonify("code is None")
     try:
         logging.info(json.loads(red.get(code)))
         callback_url = json.loads(red.get(code))["callback_url"]
