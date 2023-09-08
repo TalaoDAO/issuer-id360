@@ -41,6 +41,7 @@ def error_500(e):
     """
     if mode.server in ['https://talao.co/']:
         message.email('Error 500 issuer id360', 'support@talao.io', str(e))
+    logging.warning("redirecting")
     return redirect(mode.server + '/')
 
 

@@ -27,7 +27,8 @@ def start_process():
     except:
         pass
     code=response.json()["code"]
-    logging.info(code)
+    logging.info("redirecting to "+SERVER+"/id360/authenticate_customer/"+code)
+
     return redirect(SERVER+"/id360/authenticate_customer/"+code)
 
 def view_datas():
