@@ -232,7 +232,8 @@ def id360callback_customer(code: str):
             "verificationMethod":kyc_method,
             "levelOfAssurance":level,
             "success":True,
-            "issuanceDate":datetime.now()
+            "issuanceDate":datetime.utcnow().replace(
+            microsecond=0).isoformat() + "Z"
         }
         headers = {'Content-Type': 'application/json'}
         api_key = json.loads(red.get(code)).get("api_key")
