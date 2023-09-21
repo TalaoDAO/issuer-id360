@@ -1,0 +1,158 @@
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/id360/static/oidc.css">
+
+</head>
+
+
+<body>
+
+    <nav class=" nav-02 ">
+        <div class="nav-02__box">
+            <div class="nav-02__logo"><a class="nav-02__link" href="https://altme.io/" target="_self">
+                    <img loading="lazy" class="nav-02__logo_img"
+                        src="/static/img/altme-decentralized-identity-wallet-did-logo.webp" height="70" alt="Logo" />
+                </a></div>
+
+            <div class="nav-02__list_wrapper  ">
+                <div class="nav-02__list nav-02__list--desktop">
+                    <!--<div class="nav-02__item">
+                      <a class="button   button--black-outline  button--empty " href="https://altme.io/#slider-07-879531"
+                        target="_self">
+                        <p class="linkP"> Wallet features
+                        </p>
+                      </a>
+                    </div>
+                    <div class="nav-02__item" id="newsNav">
+                      <a class="button   button--black-outline  button--empty " href="https://altme.io/#posts-05-876621"
+                        target="_self">
+                        <p class="linkP">News</p>
+    
+                      </a>
+                    </div>
+                    <div class="nav-02__item" id="roadmapNav">
+                      <a href="https://altme.io/#features-09-390941" target="_self">
+                        <p class="linkP">Roadmap</p>
+    
+                      </a>
+                    </div>-->
+                    <div class="nav-02__item" id="faqNav">
+                        <a class="button   button--black-outline  button--empty " href="https://altme.io/"
+                            target="_self">
+                            <p class="linkP">Back to home</p>
+                        </a>
+                    </div>
+                    <div class="nav-02__item">
+
+                        <a data-stripe-product-id="" data-stripe-mode="payment" data-successful-payment-url=""
+                            data-cancel-payment-url="" class="button button--accent-bg "
+                            href="mailto:contact@altme.io?cc=hugo@altme.io&subject=Altme" target="_blank">
+                            <div class="contactSpan">
+                                <p class="contactP">Contact</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <div id="mainBox">
+        <p id="title">In progress</p>
+        <p id="subTitle">Your ID verification is in progress, please come back in a few minutes. </p>
+        <img id="imgWaiting" src="/static/img/waiting.png">
+    </div>
+
+
+    <div class="bg-white-color ">
+        <footer class="footer-02" id="footer">
+            <div class="container">
+                <div class="footer-02__wrapper">
+                    <div class="footer-02__text content_box">
+                        <p id="line1Footer">&copy; 2022&nbsp; TALAO - Altme All rights reserved, <a
+                                href="https://altme.io/cgu/" target="_blank">CGU</a>, <a
+                                href="https://altme.io/privacy/" target="_blank">Privacy</a></p>
+                        <p id="line2Footer" hidden><strong>Built with TzKT API, Spruce Didkit 0.4.0</strong>&nbsp;</p>
+                    </div>
+                    <div class="social-buttons  ">
+
+                        <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--twitter"
+                                href="https://twitter.com/Altme_io" target="_blank"><img loading="lazy"
+                                    class="social-buttons__icon" alt="twitter icon"
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/img/icons/social/black/twitter.svg" /></a>
+                        </div>
+                        <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--linkedin"
+                                href="https://www.linkedin.com/company/altme-web3/" target="_blank"><img loading="lazy"
+                                    class="social-buttons__icon" alt="linkedin icon"
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/img/icons/social/black/linkedin.svg" /></a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <div id="emailDiv" class="displayNone">
+        <input type="text" id="email">
+        <button id="sendMail" onclick="sendEmail()">Get a pin code and see qr code</button>
+    </div>
+    <script>
+        var source = new EventSource('/id360/issuer_stream');
+        source.onmessage = function (event) {
+            const result = JSON.parse(event.data);
+            //console.log(result)
+            if (result.code === '{{code}}' && result.status === "OK") {
+                console.log("KYC OK")
+                document.getElementById("emailDiv").setAttribute("class", "")
+            }
+            if (result.code === '{{code}}' && result.status === "KO") {
+                console.log("KYC KO")
+                document.getElementById("imgWaiting").setAttribute("src", "/static/img/failed.png")
+
+            }
+
+        }
+        fetch("{{server}}/id360/get_status_kyc/{{code}}", {
+            method: "GET",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            redirect: "follow",
+        }).then(res => res.json().then(data => {
+            console.log(data);
+            if (data.status === "OK") {
+                console.log("KYC OK")
+                document.getElementById("emailDiv").setAttribute("class", "")
+            } else if (data.status === "KO") {
+                document.getElementById("imgWaiting").setAttribute("src", "/static/img/failed.png")
+                console.log("KYC KO")
+            }
+
+        }))
+        function sendEmail() {
+            url = "{{server}}/id360/oidc_post"
+            response = fetch(url, {
+                method: "POST", // *GET, POST, PUT, DELETE, etc.
+                mode: "cors", // no-cors, *cors, same-origin
+                cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+                credentials: "same-origin", // include, *same-origin, omit
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                redirect: "follow", // manual, *follow, error
+                body: JSON.stringify({ "email": document.getElementById("email").value, "code": "{{code}}" }), // body data type must match "Content-Type" header
+            }).then(res => res.json().then(data => { console.log(data.url); window.location.href = data.url }))
+        }
+    </script>
+</body>
+
+</html>
