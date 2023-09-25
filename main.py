@@ -6,6 +6,7 @@ Flow is available at https://swimlanes.io/u/LHNjN55XM
 """
 import json
 from flask import Flask, render_template, request, jsonify, Response, send_file, session, redirect,url_for
+from flask_qrcode import QRcode
 import didkit
 import environment
 import redis
@@ -13,7 +14,7 @@ import redis
 import logging
 import ciso8601
 from flask_mobility import Mobility
-from routes import issuer_altme,customer_api
+from routes import issuer_altme,customer_api,oidc
 import os
 import message
 
@@ -21,6 +22,7 @@ import message
 
 app = Flask(__name__)
 app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
+QRcode(app)
 Mobility(app)
 myenv = os.getenv('MYENV')
 if not myenv:
@@ -31,6 +33,7 @@ red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 issuer_altme.init_app(app,red,mode)
 customer_api.init_app(app,red,mode)
+oidc.init_app(app,red,mode)
 
 
 @app.errorhandler(500)
@@ -54,6 +57,9 @@ def serve_static(filename: str):
         return jsonify("not found"), 404
 
 
+@app.route('/issuer', methods=['GET'])
+def front():
+    return render_template("issuer_qrcode.html",url="https://altme.io/")
 
 
 if __name__ == '__main__':

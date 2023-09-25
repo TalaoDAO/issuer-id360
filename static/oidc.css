@@ -214,10 +214,10 @@ nav a {
 #mainBox {
     display: flex;
     flex-direction: column;
-    margin-top: 90px;
-    min-height: calc(100vh - 220px);
+    margin-top: calc(120px + 5vh);
+    min-height: calc(95vh - 250px);
     align-items: center;
-    gap: 30px;
+    gap: 60px;
 
 }
 
@@ -259,4 +259,66 @@ p {
     font-weight: 500;
     line-height: 161.7%;
     /* 32.34px */
+}
+
+#emailDiv {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+#email {
+    padding: 6px;
+    border-radius: 6px;
+    border-style: solid;
+    font-size: 18px;
+    width: 100%;
+    font-family: Nunito;
+}
+
+#sendMail {
+    background-color: #330080;
+    color: white;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 18px;
+    width: 30%;
+    font-family: Nunito;
+}
+
+#subTitle {
+    color: var(--Purple, #330080);
+    text-align: center;
+    /* Heading/h2 */
+    font-family: Nunito;
+    font-size: 32px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 130.7%;
+    /* 41.824px */
+}
+
+#card{
+    width: 300px;
+    height: fit-content;
+
+}
+
+#arrow{
+    width: 120px;
+    height: fit-content;
+}
+
+#cardBox{
+    display: flex;
+    flex-direction: row;
+    gap: 80px;
+    align-items: center;
+}
+
+#qrcode{
+    width: 210px;
 }

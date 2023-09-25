@@ -18,26 +18,6 @@
 
             <div class="nav-02__list_wrapper  ">
                 <div class="nav-02__list nav-02__list--desktop">
-                    <!--<div class="nav-02__item">
-                      <a class="button   button--black-outline  button--empty " href="https://altme.io/#slider-07-879531"
-                        target="_self">
-                        <p class="linkP"> Wallet features
-                        </p>
-                      </a>
-                    </div>
-                    <div class="nav-02__item" id="newsNav">
-                      <a class="button   button--black-outline  button--empty " href="https://altme.io/#posts-05-876621"
-                        target="_self">
-                        <p class="linkP">News</p>
-    
-                      </a>
-                    </div>
-                    <div class="nav-02__item" id="roadmapNav">
-                      <a href="https://altme.io/#features-09-390941" target="_self">
-                        <p class="linkP">Roadmap</p>
-    
-                      </a>
-                    </div>-->
                     <div class="nav-02__item" id="faqNav">
                         <a class="button   button--black-outline  button--empty " href="https://altme.io/"
                             target="_self">
@@ -67,6 +47,10 @@
         <p id="title">In progress</p>
         <p id="subTitle">Your ID verification is in progress, please come back in a few minutes. </p>
         <img id="imgWaiting" src="/static/img/waiting.png">
+        <div id="emailDiv" class="displayNone">
+            <input type="text" id="email">
+            <button id="sendMail" onclick="sendEmail()">Get a pin code</button>
+        </div>
     </div>
 
 
@@ -85,12 +69,12 @@
                         <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--twitter"
                                 href="https://twitter.com/Altme_io" target="_blank"><img loading="lazy"
                                     class="social-buttons__icon" alt="twitter icon"
-                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/img/icons/social/black/twitter.svg" /></a>
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/twitter.svg" /></a>
                         </div>
                         <div class="social-buttons__item"><a class="social-buttons__link social-buttons__link--linkedin"
                                 href="https://www.linkedin.com/company/altme-web3/" target="_blank"><img loading="lazy"
                                     class="social-buttons__icon" alt="linkedin icon"
-                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/img/icons/social/black/linkedin.svg" /></a>
+                                    src="https://dvzvtsvyecfyp.cloudfront.net/static/img/icons/social/black/linkedin.svg" /></a>
                         </div>
 
                     </div>
@@ -98,10 +82,7 @@
             </div>
         </footer>
     </div>
-    <div id="emailDiv" class="displayNone">
-        <input type="text" id="email">
-        <button id="sendMail" onclick="sendEmail()">Get a pin code and see qr code</button>
-    </div>
+
     <script>
         var source = new EventSource('/id360/issuer_stream');
         source.onmessage = function (event) {
@@ -110,6 +91,9 @@
             if (result.code === '{{code}}' && result.status === "OK") {
                 console.log("KYC OK")
                 document.getElementById("emailDiv").setAttribute("class", "")
+                document.getElementById("imgWaiting").remove()
+                document.getElementById("subTitle").innerHTML = "Type your email and use the pin code to get your credential"
+                document.getElementById("title").innerHTML = "Get a pin code"
             }
             if (result.code === '{{code}}' && result.status === "KO") {
                 console.log("KYC KO")
@@ -132,6 +116,10 @@
             if (data.status === "OK") {
                 console.log("KYC OK")
                 document.getElementById("emailDiv").setAttribute("class", "")
+                document.getElementById("imgWaiting").remove()
+                document.getElementById("subTitle").innerHTML = "Type your email and use the pin code to get your credential"
+                document.getElementById("title").innerHTML = "Get a pin code"
+
             } else if (data.status === "KO") {
                 document.getElementById("imgWaiting").setAttribute("src", "/static/img/failed.png")
                 console.log("KYC KO")

@@ -150,22 +150,21 @@ def login_oidc():
 
 
 def post_oidc():
-    print(request.json)
     email = request.json["email"]
     code = request.json["code"]
     six_digit_code = randint(100000, 999999)
     logging.info("code pin %s", str(six_digit_code))
-    message.email('Your ID360 code', email, str(six_digit_code))
+    subject = ' Altme secret code'
+    message.messageHTML(subject, email, 'code_auth_en', {'code': str(six_digit_code)})
     id_dossier = json.loads(red.get(code))["id_dossier"]
     dossier = get_dossier(id_dossier)
-    # identity  = dossier["identity"]
-    identity = {
+    identity  = dossier["identity"]
+    """identity = {
         "name": "Dorier",
         "first_names": ["Achille"],
         "gender": "M",
         "dateOfBirth": "2001-09-10"
-    }
-    # vc_type = json.loads(red.get(code))["vc_type"]
+    }"""
     vc_type = "VerifiableId"
     credential = json.load(
         open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
@@ -223,7 +222,7 @@ def post_oidc():
 
 
 def oidc_callback():
-    return "ok"
+    return render_template("success.html")
 
 
 def oidc_wait(code):
