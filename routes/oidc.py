@@ -211,14 +211,14 @@ def post_oidc():
         "pre-authorized_code": True,
         "user_pin_required": True,
         "user_pin": str(six_digit_code),
-        "callback": "http://localhost:3000/id360/oidc_callback"
+        "callback": mode.server+"/id360/oidc_callback"
     }
     resp = requests.post(url, headers=headers, data=json.dumps(data))
     logging.info(resp.json())
     try:
         return jsonify(url=resp.json()['redirect_uri'])
     except KeyError:
-        return jsonify(url="error oidc")
+        return jsonify(url="error_oidc")
 
 
 def oidc_callback():

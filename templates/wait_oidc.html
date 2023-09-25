@@ -46,7 +46,7 @@
     <div id="mainBox">
         <p id="title">In progress</p>
         <p id="subTitle">Your ID verification is in progress, please come back in a few minutes. </p>
-        <img id="imgWaiting" src="/static/img/waiting.png">
+        <img id="imgWaiting" src="/id360/static/img/waiting.png">
         <div id="emailDiv" class="displayNone">
             <input type="text" id="email">
             <button id="sendMail" onclick="sendEmail()">Get a pin code</button>
@@ -97,7 +97,7 @@
             }
             if (result.code === '{{code}}' && result.status === "KO") {
                 console.log("KYC KO")
-                document.getElementById("imgWaiting").setAttribute("src", "/static/img/failed.png")
+                document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
 
             }
 
@@ -121,7 +121,7 @@
                 document.getElementById("title").innerHTML = "Get a pin code"
 
             } else if (data.status === "KO") {
-                document.getElementById("imgWaiting").setAttribute("src", "/static/img/failed.png")
+                document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
                 console.log("KYC KO")
             }
 
@@ -138,7 +138,10 @@
                 },
                 redirect: "follow", // manual, *follow, error
                 body: JSON.stringify({ "email": document.getElementById("email").value, "code": "{{code}}" }), // body data type must match "Content-Type" header
-            }).then(res => res.json().then(data => { console.log(data.url); window.location.href = data.url }))
+            }).then(res => res.json().then(data => {
+                if (data.url === "error_oidc") { console.log("oidc request went wrong") }
+                else { console.log(data.url); window.location.href = data.url }
+            }))
         }
     </script>
 </body>
