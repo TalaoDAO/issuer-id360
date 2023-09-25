@@ -57,10 +57,5 @@ def serve_static(filename: str):
         return jsonify("not found"), 404
 
 
-@app.route('/issuer', methods=['GET'])
-def front():
-    return render_template("issuer_qrcode.html",url="https://altme.io/")
-
-
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
