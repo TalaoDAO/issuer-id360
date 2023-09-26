@@ -84,7 +84,7 @@
     </div>
 
     <script>
-        var source = new EventSource('/id360/issuer_stream');
+        var source = new EventSource('/id360/oidc4vc_stream');
         source.onmessage = function (event) {
             const result = JSON.parse(event.data);
             //console.log(result)
@@ -127,7 +127,7 @@
 
         }))
         function sendEmail() {
-            url = "{{server}}/id360/oidc_post"
+            url = "{{server}}/id360/oidc4vc_post"
             response = fetch(url, {
                 method: "POST", // *GET, POST, PUT, DELETE, etc.
                 mode: "cors", // no-cors, *cors, same-origin

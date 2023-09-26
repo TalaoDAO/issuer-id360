@@ -62,8 +62,8 @@ def create_dossier(code: str) -> str:
         'Content-Type': 'application/json',
     }
     json_data = {
-        'callback_url': mode.server+'/id360/oidc_callback_id360/' + code,
-        'browser_callback_url': mode.server+'/id360/oidc_wait/' + code,
+        'callback_url': mode.server+'/id360/oidc4vc_callback_id360/' + code,
+        'browser_callback_url': mode.server+'/id360/oidc4vc_wait/' + code,
         'client_reference': "",
         'callback_headers': {
             'code': code,
@@ -128,17 +128,17 @@ def init_app(app, red_app, mode_app):
     global red, mode
     red = red_app
     mode = mode_app
-    app.add_url_rule('/id360/oidc_wait/<code>',
-                     view_func=oidc_wait, methods=['GET'])
-    app.add_url_rule('/id360/oidc_callback', view_func=oidc_callback,
+    app.add_url_rule('/id360/oidc4vc_wait/<code>',
+                     view_func=oidc4vc_wait, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc_callback', view_func=oidc4vc_callback,
                      methods=['GET'])
-    app.add_url_rule('/id360/oidc_login', view_func=login_oidc,
+    app.add_url_rule('/id360/oidc4vc', view_func=login_oidc,
                      methods=['GET'])
-    app.add_url_rule('/id360/oidc_post', view_func=post_oidc,
+    app.add_url_rule('/id360/oidc4vc_post', view_func=post_oidc,
                      methods=['POST'])
-    app.add_url_rule('/id360/oidc_callback_id360/<code>',
+    app.add_url_rule('/id360/oidc4vc_callback_id360/<code>',
                      view_func=oidc_id360callback, methods=['GET', 'POST'])
-    app.add_url_rule('/id360/issuer_stream',
+    app.add_url_rule('/id360/oidc4vc_stream',
                      view_func=oidc_issuer_stream, methods=['GET'])
     app.add_url_rule('/id360/get_status_kyc/<code>',
                      view_func=get_status_kyc, methods=['GET'])
@@ -155,16 +155,11 @@ def post_oidc():
     six_digit_code = randint(100000, 999999)
     logging.info("code pin %s", str(six_digit_code))
     subject = ' Altme secret code'
-    message.messageHTML(subject, email, 'code_auth_en', {'code': str(six_digit_code)})
+    message.messageHTML(subject, email, 'code_auth_en',
+                        {'code': str(six_digit_code)})
     id_dossier = json.loads(red.get(code))["id_dossier"]
     dossier = get_dossier(id_dossier)
-    identity  = dossier["identity"]
-    """identity = {
-        "name": "Dorier",
-        "first_names": ["Achille"],
-        "gender": "M",
-        "dateOfBirth": "2001-09-10"
-    }"""
+    identity = dossier["identity"]
     vc_type = "VerifiableId"
     credential = json.load(
         open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
@@ -211,7 +206,7 @@ def post_oidc():
         "pre-authorized_code": True,
         "user_pin_required": True,
         "user_pin": str(six_digit_code),
-        "callback": mode.server+"/id360/oidc_callback"
+        "callback": mode.server+"/id360/oidc4vc_callback"
     }
     resp = requests.post(url, headers=headers, data=json.dumps(data))
     logging.info(resp.json())
@@ -221,11 +216,11 @@ def post_oidc():
         return jsonify(url="error_oidc")
 
 
-def oidc_callback():
+def oidc4vc_callback():
     return render_template("success.html")
 
 
-def oidc_wait(code):
+def oidc4vc_wait(code):
     return render_template("wait_oidc.html", code=code, server=mode.server)
 
 
