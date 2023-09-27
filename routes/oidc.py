@@ -243,7 +243,7 @@ def oidc_id360callback(code: str):
     logging.info("reception of id360 callback for %s", code)
     try:
         id_dossier = json.loads(red.get(code))["id_dossier"]
-    except KeyError:
+    except (KeyError, TypeError) as error:
         logging.error("redis expired %s", code)
         red.setex(code, CODE_LIFE, json.dumps(
             {"code_error": "414", "vc_type": "VerifiableId"}))
