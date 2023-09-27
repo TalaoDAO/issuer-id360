@@ -180,8 +180,12 @@ def get_code():
     if an error occured
     """
     client_secret = request.headers.get('api-key')
+    print(client_secret)
     client_id = request.args.get('client_id')
+    print(client_id)
+
     did = request.args.get('did')
+    print(did)
     logging.info(client_id+" "+client_secret+" "+did)
     """if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400

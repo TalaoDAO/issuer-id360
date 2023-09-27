@@ -22,7 +22,7 @@ class currentMode() :
 			self.username_customers=json.load(open("keys.json", "r"))['username']
 			self.password_customers=json.load(open("keys.json", "r"))['password']
 		elif self.myenv == 'local':
-			self.server = "https://369d-86-229-94-232.ngrok-free.app"
+			self.server = "https://74c0-86-229-94-232.ngrok-free.app"
 			self.IP = 'localhost'
 			self.port = 3000
 			self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
