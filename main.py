@@ -12,7 +12,6 @@ import environment
 import redis
 
 import logging
-import ciso8601
 from flask_mobility import Mobility
 from routes import issuer_altme, customer_api, oidc
 import os
