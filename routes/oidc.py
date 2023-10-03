@@ -193,8 +193,12 @@ def oidc_id360callback(code: str):
         logging.info("code pin %s", str(six_digit_code))
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
-        phone_number = dossier.get("external_methods").get("id_num").get(
-            "results").get("id_num_out_token")[0].get("payload").get("phone_number")
+        phone_number = False
+        try:
+            phone_number = dossier.get("external_methods").get("id_num").get(
+                "results").get("id_num_out_token")[0].get("payload").get("phone_number")
+        except:
+            pass
         user_pin_required = False
         if (phone_number):
             user_pin_required = True
