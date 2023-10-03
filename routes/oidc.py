@@ -1,4 +1,4 @@
-import message
+import sms
 import requests
 from random import randint
 import logging
@@ -15,7 +15,7 @@ red = None
 mode = None
 
 
-url = "https://talao.co/sandbox/ebsi/issuer/api/vqzljjitre"
+OIDC_URL = "https://talao.co/sandbox/ebsi/issuer/api/vqzljjitre"
 client_secret = json.load(open("keys.json", "r"))["client_secret"]
 
 
@@ -134,8 +134,6 @@ def init_app(app, red_app, mode_app):
                      methods=['GET'])
     app.add_url_rule('/id360/oidc4vc', view_func=login_oidc,
                      methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc_post', view_func=post_oidc,
-                     methods=['POST'])
     app.add_url_rule('/id360/oidc4vc_callback_id360/<code>',
                      view_func=oidc_id360callback, methods=['GET', 'POST'])
     app.add_url_rule('/id360/oidc4vc_stream',
@@ -149,73 +147,6 @@ def login_oidc():
     return redirect(create_dossier(code))
 
 
-def post_oidc():
-    email = request.json["email"]
-    code = request.json["code"]
-    six_digit_code = randint(100000, 999999)
-    logging.info("code pin %s", str(six_digit_code))
-    subject = ' Altme secret code'
-    message.messageHTML(subject, email, 'code_auth_en',
-                        {'code': str(six_digit_code)})
-    id_dossier = json.loads(red.get(code))["id_dossier"]
-    dossier = get_dossier(id_dossier)
-    identity = dossier["identity"]
-    vc_type = "VerifiableId"
-    credential = json.load(
-        open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-    try:
-        credential["credentialSubject"]["familyName"] = identity["name"]
-    except:
-        logging.error("no familyName in dossier")
-    try:
-        credential["credentialSubject"]["firstName"] = identity["first_names"][0]
-    except:
-        logging.error("no firstName in dossier")
-    try:
-        credential["credentialSubject"]["gender"] = identity["gender"]
-    except:
-        logging.error("no gender in dossier")
-    credential["credentialSubject"]["dateOfBirth"] = identity.get(
-        "birth_date", "Not available")
-    # TODO add other data if available
-    credential["evidence"][0]["id"] = "https://github.com/TalaoDAO/context/blob/main/context/VerificationMethod.jsonld/" + \
-        str(json.loads(red.get(code))["id_dossier"])
-    credential["evidence"][0]["verificationMethod"] = dossier.get(
-        "id_verification_service")
-    credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
-    credential["credentialSubject"]["kycProvider"] = "ID360"
-    credential["credentialSubject"]["kycId"] = json.loads(red.get(code))[
-        "id_dossier"]
-    credential["credentialSubject"]["kycMethod"] = mode.journey
-
-    credential["issuer"] = ISSUER_DID
-    credential['issuanceDate'] = datetime.utcnow().replace(
-        microsecond=0).isoformat() + "Z"
-    credential['expirationDate'] = (
-        datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-    credential['id'] = "urn:uuid:random"  # for preview only
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer '+client_secret
-    }
-    data = {
-        "vc": {"VerifiableId": credential},
-        "issuer_state": code,
-        "credential_type": ["VerifiableId"],
-        "pre-authorized_code": True,
-        "user_pin_required": True,
-        "user_pin": str(six_digit_code),
-        "callback": mode.server+"/id360/oidc4vc_callback"
-    }
-    resp = requests.post(url, headers=headers, data=json.dumps(data))
-    logging.info(resp.json())
-    try:
-        return jsonify(url=resp.json()['redirect_uri'])
-    except KeyError:
-        return jsonify(url="error_oidc")
-
-
 def oidc4vc_callback():
     return render_template("success.html")
 
@@ -226,7 +157,7 @@ def oidc4vc_wait(code):
 
 def get_status_kyc(code):
     try:
-        return jsonify(status=json.loads(red.get(code))["KYC"])
+        return jsonify(status=json.loads(red.get(code))["KYC"], url=json.loads(red.get(code))["url"])
     except (KeyError, TypeError):
         return jsonify(status="None")
 
@@ -252,15 +183,84 @@ def oidc_id360callback(code: str):
     logging.info('callback for code = %s is %s',
                  code, request.get_json()["status"])
     if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
-        event_data = json.dumps({"type": "KYC", "status": "KO", "code": code})
+        event_data = json.dumps(
+            {"type": "KYC", "status": "KO", "code": code, "url": ""})
         red.publish('issuer', event_data)
         red.setex(code, CODE_LIFE, json.dumps(
             {"id_dossier": id_dossier, "KYC": "KO"}))
     elif request.get_json()["status"] == "OK":
-        event_data = json.dumps({"type": "KYC", "status": "OK", "code": code})
+        six_digit_code = randint(100000, 999999)
+        logging.info("code pin %s", str(six_digit_code))
+        id_dossier = json.loads(red.get(code))["id_dossier"]
+        dossier = get_dossier(id_dossier)
+        phone_number = dossier.get("external_methods").get("id_num").get(
+            "results").get("id_num_out_token")[0].get("payload").get("phone_number")
+        user_pin_required = False
+        if (phone_number):
+            user_pin_required = True
+            sms.send_code(phone_number, str(six_digit_code))
+        # logging.info(dossier)
+        identity = dossier["identity"]
+        vc_type = "VerifiableId"
+        credential = json.load(
+            open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
+        try:
+            credential["credentialSubject"]["familyName"] = identity["name"]
+        except:
+            logging.error("no familyName in dossier")
+        try:
+            credential["credentialSubject"]["firstName"] = identity["first_names"][0]
+        except:
+            logging.error("no firstName in dossier")
+        try:
+            credential["credentialSubject"]["gender"] = identity["gender"]
+        except:
+            logging.error("no gender in dossier")
+        credential["credentialSubject"]["dateOfBirth"] = identity.get(
+            "birth_date", "Not available")
+        # TODO add other data if available
+        credential["evidence"][0]["id"] = "https://github.com/TalaoDAO/context/blob/main/context/VerificationMethod.jsonld/" + \
+            str(json.loads(red.get(code))["id_dossier"])
+        credential["evidence"][0]["verificationMethod"] = dossier.get(
+            "id_verification_service")
+        credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
+        credential["credentialSubject"]["kycProvider"] = "ID360"
+        credential["credentialSubject"]["kycId"] = json.loads(red.get(code))[
+            "id_dossier"]
+        credential["credentialSubject"]["kycMethod"] = mode.journey
+
+        credential["issuer"] = ISSUER_DID
+        credential['issuanceDate'] = datetime.utcnow().replace(
+            microsecond=0).isoformat() + "Z"
+        credential['expirationDate'] = (
+            datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+        credential['id'] = "urn:uuid:random"  # for preview only
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer '+client_secret
+        }
+        data = {
+            "vc": {"VerifiableId": credential},
+            "issuer_state": code,
+            "credential_type": ["VerifiableId"],
+            "pre-authorized_code": True,
+            "user_pin_required": user_pin_required,
+            "user_pin": str(six_digit_code),
+            "callback": mode.server+"/id360/oidc4vc_callback"
+        }
+        resp = requests.post(OIDC_URL, headers=headers, data=json.dumps(data))
+        logging.info(resp.json())
+        try:
+            url = resp.json()['redirect_uri']
+        except KeyError:
+            logging.eror("error oidc")
+            url = "error_oidc"
+        event_data = json.dumps(
+            {"type": "KYC", "status": "OK", "code": code, "url": url})
         red.publish('issuer', event_data)
         red.setex(code, CODE_LIFE, json.dumps(
-            {"id_dossier": id_dossier, "KYC": "OK"}))
+            {"id_dossier": id_dossier, "KYC": "OK", "url": url}))
     return jsonify("ok")
 
 

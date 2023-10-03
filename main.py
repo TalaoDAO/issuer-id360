@@ -16,9 +16,10 @@ from flask_mobility import Mobility
 from routes import issuer_altme, customer_api, oidc
 import os
 import message
-
+from flask_babel import Babel
 
 app = Flask(__name__)
+babel = Babel(app)
 app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
 QRcode(app)
 Mobility(app)
