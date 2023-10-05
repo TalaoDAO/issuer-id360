@@ -16,7 +16,10 @@ mode = None
 
 
 OIDC_URL = "https://talao.co/sandbox/ebsi/issuer/api/vqzljjitre"
+OIDC_URL_JSON_LD = "https://talao.co/sandbox/ebsi/issuer/api/lbeuegiasm"
 client_secret = json.load(open("keys.json", "r"))["client_secret"]
+client_secret_json_ld = json.load(open("keys.json", "r"))[
+    "client_secret_json_ld"]
 
 
 def loginID360() -> str:
@@ -47,7 +50,7 @@ def loginID360() -> str:
         return
 
 
-def create_dossier(code: str) -> str:
+def create_dossier(code: str, format: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
@@ -82,6 +85,7 @@ def create_dossier(code: str) -> str:
     if response.status_code == 200:
         red.setex(code, CODE_LIFE, json.dumps({
                   "id_dossier": response.json()["id"],
+                  "format": format
                   }))
         url = mode.url + 'static/process_ui/index.html#/enrollment/' + \
             response.json()["api_key"] + "?lang=en"
@@ -89,7 +93,7 @@ def create_dossier(code: str) -> str:
         return url
     elif response.status_code == 401:
         loginID360()
-        return create_dossier(code)
+        return create_dossier(code, format)
     else:
         logging.error("create_dossier returned status %s",
                       str(response.status_code))
@@ -140,11 +144,16 @@ def init_app(app, red_app, mode_app):
                      view_func=oidc_issuer_stream, methods=['GET'])
     app.add_url_rule('/id360/get_status_kyc/<code>',
                      view_func=get_status_kyc, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc_intro', view_func=intro,
+                     methods=['GET'])
 
 
 def login_oidc():
     code = str(uuid.uuid4())
-    return redirect(create_dossier(code))
+    format = request.args.get("format")
+    if not format:
+        format = "default"
+    return redirect(create_dossier(code, format))
 
 
 def oidc4vc_callback():
@@ -240,9 +249,15 @@ def oidc_id360callback(code: str):
             datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
         credential['id'] = "urn:uuid:random"  # for preview only
 
+        format = json.loads(red.get(code))["format"]
+        cs = client_secret
+        url = OIDC_URL
+        if format == "json-ld":
+            cs = client_secret_json_ld
+            url = OIDC_URL_JSON_LD
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer '+client_secret
+            'Authorization': 'Bearer '+cs
         }
         data = {
             "vc": {"VerifiableId": credential},
@@ -253,7 +268,7 @@ def oidc_id360callback(code: str):
             "user_pin": str(six_digit_code),
             "callback": mode.server+"/id360/oidc4vc_callback"
         }
-        resp = requests.post(OIDC_URL, headers=headers, data=json.dumps(data))
+        resp = requests.post(url, headers=headers, data=json.dumps(data))
         logging.info(resp.json())
         try:
             url = resp.json()['redirect_uri']
@@ -282,3 +297,7 @@ def oidc_issuer_stream():
                "Cache-Control": "no-cache",
                "X-Accel-Buffering": "no"}
     return Response(event_stream(), headers=headers)
+
+
+def intro():
+    return render_template("intro.html")

@@ -11,6 +11,16 @@ footer {
     display: block;
 }
 
+.linkIntro {
+    font-family: Nunito;
+    background-color: #6600FF;
+    border: none;
+    color: white;
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 6px;
+}
+
 .row {
     display: -ms-flexbox;
     display: flex;
@@ -320,6 +330,10 @@ p {
 }
 
 #qrcode {
+    width: 210px;
+}
+
+#qrcodeIssuer {
     width: 210px;
 }
 
@@ -1208,9 +1222,7 @@ frame8 {
     flex-grow: 0;
 }
 
-#qrcode {
-    width: 279px;
-}
+
 
 #success {
     /* Connect wallet */
@@ -1931,6 +1943,17 @@ a {
         max-width: 100vw;
     }
 
+    #buttonDeepLink {
+        display: block;
+    }
+
+    #cardBox {
+        display: flex;
+        flex-direction: column;
+        gap: 50px;
+        align-items: center;
+    }
+
     #draw {
         width: 90vw;
         height: unset;
@@ -1958,9 +1981,11 @@ a {
     #subTitle {
         font-size: 26px;
     }
+
     #imgSuccess {
         height: 300px;
     }
+
     #imgWaiting {
         width: 70%;
     }
@@ -2306,7 +2331,6 @@ a {
     }
 
 
-
     .flex {
         display: flex !important;
     }
@@ -2319,15 +2343,28 @@ a {
     }
 
     #buttonDeepLink {
+        font-family: Nunito;
         background-color: #6600FF;
         border: none;
         color: white;
         font-size: 20px;
         padding: 8px;
+        border-radius: 6px;
+        display: none;
     }
 
     .nav-02__list {
         flex-direction: column;
+    }
+
+    #qrcodeIssuer {
+        display: none;
+    }
+
+    #arrow {
+        height: 50px;
+        width: 80px;
+        transform: rotate(0.25turn);
     }
 }
 

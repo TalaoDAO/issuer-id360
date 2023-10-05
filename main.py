@@ -64,6 +64,9 @@ def serve_static(filename: str):
         logging.error(filename+" not found")
         return jsonify("not found"), 404
 
+@app.route('/issuer', methods=['GET'])
+def issuer_qr():
+    return render_template("issuer_qrcode.html")
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)
