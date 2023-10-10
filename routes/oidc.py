@@ -157,6 +157,9 @@ def login_oidc():
 
 
 def oidc4vc_callback():
+    if request.args.get("error"):
+        return render_template("error.html",error=request.args.get("error").replace("_", " "),error_description=request.args.get("error_description"))
+
     return render_template("success.html")
 
 
@@ -213,7 +216,12 @@ def oidc_id360callback(code: str):
             user_pin_required = True
             sms.send_code(phone_number, str(six_digit_code))
         # logging.info(dossier)
-        identity = dossier["identity"]
+        #identity = dossier["identity"]
+        identity = {
+            "name":"Dorier",
+            "first_names":["Achille"],
+            "gender":"M"
+        }
         vc_type = "VerifiableId"
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
