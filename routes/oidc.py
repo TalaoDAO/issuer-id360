@@ -216,12 +216,7 @@ def oidc_id360callback(code: str):
             user_pin_required = True
             sms.send_code(phone_number, str(six_digit_code))
         # logging.info(dossier)
-        #identity = dossier["identity"]
-        identity = {
-            "name":"Dorier",
-            "first_names":["Achille"],
-            "gender":"M"
-        }
+        identity = dossier["identity"]
         vc_type = "VerifiableId"
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
