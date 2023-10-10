@@ -2395,3 +2395,9 @@ a {
     width: 30%;
     font-family: Nunito;
 }
+
+.introText{
+    font-family: Nunito;
+    color: black;
+    font-size: 18px;
+}
