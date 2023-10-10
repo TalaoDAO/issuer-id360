@@ -132,43 +132,46 @@
     <script>
 
         var source = new EventSource('/id360/oidc4vc_stream');
-        source.onmessage = function (event) {
-            const result = JSON.parse(event.data);
-            console.log(result)
-            if (result.code === '{{code}}' && result.status === "OK") {
-                console.log("KYC OK")
-                console.log(result.url)
-                window.location.href = result.url
+        setTimeout(function () {
+            source.onmessage = function (event) {
+                const result = JSON.parse(event.data);
+                console.log(result)
+                if (result.code === '{{code}}' && result.status === "OK") {
+                    console.log("KYC OK")
+                    console.log(result.url)
+                    window.location.href = result.url
+
+                }
+                if (result.code === '{{code}}' && result.status === "KO") {
+                    console.log("KYC KO")
+                    document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
+
+                }
 
             }
-            if (result.code === '{{code}}' && result.status === "KO") {
-                console.log("KYC KO")
-                document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
+            fetch("{{server}}/id360/get_status_kyc/{{code}}", {
+                method: "GET",
+                mode: "cors",
+                cache: "no-cache",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                redirect: "follow",
+            }).then(res => res.json().then(data => {
+                console.log(data);
+                if (data.status === "OK") {
+                    console.log("KYC OK")
+                    window.location.href = data.url
 
-            }
+                } else if (data.status === "KO") {
+                    document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
+                    console.log("KYC KO")
+                }
 
-        }
-        fetch("{{server}}/id360/get_status_kyc/{{code}}", {
-            method: "GET",
-            mode: "cors",
-            cache: "no-cache",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            redirect: "follow",
-        }).then(res => res.json().then(data => {
-            console.log(data);
-            if (data.status === "OK") {
-                console.log("KYC OK")
-                window.location.href = data.url
+            }))
+        }, 5000);
 
-            } else if (data.status === "KO") {
-                document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
-                console.log("KYC KO")
-            }
-
-        }))
 
         document.getElementById('buttonMenu').addEventListener('click', () => {
             if (document.getElementById('imageButtonMenu').getAttribute("class") === "imgButtonMenuInactive") {
