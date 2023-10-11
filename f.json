@@ -1,0 +1,78 @@
+{
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1",
+        {
+            "DocumentVerification": {
+                "@context": {
+                    "@protected": True,
+                    "@version": 1.1,
+                    "dossier": "schema:identifie",
+                    "id": "@id",
+                    "levelOfAssurance": "https://ec.europa.eu/digital-building-blocks/wikis/display/DIGITAL/eIDAS+Levels+of+Assurance",
+                    "parcours": "schema:identifier",
+                    "schema": "https://schema.org/",
+                    "type": "@type",
+                    "verificationMethod": "schema:identifier",
+                    "verifier": "schema:legalName"
+                },
+                "@id": "https://github.com/TalaoDAO/context#VerificationMethod.jsonld"
+            },
+            "VerifiableId": {
+                "@context": {
+                    "@protected": True,
+                    "@version": 1.1,
+                    "dateOfBirth": "schema:birthDate",
+                    "familyName": "schema:familyName",
+                    "firstName": "schema:givenName",
+                    "gender": "schema:gender",
+                    "id": "@id",
+                    "personalIdentifier": "schema:identifier",
+                    "placeOfBirth": "schema:birthPlace",
+                    "schema": "https://schema.org/",
+                    "type": "@type"
+                },
+                "@id": "https://github.com/TalaoDAO/context#verifiableid"
+            }
+        }
+    ],
+    "id": "urn:uuid:8b4c4f20-682e-11ee-8485-0a1628958560",
+    "type": [
+        "VerifiableCredential",
+        "VerifiableAttestation",
+        "VerifiableId"
+    ],
+    "credentialSubject": {
+        "id": "did:key:zDnaeWsK62hVi9pEBnY1qeWtoDeaCjLzZjTvnGrkdUDDaSVUn",
+        "gender": "M",
+        "firstName": "Achille",
+        "familyName": "Dorier",
+        "type": "VerifiableId",
+        "dateOfBirth": ""
+    },
+    "issuer": "did:web:app.altme.io:issuer",
+    "issuanceDate": "2023-10-11T12:06:00Z",
+    "proof": {
+        "type": "EcdsaSecp256k1Signature2019",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "did:web:app.altme.io:issuer#key-3",
+        "created": "2023-10-11T12:06:01.022Z",
+        "jws": "eyJhbGciOiJFUzI1NksiLCJjcml0IjpbImI2NCJdLCJiNjQiOmZhbHNlfQ..vA8Xv6K9B3oWosRCMpIxjqZgU0Z6MRFB-gEWn6lqV_RmN6FUCVd0JuXaEsQfE3Q9xaousP4tBF4Ejh35Xp_iUA"
+    },
+    "expirationDate": "2024-10-10T12:06:00.988323Z",
+    "evidence": [
+        {
+            "id": "urn:id360:37125",
+            "type": [
+                "DocumentVerification"
+            ],
+            "levelOfAssurance": "SUBSTANTIAL",
+            "verifier": "La Poste - Docaposte",
+            "parcours": "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e",
+            "verificationMethod": "IdNumericExternalMethod",
+            "dossier": 37125
+        }
+    ],
+    "issued": "2023-10-11T12:06:00Z",
+    "validFrom": "2023-10-11T12:06:00Z",
+    "validUntil": "2024-10-10T12:06:00.988334Z"
+}

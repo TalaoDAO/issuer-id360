@@ -232,18 +232,17 @@ def oidc_id360callback(code: str):
             credential["credentialSubject"]["gender"] = identity["gender"]
         except:
             logging.error("no gender in dossier")
-        credential["credentialSubject"]["dateOfBirth"] = identity.get(
-            "birth_date", "Not available")
+        if identity.get("birth_date"):
+            credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
         # TODO add other data if available
-        credential["evidence"][0]["id"] = "https://github.com/TalaoDAO/context/blob/main/context/VerificationMethod.jsonld/" + \
+        credential["evidence"][0]["id"] = "urn:id360:" + \
             str(json.loads(red.get(code))["id_dossier"])
         credential["evidence"][0]["verificationMethod"] = dossier.get(
             "id_verification_service")
         credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
-        credential["credentialSubject"]["kycProvider"] = "ID360"
-        credential["credentialSubject"]["kycId"] = json.loads(red.get(code))[
+        credential["evidence"][0]["dossier"] = json.loads(red.get(code))[
             "id_dossier"]
-        credential["credentialSubject"]["kycMethod"] = mode.journey
+        credential["evidence"][0]["parcours"] = mode.journey
 
         credential["issuer"] = ISSUER_DID
         credential['issuanceDate'] = datetime.utcnow().replace(
@@ -262,6 +261,7 @@ def oidc_id360callback(code: str):
             'Content-Type': 'application/json',
             'Authorization': 'Bearer '+cs
         }
+        print(credential)
         data = {
             "vc": {"VerifiableId": credential},
             "issuer_state": code,

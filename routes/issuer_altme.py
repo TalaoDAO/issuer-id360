@@ -377,7 +377,7 @@ async def issuer_endpoint(code: str):
                 logging.error("no gender in dossier")
             credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")
             # TODO add other data if available
-            credential["evidence"][0]["id"] = "https://github.com/TalaoDAO/context/blob/main/context/VerificationMethod.jsonld/" + str(json.loads(red.get(code))["id_dossier"])
+            credential["evidence"][0]["id"] = "urn:id360:" + str(json.loads(red.get(code))["id_dossier"])
             credential["evidence"][0]["verificationMethod"] = json.loads(red.get(code)).get("kyc_method")
             credential["evidence"][0]["levelOfAssurance"] = json.loads(red.get(code)).get("level")
         elif vc_type == "AgeRange":
