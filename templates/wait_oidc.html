@@ -145,6 +145,8 @@
                 if (result.code === '{{code}}' && result.status === "KO") {
                     console.log("KYC KO")
                     document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
+                    document.getElementById("title").innerHTML= "Identity verification failed"
+                    document.getElementById("subTitle").innerHTML= "Please try again"
 
                 }
 
@@ -166,6 +168,8 @@
 
                 } else if (data.status === "KO") {
                     document.getElementById("imgWaiting").setAttribute("src", "/id360/static/img/failed.png")
+                    document.getElementById("title").innerHTML= "Identity verification failed"
+                    document.getElementById("subTitle").innerHTML= "Please try again"
                     console.log("KYC KO")
                 }
 

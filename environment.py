@@ -16,6 +16,7 @@ class currentMode():
             self.IP = 'localhost'
             self.port = 3000
             self.journey = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
+            self.journey_oidc = "59973334-6417-48dd-abf3-892b79278dcd"
             self.url = 'https://id360docaposte.com/'
             self.url_customers = 'https://preprod.id360docaposte.com/'
             self.username = json.load(open("keys.json", "r"))['username_prod']
@@ -25,10 +26,11 @@ class currentMode():
             self.password_customers = json.load(
                 open("keys.json", "r"))['password']
         elif self.myenv == 'local':
-            self.server = "https://f14a-86-229-94-232.ngrok-free.app"
+            self.server = "https://bec9-86-237-18-188.ngrok-free.app"
             self.IP = 'localhost'
             self.port = 3000
-            self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
+            self.journey = "48ed7984-3f2f-4acf-8b4a-56f324112c54"
+            self.journey_oidc = "48ed7984-3f2f-4acf-8b4a-56f324112c54"
             self.url = 'https://preprod.id360docaposte.com/'
             self.url_customers = 'https://preprod.id360docaposte.com/'
             self.username = json.load(open("keys.json", "r"))['username']
