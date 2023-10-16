@@ -264,7 +264,6 @@ def oidc_id360callback(code: str):
             'X-API-KEY' : cs,
             'issuer_id' : issuer_id
         }
-        print(credential)
         data = {
             "vc": {"VerifiableId": credential},
             "issuer_state": code,
@@ -280,7 +279,7 @@ def oidc_id360callback(code: str):
         try:
             url = resp.json()['redirect_uri']
         except KeyError:
-            logging.eror("error oidc")
+            logging.error("error oidc")
             url = "error_oidc"
         event_data = json.dumps(
             {"type": "KYC", "status": "OK", "code": code, "url": url})
