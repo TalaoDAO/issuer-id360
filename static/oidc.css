@@ -2396,8 +2396,10 @@ a {
     font-family: Nunito;
 }
 
-.introText{
+.introText {
     font-family: Nunito;
     color: black;
     font-size: 18px;
+    max-width: 70vw;
+    text-align: center;
 }
