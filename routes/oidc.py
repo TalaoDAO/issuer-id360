@@ -261,8 +261,7 @@ def oidc_id360callback(code: str):
             issuer_id =ISSUER_ID_JSON_LD
         headers = {
             'Content-Type': 'application/json',
-            'X-API-KEY' : cs,
-            'issuer_id' : issuer_id
+            'X-API-KEY' : cs
         }
         data = {
             "vc": {"VerifiableId": credential},
@@ -272,7 +271,7 @@ def oidc_id360callback(code: str):
             "user_pin_required": user_pin_required,
             "user_pin": str(six_digit_code),
             "callback": mode.server+"/id360/oidc4vc_callback",
-
+            'issuer_id' : issuer_id
         }
         resp = requests.post(url, headers=headers, data=json.dumps(data))
         logging.info(resp.json())
