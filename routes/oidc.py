@@ -258,10 +258,11 @@ def oidc_id360callback(code: str):
         if format == "json-ld":
             cs = client_secret_json_ld
             url = OIDC_URL
+            issuer_id =ISSUER_ID_JSON_LD
         headers = {
             'Content-Type': 'application/json',
             'X-API-KEY' : cs,
-            'issuer_id' : ISSUER_ID_JSON_LD
+            'issuer_id' : issuer_id
         }
         print(credential)
         data = {
