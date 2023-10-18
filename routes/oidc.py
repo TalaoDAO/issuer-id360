@@ -14,9 +14,9 @@ CREDENTIAL_LIFE = 360  # in days
 red = None
 mode = None
 
-
-OIDC_URL = "https://talao.co/sandbox/ebsi/issuer/api/vqzljjitre"
-OIDC_URL_JSON_LD = "https://talao.co/sandbox/ebsi/issuer/api/lbeuegiasm"
+ISSUER_ID_JWT = "vqzljjitre"
+ISSUER_ID_JSON_LD = "lbeuegiasm"
+OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
 client_secret = json.load(open("keys.json", "r"))["client_secret"]
 client_secret_json_ld = json.load(open("keys.json", "r"))[
     "client_secret_json_ld"]
@@ -254,14 +254,15 @@ def oidc_id360callback(code: str):
         format = json.loads(red.get(code))["format"]
         cs = client_secret
         url = OIDC_URL
+        issuer_id = ISSUER_ID_JWT
         if format == "json-ld":
             cs = client_secret_json_ld
-            url = OIDC_URL_JSON_LD
+            url = OIDC_URL
+            issuer_id =ISSUER_ID_JSON_LD
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer '+cs
+            'X-API-KEY' : cs
         }
-        print(credential)
         data = {
             "vc": {"VerifiableId": credential},
             "issuer_state": code,
@@ -269,14 +270,15 @@ def oidc_id360callback(code: str):
             "pre-authorized_code": True,
             "user_pin_required": user_pin_required,
             "user_pin": str(six_digit_code),
-            "callback": mode.server+"/id360/oidc4vc_callback"
+            "callback": mode.server+"/id360/oidc4vc_callback",
+            'issuer_id' : issuer_id
         }
         resp = requests.post(url, headers=headers, data=json.dumps(data))
         logging.info(resp.json())
         try:
             url = resp.json()['redirect_uri']
         except KeyError:
-            logging.eror("error oidc")
+            logging.error("error oidc")
             url = "error_oidc"
         event_data = json.dumps(
             {"type": "KYC", "status": "OK", "code": code, "url": url})
