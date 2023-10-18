@@ -75,7 +75,7 @@ def create_dossier(code: str, format: str) -> str:
     }
     try:
         response = requests.post(
-            mode.url + 'api/1.0.0/process/' + mode.journey + '/enrollment/',
+            mode.url + 'api/1.0.0/process/' + mode.journey_oidc + '/enrollment/',
             headers=headers,
             json=json_data,
         )
@@ -242,7 +242,7 @@ def oidc_id360callback(code: str):
         credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
         credential["evidence"][0]["dossier"] = json.loads(red.get(code))[
             "id_dossier"]
-        credential["evidence"][0]["parcours"] = mode.journey
+        credential["evidence"][0]["parcours"] = mode.journey_oidc
 
         credential["issuer"] = ISSUER_DID
         credential['issuanceDate'] = datetime.utcnow().replace(
