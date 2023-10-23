@@ -236,7 +236,7 @@ def login(code: str):
     logging.info("request is from %s", location.country)
     journey = mode.journey
     language = "en"
-    if (location in ["FR", "fr", "France", "france"]):
+    if (location.country in ["FR", "fr", "France", "france"]):
         journey = mode.journey_fr
         language = "fr"
     if not kyc:
