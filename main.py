@@ -66,7 +66,7 @@ def serve_static(filename: str):
         return jsonify("not found"), 404
     
 
-@app.route('/ip', methods=['GET'])
+@app.route('/id360/ip', methods=['GET'])
 def ip():
     ip_client = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
     location = DbIpCity.get(ip_client)
