@@ -15,7 +15,8 @@ class currentMode():
             self.server = "https://talao.co"
             self.IP = 'localhost'
             self.port = 3000
-            self.journey = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
+            self.journey_fr = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
+            self.journey = "e7831d5d-0111-48ec-b9ab-ce6cc5886d73"
             self.journey_oidc = "59973334-6417-48dd-abf3-892b79278dcd"
             self.url = 'https://id360docaposte.com/'
             self.url_customers = 'https://preprod.id360docaposte.com/'
