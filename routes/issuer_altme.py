@@ -120,7 +120,7 @@ def create_dossier(code: str, did: str, journey: str, language: str) -> str:
         return mode.url + 'static/process_ui/index.html#/enrollment/' + response.json()["api_key"] + "?lang=" + language
     elif response.status_code == 401:
         loginID360()
-        return create_dossier(code, did)
+        return create_dossier(code, did, journey, language)
     else:
         logging.error("create_dossier returned status %s",
                       str(response.status_code))
@@ -233,7 +233,7 @@ def login(code: str):
     session["logged"] = True
     ip_client = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
     location = DbIpCity.get(ip_client)
-    logging.info(location.country)
+    logging.info("request is from %s", location.country)
     journey = mode.journey
     language = "en"
     if (location in ["FR", "fr", "France", "france"]):
