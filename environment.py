@@ -27,7 +27,7 @@ class currentMode():
                 open("keys.json", "r"))['password']
         elif self.myenv == 'local':
             self.server = "https://bec9-86-237-18-188.ngrok-free.app"
-            self.IP = 'localhost'
+            self.IP = '0.0.0.0'
             self.port = 3000
             self.journey = "48ed7984-3f2f-4acf-8b4a-56f324112c54"
             self.journey_oidc = "48ed7984-3f2f-4acf-8b4a-56f324112c54"

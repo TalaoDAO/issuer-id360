@@ -17,6 +17,7 @@ from routes import issuer_altme, customer_api, oidc
 import os
 import message
 from flask_babel import Babel
+from ip2geotools.databases.noncommercial import DbIpCity
 
 app = Flask(__name__)
 babel = Babel(app)
@@ -63,10 +64,15 @@ def serve_static(filename: str):
     except FileNotFoundError:
         logging.error(filename+" not found")
         return jsonify("not found"), 404
+    
 
-@app.route('/issuer', methods=['GET'])
-def issuer_qr():
-    return render_template("issuer_qrcode.html")
+@app.route('/ip', methods=['GET'])
+def ip():
+    ip_client = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+    location = DbIpCity.get(ip_client)
+    logging.info(location.country)
+    return('ok')
+
 
 if __name__ == '__main__':
     app.run(host=mode.IP, port=mode.port, debug=True)

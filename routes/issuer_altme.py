@@ -222,6 +222,8 @@ def login(code: str):
         "client_id":client_id
     }
     session["logged"] = True
+    ip_client = request.remote_addr
+    logging.info(ip_client)
     if not kyc:
         temp_dict["first"] = True
         red.setex(code, AUTHENTICATION_DELAY, json.dumps(temp_dict))
