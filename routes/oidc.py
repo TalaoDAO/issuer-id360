@@ -128,6 +128,32 @@ def get_dossier(id_dossier: str) -> dict:
         return response.status_code
 
 
+def get_image(url):
+    """
+    ID360 API call to get user document image
+
+    """
+    token = red.get("token").decode()
+    headers = {
+        'accept': 'application/json',
+        'Authorization': 'Token ' + token,
+    }
+    try:
+        response = requests.get(url headers=headers)
+    except:
+        logging.error("get_image request failed")
+        return
+    if response.status_code == 200:
+        return response.content
+    elif response.status_code == 404:
+        logging.warning("get_image 404")
+        return "expired"
+    else:
+        logging.error("error requesting image status : %s",
+                      response.status_code)
+        return response.status_code
+
+
 def init_app(app, red_app, mode_app):
     global red, mode
     red = red_app
@@ -158,7 +184,7 @@ def login_oidc():
 
 def oidc4vc_callback():
     if request.args.get("error"):
-        return render_template("error.html",error=request.args.get("error").replace("_", " "),error_description=request.args.get("error_description"))
+        return render_template("error.html", error=request.args.get("error").replace("_", " "), error_description=request.args.get("error_description"))
 
     return render_template("success.html")
 
@@ -215,8 +241,11 @@ def oidc_id360callback(code: str):
         if (phone_number):
             user_pin_required = True
             sms.send_code(phone_number, str(six_digit_code))
-        # logging.info(dossier)
+        logging.info(dossier)
         identity = dossier["identity"]
+        images = dossier.get("steps").get("id_document").get(
+            "input_files").get("id_document_image")
+
         vc_type = "VerifiableId"
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
@@ -232,6 +261,11 @@ def oidc_id360callback(code: str):
             credential["credentialSubject"]["gender"] = identity["gender"]
         except:
             logging.error("no gender in dossier")
+        try:
+            if images:
+                credential["credentialSubject"]["idRecto"] = get_image(images[0])
+                if (len(images) == 2):
+                    credential["credentialSubject"]["idVerso"] = get_image(images[1])
         if identity.get("birth_date"):
             credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
         # TODO add other data if available
@@ -250,7 +284,6 @@ def oidc_id360callback(code: str):
         credential['expirationDate'] = (
             datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
         credential['id'] = "urn:uuid:random"  # for preview only
-
         format = json.loads(red.get(code))["format"]
         cs = client_secret
         url = OIDC_URL
@@ -258,10 +291,10 @@ def oidc_id360callback(code: str):
         if format == "json-ld":
             cs = client_secret_json_ld
             url = OIDC_URL
-            issuer_id =ISSUER_ID_JSON_LD
+            issuer_id = ISSUER_ID_JSON_LD
         headers = {
             'Content-Type': 'application/json',
-            'X-API-KEY' : cs
+            'X-API-KEY': cs
         }
         data = {
             "vc": {"VerifiableId": credential},
@@ -271,7 +304,7 @@ def oidc_id360callback(code: str):
             "user_pin_required": user_pin_required,
             "user_pin": str(six_digit_code),
             "callback": mode.server+"/id360/oidc4vc_callback",
-            'issuer_id' : issuer_id
+            'issuer_id': issuer_id
         }
         resp = requests.post(url, headers=headers, data=json.dumps(data))
         logging.info(resp.json())
