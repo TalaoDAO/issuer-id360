@@ -263,11 +263,16 @@ def oidc_id360callback(code: str):
             logging.error("no gender in dossier")
         try:
             if images:
-                credential["credentialSubject"]["idRecto"] = get_image(images[0])
+                credential["credentialSubject"]["idRecto"] = get_image(
+                    images[0])
                 if (len(images) == 2):
-                    credential["credentialSubject"]["idVerso"] = get_image(images[1])
+                    credential["credentialSubject"]["idVerso"] = get_image(
+                        images[1])
+        except Exception as e:
+            logging.error(e)
         if identity.get("birth_date"):
-            credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
+            credential["credentialSubject"]["dateOfBirth"] = identity.get(
+                "birth_date")
         # TODO add other data if available
         credential["evidence"][0]["id"] = "urn:id360:" + \
             str(json.loads(red.get(code))["id_dossier"])
