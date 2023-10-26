@@ -139,7 +139,7 @@ def get_image(url):
         'Authorization': 'Token ' + token,
     }
     try:
-        response = requests.get(url headers=headers)
+        response = requests.get(url, headers=headers)
     except:
         logging.error("get_image request failed")
         return
