@@ -7,6 +7,9 @@ import json
 from flask import jsonify, redirect, render_template, request, Response
 from datetime import datetime, timedelta
 from id360 import ID360_API_KEY, ISSUER_VM, ISSUER_DID, ISSUER_KEY
+import base64
+
+
 CODE_LIFE = 600  # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
 CREDENTIAL_LIFE = 360  # in days
 
@@ -144,7 +147,7 @@ def get_image(url):
         logging.error("get_image request failed")
         return
     if response.status_code == 200:
-        return response.content
+        return base64.b64encode(response.content).decode('utf-8')
     elif response.status_code == 404:
         logging.warning("get_image 404")
         return "expired"
