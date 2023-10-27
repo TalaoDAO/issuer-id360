@@ -246,17 +246,10 @@ def oidc_id360callback(code: str):
             user_pin_required = True
             sms.send_code(phone_number, str(six_digit_code))
         logging.info(dossier)
-        #identity = dossier["identity"]
-        identity= {
-            "name":"DORIER",
-            "first_names":["Achille"],
-            "gender":"M",
-            "birth_date":"10-09-2001"
-        }
+        identity = dossier["identity"]
         images = dossier.get("steps").get("id_document").get(
             "input_files").get("id_document_image")
-
-        vc_type = "VerifiableId"
+        vc_type = "VerifiableId_oidc"
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
         try:
