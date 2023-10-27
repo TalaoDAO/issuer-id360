@@ -292,13 +292,13 @@ def oidc_id360callback(code: str):
         credential['expirationDate'] = (
             datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
         credential['id'] = "urn:uuid:random"  # for preview only
+        logging.info(credential)
         format = json.loads(red.get(code))["format"]
         cs = client_secret
         url = OIDC_URL
         issuer_id = ISSUER_ID_JWT
         if format == "json-ld":
             cs = client_secret_json_ld
-            url = OIDC_URL
             issuer_id = ISSUER_ID_JSON_LD
         headers = {
             'Content-Type': 'application/json',
