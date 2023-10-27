@@ -27,11 +27,11 @@ class currentMode():
             self.password_customers = json.load(
                 open("keys.json", "r"))['password']
         elif self.myenv == 'local':
-            self.server = "https://bec9-86-237-18-188.ngrok-free.app"
+            self.server = "https://f8c2-86-237-18-188.ngrok-free.app"
             self.IP = '0.0.0.0'
             self.port = 3000
-            self.journey = "48ed7984-3f2f-4acf-8b4a-56f324112c54"
-            self.journey_oidc = "48ed7984-3f2f-4acf-8b4a-56f324112c54"
+            self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
+            self.journey_oidc = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
             self.url = 'https://preprod.id360docaposte.com/'
             self.url_customers = 'https://preprod.id360docaposte.com/'
             self.username = json.load(open("keys.json", "r"))['username']

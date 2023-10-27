@@ -147,7 +147,7 @@ def get_image(url):
         logging.error("get_image request failed")
         return
     if response.status_code == 200:
-        return base64.b64encode(response.content).decode('utf-8')
+        return base64.b64encode(response.content).decode()
     elif response.status_code == 404:
         logging.warning("get_image 404")
         return "expired"
@@ -198,6 +198,7 @@ def oidc4vc_wait(code):
 
 def get_status_kyc(code):
     try:
+        logging.info(json.loads(red.get(code)))
         return jsonify(status=json.loads(red.get(code))["KYC"], url=json.loads(red.get(code))["url"])
     except (KeyError, TypeError):
         return jsonify(status="None")
@@ -228,7 +229,7 @@ def oidc_id360callback(code: str):
             {"type": "KYC", "status": "KO", "code": code, "url": ""})
         red.publish('issuer', event_data)
         red.setex(code, CODE_LIFE, json.dumps(
-            {"id_dossier": id_dossier, "KYC": "KO"}))
+            {"id_dossier": id_dossier, "KYC": "KO", "url": ""}))
     elif request.get_json()["status"] == "OK":
         six_digit_code = randint(100000, 999999)
         logging.info("code pin %s", str(six_digit_code))
@@ -245,7 +246,13 @@ def oidc_id360callback(code: str):
             user_pin_required = True
             sms.send_code(phone_number, str(six_digit_code))
         logging.info(dossier)
-        identity = dossier["identity"]
+        #identity = dossier["identity"]
+        identity= {
+            "name":"DORIER",
+            "first_names":["Achille"],
+            "gender":"M",
+            "birth_date":"10-09-2001"
+        }
         images = dossier.get("steps").get("id_document").get(
             "input_files").get("id_document_image")
 
@@ -266,11 +273,10 @@ def oidc_id360callback(code: str):
             logging.error("no gender in dossier")
         try:
             if images:
-                credential["credentialSubject"]["idRecto"] = get_image(
-                    images[0])
-                if (len(images) == 2):
-                    credential["credentialSubject"]["idVerso"] = get_image(
-                        images[1])
+                credential["credentialSubject"]["idRecto"] = get_image(images[0])
+                #if (len(images) == 2):
+                    #credential["credentialSubject"]["idVerso"] = get_image(
+                        #images[1])
         except Exception as e:
             logging.error(e)
         if identity.get("birth_date"):
@@ -314,7 +320,7 @@ def oidc_id360callback(code: str):
             "callback": mode.server+"/id360/oidc4vc_callback",
             'issuer_id': issuer_id
         }
-        logging.info(url)
+        logging.info(url+" "+issuer_id)
         resp = requests.post(url, headers=headers, data=json.dumps(data))
         logging.info(resp.status_code)
         logging.info(resp.json())
