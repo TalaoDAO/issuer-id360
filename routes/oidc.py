@@ -314,7 +314,9 @@ def oidc_id360callback(code: str):
             "callback": mode.server+"/id360/oidc4vc_callback",
             'issuer_id': issuer_id
         }
+        logging.info(url)
         resp = requests.post(url, headers=headers, data=json.dumps(data))
+        logging.info(resp.status_code)
         logging.info(resp.json())
         try:
             url = resp.json()['redirect_uri']
