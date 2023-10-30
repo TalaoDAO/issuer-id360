@@ -247,8 +247,11 @@ def oidc_id360callback(code: str):
             sms.send_code(phone_number, str(six_digit_code))
         logging.info(dossier)
         identity = dossier["identity"]
-        images = dossier.get("steps").get("id_document").get(
-            "input_files").get("id_document_image")
+        try:
+            images = dossier.get("steps").get("id_document").get(
+                "input_files").get("id_document_image")
+        except AttributeError:
+            images = False
         vc_type = "VerifiableId_oidc"
         credential = json.load(
             open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
@@ -266,10 +269,11 @@ def oidc_id360callback(code: str):
             logging.error("no gender in dossier")
         try:
             if images:
-                credential["credentialSubject"]["idRecto"] = get_image(images[0])
-                #if (len(images) == 2):
-                    #credential["credentialSubject"]["idVerso"] = get_image(
-                        #images[1])
+                credential["credentialSubject"]["idRecto"] = get_image(
+                    images[0])
+                if (len(images) == 2):
+                    credential["credentialSubject"]["idVerso"] = get_image(
+                        images[1])
         except Exception as e:
             logging.error(e)
         if identity.get("birth_date"):
