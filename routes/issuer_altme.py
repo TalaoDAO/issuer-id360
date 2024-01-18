@@ -214,7 +214,9 @@ def login(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    try:
+    
+    try: 
+        print(red.get(code))
         did = json.loads(red.get(code))["did"]
         wallet_callback = json.loads(red.get(code))['wallet_callback']
         client_id = json.loads(red.get(code))['client_id']
@@ -320,7 +322,9 @@ def id360callback(code: str):
             return jsonify("Unauthorized"), 403
     except KeyError:
         return jsonify("Unauthorized"), 403
+
     logging.info("reception of id360 callback for %s", code)
+
     try:
         id_dossier = json.loads(red.get(code))["id_dossier"]
         wallet_callback = json.loads(red.get(code))["wallet_callback"]
@@ -329,11 +333,15 @@ def id360callback(code: str):
         red.setex(code, CODE_LIFE, json.dumps(
             {"code_error": "414", "vc_type": "VerifiableId"}))  # ERROR : REDIS EXPIRATION
         return jsonify("ok")
+
     did = json.loads(red.get(code))["did"]
     vc_type = json.loads(red.get(code))["vc_type"]
+
     logging.info('callback for wallet DID = %s is %s',
                  did, request.get_json()["status"])
+
     dossier = request.get_json()
+
     if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
         red.setex(code, CODE_LIFE, json.dumps(
             {"code_error": "age_verification_failed", "vc_type": vc_type, "wallet_callback": wallet_callback}))  # ERROR : KYC KO
@@ -348,10 +356,12 @@ def id360callback(code: str):
             red.setex(code, CODE_LIFE, json.dumps(
                 {"code_error": "413", "vc_type": vc_type, "wallet_callback": wallet_callback}))  # ERROR : saut d'étape
             return jsonify("ok")
+
         if (dossier["status"] != "OK"):
             red.setex(code, CODE_LIFE, json.dumps(
                 {"code_error": "410", "vc_type": vc_type, "wallet_callback": wallet_callback}))  # ERROR : KYC KO
             return jsonify("KYC KO"), 412
+
         if (vc_type != "VerifiableId"):
             birth_date = dossier["identity"].get("birth_date")
             if not birth_date:
@@ -359,18 +369,32 @@ def id360callback(code: str):
                 red.setex(code, CODE_LIFE, json.dumps(
                     {"vc_type": vc_type, "code_error": "411", "wallet_callback": wallet_callback}))
                 return jsonify("ok")
+
             timestamp = time.mktime(
                 ciso8601.parse_datetime(birth_date).timetuple())
             now = time.time()
-        if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
+
+        if (vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18) or \
+           (vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15) or \
+           (vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13):
             # ERROR : Over18 demandé mais user mineur
             red.setex(code, CODE_LIFE, json.dumps(
                 {"code_error": "412", "vc_type": vc_type, "wallet_callback": wallet_callback}))
             return jsonify("ok")
+        
+        elif (vc_type == "Over21" and (now-timestamp) < ONE_YEAR*21) or \
+             (vc_type == "Over50" and (now-timestamp) < ONE_YEAR*50) or \
+             (vc_type == "Over65" and (now-timestamp) < ONE_YEAR*65):
+            # ERROR : Condition d'âge non respectée pour Over21, Over50, Over65
+            red.setex(code, CODE_LIFE, json.dumps(
+                {"code_error": "413", "vc_type": vc_type, "wallet_callback": wallet_callback}))
+            return jsonify("ok")
+
         temp_dict = json.loads(red.get(code))
         temp_dict["kyc_method"] = dossier.get("id_verification_service")
         temp_dict["level"] = dossier.get("level")
         red.setex(code, CODE_LIFE, json.dumps(temp_dict))
+
     return jsonify("ok")
 
 
