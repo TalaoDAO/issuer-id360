@@ -192,7 +192,7 @@ def get_code():
     client_id = request.args.get('client_id')
     did = request.args.get('did')
     logging.info(f"{client_id} {client_secret} {did}" if client_id and client_secret and did else "One or more variables is None")
-    #logging.info(client_id+" "+client_secret+" "+did)
+    logging.info(str(client_id)+" "+str(client_secret)+" "+str(did))
     """if not client_id or not client_secret or not did:
         return jsonify("Incorrect API call"), 400
     if not db.test_api_key(client_id, client_secret):
