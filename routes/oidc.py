@@ -1,17 +1,19 @@
-import sms
 import requests
-from random import randint
 import logging
 import uuid
+import ciso8601
+from datetime import datetime, timedelta
+import time
 import json
 from flask import jsonify, redirect, render_template, request, Response
 from datetime import datetime, timedelta
-from id360 import ID360_API_KEY, ISSUER_VM, ISSUER_DID, ISSUER_KEY
+from id360 import ID360_API_KEY, ISSUER_DID
 import base64
 
 
 CODE_LIFE = 600  # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
 CREDENTIAL_LIFE = 360  # in days
+ONE_YEAR = 31556926  # seconds
 
 
 red = None
@@ -228,7 +230,7 @@ def oidc_id360callback(code: str):
         logging.error("redis expired %s", code)
         red.setex(code, CODE_LIFE, json.dumps({
             "code_error": "414",
-            "vc_type": vc_type
+            "vc_type": "VerifiableId"
         }))
         return jsonify("ok")
 
@@ -277,8 +279,12 @@ def oidc_id360callback(code: str):
             except Exception:
                 logging.error("no gender in dossier")
         elif vc_type == "Over18":
-            print("birth date = ",  identity.get("birth_date"))
-            pass # TODO
+            birth_date = identity.get("birth_date")
+            timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
+            now = time.time()
+            if now-timestamp < ONE_YEAR*18:
+                logging.waring("age below 18")
+                return jsonify("Unauthorized"), 403
         else:
             pass
 
