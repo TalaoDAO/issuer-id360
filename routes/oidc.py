@@ -186,9 +186,11 @@ def login_oidc():
         format = "jwt_vc_json"
     if not type:
         type = "VerifiableId"
+    if type.lower() == "over18":
+        type = "Over18"
     logging.info("VC format = %s", format )
     logging.info("VC type = %s", type )
-    if type not in ["VerifiableId", "Over18"] or format not in ["jwt_vc_json", "ldp_vc"]:
+    if type.lower() not in [ "over18", "verifiableid"] or format not in ["jwt_vc_json", "ldp_vc"]:
         return jsonify("This VC type or format is not supported")
     return redirect(create_dossier(code, format, type))
 
