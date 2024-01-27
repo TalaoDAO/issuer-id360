@@ -228,7 +228,7 @@ def oidc_id360callback(code: str):
         logging.error("redis expired %s", code)
         red.setex(code, CODE_LIFE, json.dumps({
             "code_error": "414",
-            "vc_type": "VerifiableId"
+            "vc_type": vc_type
         }))
         return jsonify("ok")
 
@@ -255,8 +255,10 @@ def oidc_id360callback(code: str):
         except AttributeError:
             images = False
         """    
+        if vc_format == "jwt_vc_json":
+            vc_file_name = vc_type +'_jwt_vc_json.jsonld'
         credential = json.load(
-            open('./verifiable_credentials/'+ vc_type +'.jsonld', 'r'))
+            open('./verifiable_credentials/'+ vc_file_name , 'r'))
         if vc_type == "VerifiableId":
             try:
                 credential["credentialSubject"]["familyName"] = identity["name"]
@@ -310,7 +312,7 @@ def oidc_id360callback(code: str):
         data = {
             "vc": {vc_type: credential},
             "issuer_state": code,
-            "credential_type": ["VerifiableId"],
+            "credential_type": [vc_type],
             "pre-authorized_code": True,
             "user_pin_required": user_pin_required,
             #"user_pin": str(six_digit_code),
