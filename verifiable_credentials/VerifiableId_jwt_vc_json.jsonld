@@ -1,0 +1,21 @@
+{
+    "@context": [
+      "https://www.w3.org/2018/credentials/v1"],
+    "id": "",
+    "type": [
+      "VerifiableCredential",
+      "VerifiableId"
+    ],
+    "credentialSubject": {
+      "type": "VerifiableId"
+    },
+    "evidence": [
+      {
+        "id": "",
+        "type": [
+          "DocumentVerification"
+        ],
+        "verifier": "Docaposte ID360"
+      }
+    ]
+  }

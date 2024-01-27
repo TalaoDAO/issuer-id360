@@ -5,7 +5,7 @@ Flow is available at https://swimlanes.io/u/LHNjN55XM
 
 """
 import json
-from flask import Flask, render_template, request, jsonify, Response, send_file, session, redirect, url_for
+from flask import Flask, request, jsonify, send_file, redirect
 from flask_qrcode import QRcode
 import didkit
 import environment
@@ -71,7 +71,7 @@ def ip():
     ip_client = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
     location = DbIpCity.get(ip_client)
     logging.info(location.country)
-    return('ok')
+    return ('ok')
 
 
 if __name__ == '__main__':

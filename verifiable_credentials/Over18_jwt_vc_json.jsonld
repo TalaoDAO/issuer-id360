@@ -1,0 +1,21 @@
+{
+    "@context": ["https://www.w3.org/2018/credentials/v1"],
+    "id": "",
+    "type": ["VerifiableCredential", "Over18"],
+    "issuer": "",
+    "issuanceDate": "",
+    "credentialSubject" : {
+        "type" : "Over18",
+        "ageOver" : "18",
+        "is_over18": true
+    },
+    "evidence": [
+        {
+          "id": "",
+          "type": [
+            "DocumentVerification"
+          ],
+          "verifier": "Docaposte ID360"
+        }
+    ]
+}

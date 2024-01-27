@@ -17,18 +17,30 @@ CREDENTIAL_LIFE = 360  # in days
 red = None
 mode = None
 
-ISSUER_ID_JWT = "vqzljjitre"
-ISSUER_ID_JSON_LD = "lbeuegiasm"
+ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json
+ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc
 OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
-client_secret = json.load(open("keys.json", "r"))["client_secret"]
-client_secret_json_ld = json.load(open("keys.json", "r"))[
-    "client_secret_json_ld"]
+client_secret = json.load(open("keys.json", "r"))["client_secret"] #jwt_vc_json 
+client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"] # ldp_vc
 
 
-def loginID360() -> str:
+def init_app(app, red_app, mode_app):
+    global red, mode
+    red = red_app
+    mode = mode_app
+    app.add_url_rule('/id360/oidc4vc_wait/<code>', view_func=oidc4vc_wait, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc_callback', view_func=oidc4vc_callback, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc', view_func=login_oidc, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc_callback_id360/<code>', view_func=oidc_id360callback, methods=['GET', 'POST'])
+    app.add_url_rule('/id360/oidc4vc_stream', view_func=oidc_issuer_stream, methods=['GET'])
+    app.add_url_rule('/id360/get_status_kyc/<code>', view_func=get_status_kyc, methods=['GET'])
+    app.add_url_rule('/id360/oidc4vc_intro', view_func=intro, methods=['GET'])
+
+
+def loginID360() -> bool:
     """
     ID360 API call for login
-    return token if ok False if not
+    set token if ok False if not
     """
     headers = {
         'accept': 'application/json',
@@ -39,29 +51,34 @@ def loginID360() -> str:
         'password': mode.password,
     }
     try:
-        response = requests.post(
-            mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+        response = requests.post(mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     except:
-        logging.error("loginID360 request failed")
+        logging.error("loginID360 connection failed")
         return
     if response.status_code == 200:
-        red.set("token", response.json()["token"])
+        token =  response.json()["token"]
+        logging.info("token ok from ID360 = %s", token)
+        red.set("token", token)
         return True
     else:
-        logging.error("loginID360 returned status %s",
-                      str(response.status_code))
+        logging.error("login ID360 failed returned status %s", str(response.status_code))
         return
 
 
-def create_dossier(code: str, format: str) -> str:
+def create_dossier(code: str, format: str, type: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
     try:
         token = red.get("token").decode()
-    except:
+    except Exception:
         loginID360()
-    token = red.get("token").decode()
+    try:
+        token = red.get("token").decode()
+        logging.info("token in create_dossier = %s", token)
+    except Exception:
+        logging.error("create_dossier request failed")
+        return None
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -70,7 +87,7 @@ def create_dossier(code: str, format: str) -> str:
     json_data = {
         'callback_url': mode.server+'/id360/oidc4vc_callback_id360/' + code,
         'browser_callback_url': mode.server+'/id360/oidc4vc_wait/' + code,
-        'client_reference': "",
+        'client_reference': "Talao tests",
         'callback_headers': {
             'code': code,
             'api-key': ID360_API_KEY,  # passer api key prod
@@ -82,25 +99,27 @@ def create_dossier(code: str, format: str) -> str:
             headers=headers,
             json=json_data,
         )
-    except:
+    except Exception:
         logging.error("create_dossier request failed")
-        return
+        return None
     if response.status_code == 200:
         red.setex(code, CODE_LIFE, json.dumps({
                   "id_dossier": response.json()["id"],
-                  "format": format
+                  "vc_format": format,
+                  "vc_type": type
                   }))
         url = mode.url + 'static/process_ui/index.html#/enrollment/' + \
             response.json()["api_key"] + "?lang=en"
-        logging.info(url)
+        logging.info("url = %s",url)
         return url
     elif response.status_code == 401:
+        # refresh token
         loginID360()
-        return create_dossier(code, format)
+        return create_dossier(code, format, type)
     else:
-        logging.error("create_dossier returned status %s",
-                      str(response.status_code))
-        return
+        logging.error("create_dossier returned status = %s", str(response.status_code))
+        print(response.content)
+        return None
 
 
 def get_dossier(id_dossier: str) -> dict:
@@ -118,12 +137,12 @@ def get_dossier(id_dossier: str) -> dict:
                                 str(id_dossier)+'/report?allow_draft=false',
                                 headers=headers)
     except:
-        logging.error("get_dossier request failed")
+        logging.error("get_dossier request connexion failed")
         return
     if response.status_code == 200:
         return response.json()
     elif response.status_code == 404:
-        logging.warning("dossier "+str(id_dossier)+" expiré")
+        logging.warning("dossier %s expired", str(id_dossier))
         return "expired"
     else:
         logging.error("error requesting dossier status : %s",
@@ -157,38 +176,24 @@ def get_image(url):
         return response.status_code
 
 
-def init_app(app, red_app, mode_app):
-    global red, mode
-    red = red_app
-    mode = mode_app
-    app.add_url_rule('/id360/oidc4vc_wait/<code>',
-                     view_func=oidc4vc_wait, methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc_callback', view_func=oidc4vc_callback,
-                     methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc', view_func=login_oidc,
-                     methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc_callback_id360/<code>',
-                     view_func=oidc_id360callback, methods=['GET', 'POST'])
-    app.add_url_rule('/id360/oidc4vc_stream',
-                     view_func=oidc_issuer_stream, methods=['GET'])
-    app.add_url_rule('/id360/get_status_kyc/<code>',
-                     view_func=get_status_kyc, methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc_intro', view_func=intro,
-                     methods=['GET'])
-
-
 def login_oidc():
     code = str(uuid.uuid4())
     format = request.args.get("format")
+    type = request.args.get("type")
     if not format:
-        format = "default"
-    return redirect(create_dossier(code, format))
+        format = "jwt_vc_json"
+    if not type:
+        type = "VerifiableId"
+    logging.info("VC format = %s", format )
+    logging.info("VC type = %s", type )
+    if type not in ["VerifiableId", "Over18"] or format not in ["jwt_vc_json", "ldp_vc"]:
+        return jsonify("This VC type or format is not supported")
+    return redirect(create_dossier(code, format, type))
 
 
 def oidc4vc_callback():
     if request.args.get("error"):
         return render_template("error.html", error=request.args.get("error").replace("_", " "), error_description=request.args.get("error_description"))
-
     return render_template("success.html")
 
 
@@ -211,15 +216,20 @@ def oidc_id360callback(code: str):
     try:
         if request.headers["api-key"] != ID360_API_KEY:
             return jsonify("Unauthorized"), 403
-    except KeyError:
+    except Exception:
         return jsonify("Unauthorized"), 403
     logging.info("reception of id360 callback for %s", code)
     try:
-        id_dossier = json.loads(red.get(code))["id_dossier"]
-    except (KeyError, TypeError) as error:
+        code_data = json.loads(red.get(code))
+        id_dossier = code_data["id_dossier"]
+        vc_format = code_data['vc_format']
+        vc_type = code_data["vc_type"]
+    except Exception:
         logging.error("redis expired %s", code)
-        red.setex(code, CODE_LIFE, json.dumps(
-            {"code_error": "414", "vc_type": "VerifiableId"}))
+        red.setex(code, CODE_LIFE, json.dumps({
+            "code_error": "414",
+            "vc_type": "VerifiableId"
+        }))
         return jsonify("ok")
 
     logging.info('callback for code = %s is %s',
@@ -231,106 +241,101 @@ def oidc_id360callback(code: str):
         red.setex(code, CODE_LIFE, json.dumps(
             {"id_dossier": id_dossier, "KYC": "KO", "url": ""}))
     elif request.get_json()["status"] == "OK":
-        six_digit_code = randint(100000, 999999)
-        logging.info("code pin %s", str(six_digit_code))
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
-        phone_number = False
-        try:
-            phone_number = dossier.get("external_methods").get("id_num").get(
-                "results").get("id_num_out_token")[0].get("payload").get("phone_number")
-        except:
-            pass
-        user_pin_required = False
-        if (phone_number):
-            user_pin_required = True
-            sms.send_code(phone_number, str(six_digit_code))
-        logging.info(dossier)
+        logging.info("dossier = %s", dossier)
         identity = dossier["identity"]
+        phone_number = False
+        user_pin_required = False
+       
+        """
         try:
             images = dossier.get("steps").get("id_document").get(
                 "input_files").get("id_document_image")
         except AttributeError:
             images = False
-        vc_type = "VerifiableId_oidc"
+        """    
         credential = json.load(
-            open('./verifiable_credentials/'+vc_type+'.jsonld', 'r'))
-        try:
-            credential["credentialSubject"]["familyName"] = identity["name"]
-        except:
-            logging.error("no familyName in dossier")
-        try:
-            credential["credentialSubject"]["firstName"] = identity["first_names"][0]
-        except:
-            logging.error("no firstName in dossier")
-        try:
-            credential["credentialSubject"]["gender"] = identity["gender"]
-        except:
-            logging.error("no gender in dossier")
-        try:
-            if images:
-                credential["credentialSubject"]["idRecto"] = get_image(
-                    images[0])
-                if (len(images) == 2):
-                    credential["credentialSubject"]["idVerso"] = get_image(
-                        images[1])
-        except Exception as e:
-            logging.error(e)
-        if identity.get("birth_date"):
-            credential["credentialSubject"]["dateOfBirth"] = identity.get(
-                "birth_date")
-        # TODO add other data if available
-        credential["evidence"][0]["id"] = "urn:id360:" + \
-            str(json.loads(red.get(code))["id_dossier"])
-        credential["evidence"][0]["verificationMethod"] = dossier.get(
-            "id_verification_service")
-        credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
-        credential["evidence"][0]["dossier"] = json.loads(red.get(code))[
-            "id_dossier"]
-        credential["evidence"][0]["parcours"] = mode.journey_oidc
+            open('./verifiable_credentials/'+ vc_type +'.jsonld', 'r'))
+        if vc_type == "VerifiableId":
+            try:
+                credential["credentialSubject"]["familyName"] = identity["name"]
+            except Exception:
+                logging.error("no familyName in dossier")
+            try:
+                credential["credentialSubject"]["firstName"] = identity["first_names"][0]
+            except Exception:
+                logging.error("no firstName in dossier")
+            try:
+                credential["credentialSubject"]["gender"] = identity["gender"]
+            except Exception:
+                logging.error("no gender in dossier")
+            try:
+                credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
+            except Exception:
+                logging.error("no gender in dossier")
+        elif vc_type == "Over18":
+            print("birth date = ",  identity.get("birth_date"))
+            pass # TODO
+        else:
+            pass
 
+        # TODO add other data if available
+        credential["evidence"][0]["id"] = "urn:id360:" + str(id_dossier)
+        credential["evidence"][0]["verificationMethod"] = dossier.get("id_verification_service")
+        credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
+        credential["evidence"][0]["dossier"] = id_dossier
+        credential["evidence"][0]["parcours"] = mode.journey_oidc
         credential["issuer"] = ISSUER_DID
-        credential['issuanceDate'] = datetime.utcnow().replace(
-            microsecond=0).isoformat() + "Z"
-        credential['expirationDate'] = (
-            datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+        credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
         credential['id'] = "urn:uuid:random"  # for preview only
         logging.info(credential)
-        format = json.loads(red.get(code))["format"]
-        cs = client_secret
         url = OIDC_URL
-        issuer_id = ISSUER_ID_JWT
-        if format == "json-ld":
+        if vc_format == "jwt_vc_json":
+            cs = client_secret  
+            issuer_id = ISSUER_ID_JWT
+        elif vc_format == "ldp_vc":
             cs = client_secret_json_ld
             issuer_id = ISSUER_ID_JSON_LD
+        else:
+            logging.error("vc format error")
+            cs = client_secret  
+            issuer_id = ISSUER_ID_JWT
+
         headers = {
             'Content-Type': 'application/json',
             'X-API-KEY': cs
         }
         data = {
-            "vc": {"VerifiableId": credential},
+            "vc": {vc_type: credential},
             "issuer_state": code,
             "credential_type": ["VerifiableId"],
             "pre-authorized_code": True,
             "user_pin_required": user_pin_required,
-            "user_pin": str(six_digit_code),
+            #"user_pin": str(six_digit_code),
             "callback": mode.server+"/id360/oidc4vc_callback",
             'issuer_id': issuer_id
         }
-        logging.info(url+" "+issuer_id)
         resp = requests.post(url, headers=headers, data=json.dumps(data))
-        logging.info(resp.status_code)
+        logging.info("status code = %s", resp.status_code)
         logging.info(resp.json())
         try:
             url = resp.json()['redirect_uri']
-        except KeyError:
+        except Exception:
             logging.error("error oidc")
             url = "error_oidc"
-        event_data = json.dumps(
-            {"type": "KYC", "status": "OK", "code": code, "url": url})
+        event_data = json.dumps({
+            "type": "KYC",
+            "status": "OK",
+            "code": code,
+            "url": url
+        })
         red.publish('issuer', event_data)
-        red.setex(code, CODE_LIFE, json.dumps(
-            {"id_dossier": id_dossier, "KYC": "OK", "url": url}))
+        red.setex(code, CODE_LIFE, json.dumps({
+            "id_dossier": id_dossier,
+            "KYC": "OK",
+            "url": url}))
     return jsonify("ok")
 
 
