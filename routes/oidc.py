@@ -120,7 +120,6 @@ def create_dossier(code: str, format: str, type: str) -> str:
         return create_dossier(code, format, type)
     else:
         logging.error("create_dossier returned status = %s", str(response.status_code))
-        print(response.content)
         return None
 
 
@@ -188,9 +187,11 @@ def login_oidc():
         type = "VerifiableId"
     if type.lower() == "over18":
         type = "Over18"
+    elif type.lower() == "liveness":
+        type = "Liveness"
     logging.info("VC format = %s", format )
     logging.info("VC type = %s", type )
-    if type.lower() not in [ "over18", "verifiableid"] or format not in ["jwt_vc_json", "ldp_vc"]:
+    if type.lower() not in [ "over18", "verifiableid", "liveness"] or format.lower() not in ["jwt_vc_json", "ldp_vc"]:
         return jsonify("This VC type or format is not supported")
     return redirect(create_dossier(code, format, type))
 
@@ -225,7 +226,7 @@ def oidc_id360callback(code: str):
     logging.info("reception of id360 callback for %s", code)
     try:
         code_data = json.loads(red.get(code))
-        id_dossier = code_data["id_dossier"]
+        id_dossier = code_data["id_dossier"] # an integer
         vc_format = code_data['vc_format']
         vc_type = code_data["vc_type"]
     except Exception:
@@ -236,8 +237,7 @@ def oidc_id360callback(code: str):
         }))
         return jsonify("ok")
 
-    logging.info('callback for code = %s is %s',
-                 code, request.get_json()["status"])
+    logging.info('callback for code = %s is %s', code, request.get_json()["status"])
     if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
         event_data = json.dumps(
             {"type": "KYC", "status": "KO", "code": code, "url": ""})
@@ -247,10 +247,7 @@ def oidc_id360callback(code: str):
     elif request.get_json()["status"] == "OK":
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
-        logging.info("dossier = %s", dossier)
         identity = dossier["identity"]
-        phone_number = False
-        user_pin_required = False
        
         """
         try:
@@ -260,9 +257,10 @@ def oidc_id360callback(code: str):
             images = False
         """    
         if vc_format == "jwt_vc_json":
-            vc_file_name = vc_type +'_jwt_vc_json.jsonld'
-        credential = json.load(
-            open('./verifiable_credentials/'+ vc_file_name , 'r'))
+            vc_filename = vc_type + '_jwt_vc_json.jsonld'
+        else:
+            vc_filename = vc_type + '.jsonld'
+        credential = json.load(open('./verifiable_credentials/'+ vc_filename , 'r'))
         if vc_type == "VerifiableId":
             try:
                 credential["credentialSubject"]["familyName"] = identity["name"]
@@ -279,7 +277,7 @@ def oidc_id360callback(code: str):
             try:
                 credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
             except Exception:
-                logging.error("no gender in dossier")
+                logging.error("no birth date in dossier")
         elif vc_type == "Over18":
             birth_date = identity.get("birth_date")
             timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
@@ -287,6 +285,8 @@ def oidc_id360callback(code: str):
             if now-timestamp < ONE_YEAR*18:
                 logging.waring("age below 18")
                 return jsonify("Unauthorized"), 403
+        elif vc_type == "Liveness":
+            pass
         else:
             pass
 
@@ -322,7 +322,7 @@ def oidc_id360callback(code: str):
             "issuer_state": code,
             "credential_type": [vc_type],
             "pre-authorized_code": True,
-            "user_pin_required": user_pin_required,
+            "user_pin_required": False,
             #"user_pin": str(six_digit_code),
             "callback": mode.server+"/id360/oidc4vc_callback",
             'issuer_id': issuer_id
