@@ -288,6 +288,7 @@ def issuer(code: str):
         except:
             wallet_callback = json.loads(red.get(code))["wallet_callback"]
             vc_type = json.loads(red.get(code))["vc_type"]
+            print("wallet callback = ", wallet_callback)
             if vc_type == "VerifiableId":
                 verified = "ID"
             elif vc_type == "DefiCompliance":
