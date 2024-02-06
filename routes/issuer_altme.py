@@ -201,6 +201,8 @@ def get_code():
         logging.warning("api key error")
         return jsonify("client not found"), 404
     wallet_callback = WALLETS.get(client_id)[1]
+    print(client_id)
+    print("allet call back = ", wallet_callback)
     code = str(uuid.uuid1())
     red.setex(code, CODE_LIFE, json.dumps({
         "client_id": client_id,
@@ -279,30 +281,26 @@ def issuer(code: str):
         logging.error("redis expired %s", code)
         return redirect(url_for('error', code_error="internal_error"))
     if session.get('logged'):
-        print("user is logged when callback")
+        logging.info("user is logged when callback")
         try:
             code_error = json.loads(red.get(code))["code_error"]
             card = json.loads(red.get(code))["vc_type"]
-            print("try error")
             return redirect(url_for('error', code_error=code_error, card=card))
         except:
             wallet_callback = json.loads(red.get(code))["wallet_callback"]
             vc_type = json.loads(red.get(code))["vc_type"]
-            print("wallet callback = ", wallet_callback)
             if vc_type == "VerifiableId":
                 verified = "ID"
             elif vc_type == "DefiCompliance":
                 verified = "compliance"
             else:
                 verified = "age"
-            print("vc type = ", vc_type)
             return render_template(
                 "issuer_mobile.html",
                 code=code,
                 url=wallet_callback + "?uri=" + mode.server + "/id360/issuer_endpoint/" + code,
                 card=vc_type,
                 verified=verified)
-    print('user not logged')
     return redirect(url_for('error', code_error="internal_error"))
 
 
