@@ -279,9 +279,11 @@ def issuer(code: str):
         logging.error("redis expired %s", code)
         return redirect(url_for('error', code_error="internal_error"))
     if session.get('logged'):
+        print("user is logged when callback")
         try:
             code_error = json.loads(red.get(code))["code_error"]
             card = json.loads(red.get(code))["vc_type"]
+            print("try error")
             return redirect(url_for('error', code_error=code_error, card=card))
         except:
             wallet_callback = json.loads(red.get(code))["wallet_callback"]
@@ -292,8 +294,14 @@ def issuer(code: str):
                 verified = "compliance"
             else:
                 verified = "age"
-            return render_template("issuer_mobile.html", code=code,  url=wallet_callback+"?uri="+mode.server+"/id360/issuer_endpoint/" + code, card=vc_type, verified=verified)
-
+            print("vc type = ", vc_type)
+            return render_template(
+                "issuer_mobile.html",
+                code=code,
+                url=wallet_callback + "?uri=" + mode.server + "/id360/issuer_endpoint/" + code,
+                card=vc_type,
+                verified=verified)
+    print('user not logged')
     return redirect(url_for('error', code_error="internal_error"))
 
 
