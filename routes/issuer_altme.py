@@ -552,41 +552,6 @@ async def issuer_endpoint(code: str):
         credential = json.loads(red.get(code))["credential"]
         credential['id'] = "urn:uuid:" + str(uuid.uuid1())
         credential['credentialSubject']['id'] = request.form['subject_id']
-        """
-        try:
-            presentation = json.loads(request.form['presentation'])
-        except:
-            logging.warning("presentation does not exist")
-            red.delete(code)
-            # ERROR : presentation does not exist
-            event_data = json.dumps(
-                {"type": "error", "code": code, "error": "430"})
-            red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401
-        if request.form['subject_id'] != presentation['holder']:
-            logging.warning("holder does not match subject")
-            red.delete(code)
-            # ERROR : holder does not match subject
-            event_data = json.dumps(
-                {"type": "error", "code": code, "error": "431"})
-            red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401
-        presentation_result = json.loads(await didkit.verify_presentation(request.form['presentation'], '{}'))
-        presentation_result['errors'] = []  # FIXME
-        if presentation_result['errors']:  # push erreur sur stream
-            logging.warning("presentation failed  %s", presentation_result)
-            red.delete(code)  # ERROR : presentation failed
-            event_data = json.dumps(
-                {"type": "error", "code": code, "error": "432"})
-            red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401
-        if json.loads(red.get(code))["did"] != json.loads(request.form['presentation'])["holder"]:
-            logging.warning("invalid did  %s", presentation_result)
-            red.delete(code)  # ERROR : invalid did
-            event_data = json.dumps(
-                {"type": "error", "code": code, "error": "433"})
-            red.publish('issuer', event_data)
-            return jsonify('Unauthorized'), 401"""
         # credential signature
         didkit_options = {
             "proofPurpose": "assertionMethod",
