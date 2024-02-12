@@ -18,12 +18,14 @@ ONE_YEAR = 31556926  # seconds
 
 red = None
 mode = None
+OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
 
 ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json
 ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc
-OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
-client_secret = json.load(open("keys.json", "r"))["client_secret"] #jwt_vc_json 
-client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"] # ldp_vc
+ISSUER_ID_SD_JWT = "allekzsiuo"
+client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
+client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc
+client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt
 
 
 def init_app(app, red_app, mode_app):
@@ -54,7 +56,7 @@ def loginID360() -> bool:
     }
     try:
         response = requests.post(mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
-    except:
+    except Exception:
         logging.error("loginID360 connection failed")
         return
     if response.status_code == 200:
@@ -106,10 +108,10 @@ def create_dossier(code: str, format: str, type: str) -> str:
         return None
     if response.status_code == 200:
         red.setex(code, CODE_LIFE, json.dumps({
-                  "id_dossier": response.json()["id"],
-                  "vc_format": format,
-                  "vc_type": type
-                  }))
+            "id_dossier": response.json()["id"],
+            "vc_format": format,
+            "vc_type": type
+        }))
         url = mode.url + 'static/process_ui/index.html#/enrollment/' + \
             response.json()["api_key"] + "?lang=en"
         logging.info("url = %s",url)
@@ -137,7 +139,7 @@ def get_dossier(id_dossier: str) -> dict:
         response = requests.get(mode.url + 'api/1.0.0/enrollment/' +
                                 str(id_dossier)+'/report?allow_draft=false',
                                 headers=headers)
-    except:
+    except Exception:
         logging.error("get_dossier request connexion failed")
         return
     if response.status_code == 200:
@@ -146,8 +148,7 @@ def get_dossier(id_dossier: str) -> dict:
         logging.warning("dossier %s expired", str(id_dossier))
         return "expired"
     else:
-        logging.error("error requesting dossier status : %s",
-                      response.status_code)
+        logging.error("error requesting dossier status : %s",response.status_code)
         return response.status_code
 
 
@@ -163,7 +164,7 @@ def get_image(url):
     }
     try:
         response = requests.get(url, headers=headers)
-    except:
+    except Exception:
         logging.error("get_image request failed")
         return
     if response.status_code == 200:
@@ -172,26 +173,29 @@ def get_image(url):
         logging.warning("get_image 404")
         return "expired"
     else:
-        logging.error("error requesting image status : %s",
-                      response.status_code)
+        logging.error("error requesting image status : %s",response.status_code)
         return response.status_code
 
 
 def login_oidc():
     code = str(uuid.uuid4())
     format = request.args.get("format")
-    type = request.args.get("type")
     if not format:
         format = "jwt_vc_json"
+    if format == "vcsd-jwt":
+        format = "vc+sd-jwt"
+    type = request.args.get("type")
     if not type:
         type = "VerifiableId"
     if type.lower() == "over18":
         type = "Over18"
     elif type.lower() == "liveness":
         type = "Liveness"
-    logging.info("VC format = %s", format )
-    logging.info("VC type = %s", type )
-    if type.lower() not in [ "over18", "verifiableid", "liveness"] or format.lower() not in ["jwt_vc_json", "ldp_vc"]:
+    elif type.lower() == "identitycredential":
+        type = "IdentityCredential"
+    logging.info("VC format = %s", format)
+    logging.info("VC type = %s", type)
+    if type.lower() not in [ "over18", "verifiableid", "liveness", "identitycredential"] or format.lower() not in ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]:
         return jsonify("This VC type or format is not supported")
     return redirect(create_dossier(code, format, type))
 
@@ -248,7 +252,7 @@ def oidc_id360callback(code: str):
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
         identity = dossier["identity"]
-       
+    
         """
         try:
             images = dossier.get("steps").get("id_document").get(
@@ -258,10 +262,29 @@ def oidc_id360callback(code: str):
         """    
         if vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
+        elif vc_format == 'vc+sd-jwt':
+            vc_filename = 'IdentityCredential.json'
         else:
             vc_filename = vc_type + '.jsonld'
-        credential = json.load(open('./verifiable_credentials/'+ vc_filename , 'r'))
-        if vc_type == "VerifiableId":
+        credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
+        print("identity docaposte ", identity)
+        if vc_format == 'vc+sd-jwt':
+            try:
+                credential['given_name'] = identity["first_names"][0]
+                credential['family_name'] = identity["name"]
+                credential['birthdate'] = identity.get("birth_date")
+                birth_date = identity.get("birth_date")
+                timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
+                now = time.time()
+                credential['is_over_18'] = True if (now-timestamp > ONE_YEAR*18) else False
+                credential['is_over_21'] = True if (now-timestamp > ONE_YEAR*21) else False
+                credential['is_over_65'] = True if (now-timestamp > ONE_YEAR*65) else False
+            except Exception:
+                credential['given_name'] = "Unknown"
+                credential['family_name'] = "Unknown"
+                credential['birthdate'] = "Unknown"
+                credential['is_over_18'] = True
+        elif vc_type == "VerifiableId":
             try:
                 credential["credentialSubject"]["familyName"] = identity["name"]
             except Exception:
@@ -289,18 +312,18 @@ def oidc_id360callback(code: str):
             pass
         else:
             pass
-
         # TODO add other data if available
-        credential["evidence"][0]["id"] = "urn:id360:" + str(id_dossier)
-        credential["evidence"][0]["verificationMethod"] = dossier.get("id_verification_service")
-        credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
-        credential["evidence"][0]["dossier"] = id_dossier
-        credential["evidence"][0]["parcours"] = mode.journey_oidc
-        credential["issuer"] = ISSUER_DID
-        credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-        credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-        credential['id'] = "urn:uuid:random"  # for preview only
-        logging.info(credential)
+        if vc_format in ["jwt_vc_json", "ldp_vc"]:
+            credential["evidence"][0]["id"] = "urn:id360:" + str(id_dossier)
+            credential["evidence"][0]["verificationMethod"] = dossier.get("id_verification_service")
+            credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
+            credential["evidence"][0]["dossier"] = id_dossier
+            credential["evidence"][0]["parcours"] = mode.journey_oidc
+            credential["issuer"] = ISSUER_DID
+            credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+            credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+            credential['id'] = "urn:uuid:random"  # for preview only
+            logging.info(credential)
         url = OIDC_URL
         if vc_format == "jwt_vc_json":
             cs = client_secret  
@@ -308,6 +331,9 @@ def oidc_id360callback(code: str):
         elif vc_format == "ldp_vc":
             cs = client_secret_json_ld
             issuer_id = ISSUER_ID_JSON_LD
+        elif vc_format == "vc+sd-jwt":
+            cs = client_secret_sd_jwt
+            issuer_id = ISSUER_ID_SD_JWT
         else:
             logging.error("vc format error")
             cs = client_secret  
@@ -332,6 +358,7 @@ def oidc_id360callback(code: str):
         logging.info(resp.json())
         try:
             url = resp.json()['redirect_uri']
+            logging.info("redirect uri = %s", url)
         except Exception:
             logging.error("error oidc")
             url = "error_oidc"
