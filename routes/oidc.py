@@ -330,23 +330,23 @@ def oidc_id360callback(code: str):
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15:
-            logging.waring("age below 15")
+            logging.warning("age below 15")
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13:
-            logging.waring("age below 13")
+            logging.warning("age below 13")
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over21" and (now-timestamp) < ONE_YEAR*21:
-            logging.waring("age below 13")
+            logging.warning("age below 13")
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over50" and (now-timestamp) < ONE_YEAR*50:
-            logging.waring("age below 50")
+            logging.warning("age below 50")
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over65" and (now-timestamp) < ONE_YEAR*65:
-            logging.waring("age below 65")
+            logging.warning("age below 65")
             manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Liveness":
