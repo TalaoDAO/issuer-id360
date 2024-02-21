@@ -1,0 +1,12 @@
+{
+    "@context": ["https://www.w3.org/2018/credentials/v1"],
+    "id": "",
+    "type": ["VerifiableCredential", "Over65"],
+    "issuer": "",
+    "issuanceDate": "",
+    "credentialSubject" : {
+        "type" : "Over65",
+        "ageOver" : "65",
+        "is_over_50": true
+    }
+}
