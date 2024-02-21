@@ -178,25 +178,31 @@ def get_image(url):
 
 
 def login_oidc():
+    """
+    @format = ldp_vc | jwt_vc_json | vcsd-jwt
+    """
     code = str(uuid.uuid4())
     format = request.args.get("format")
+    type = request.args.get("type")
     if not format:
         format = "jwt_vc_json"
-    if format == "vcsd-jwt":
+    elif format == "vcsd-jwt":
         format = "vc+sd-jwt"
-    type = request.args.get("type")
-    if not type:
+        
+    if not type or type.lower() == "verifiableid":
         type = "VerifiableId"
-    if type.lower() == "over18":
+    elif type.lower() == "over18":
         type = "Over18"
+    elif type.lower() == "over15":
+        type = "Over15"
     elif type.lower() == "liveness":
         type = "Liveness"
     elif type.lower() == "identitycredential":
         type = "IdentityCredential"
     logging.info("VC format = %s", format)
     logging.info("VC type = %s", type)
-    if type.lower() not in [ "over18", "verifiableid", "liveness", "identitycredential"] or format.lower() not in ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]:
-        return jsonify("This VC type or format is not supported")
+    if type.lower() not in ["over18", "over15", "Liveness", "verifiableid", "identitycredential"] or format.lower() not in ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]:
+        return jsonify("This VC type or VC format is not supported")
     return redirect(create_dossier(code, format, type))
 
 
@@ -262,20 +268,24 @@ def oidc_id360callback(code: str):
         """    
         if vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
+        elif vc_format == "ldp_vc":
+            vc_filename = vc_type + '_ldp_vc.jsonld'
         elif vc_format == 'vc+sd-jwt':
             vc_filename = 'IdentityCredential.json'
-        else:
+        else: # ldp_vc
             vc_filename = vc_type + '.jsonld'
         credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
-        print("identity docaposte ", identity)
+        birth_date = identity.get("birth_date")
+        if not birth_date:
+            logging.warning('No birth date in dossier)')
+        timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
+        now = time.time()
         if vc_format == 'vc+sd-jwt':
             try:
                 credential['given_name'] = identity["first_names"][0]
                 credential['family_name'] = identity["name"]
-                credential['birthdate'] = identity.get("birth_date")
-                birth_date = identity.get("birth_date")
-                timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
-                now = time.time()
+                credential['birthdate'] = birth_date
+                credential['is_over_15'] = True if (now-timestamp > ONE_YEAR*15) else False
                 credential['is_over_18'] = True if (now-timestamp > ONE_YEAR*18) else False
                 credential['is_over_21'] = True if (now-timestamp > ONE_YEAR*21) else False
                 credential['is_over_65'] = True if (now-timestamp > ONE_YEAR*65) else False
@@ -297,34 +307,27 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["gender"] = identity["gender"]
             except Exception:
                 logging.error("no gender in dossier")
-            try:
-                credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date")
-            except Exception:
-                logging.error("no birth date in dossier")
-        elif vc_type == "Over18":
-            birth_date = identity.get("birth_date")
-            timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
-            now = time.time()
-            if now-timestamp < ONE_YEAR*18:
-                logging.waring("age below 18")
-                return jsonify("Unauthorized"), 403
+            credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date", "Unknown")
+        elif vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18:
+            logging.waring("age below 18")
+            return jsonify("Unauthorized"), 403
+        elif vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15:
+            logging.waring("age below 15")
+            return jsonify("Unauthorized"), 403
+        elif vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13:
+            logging.waring("age below 13")
+            return jsonify("Unauthorized"), 403
         elif vc_type == "Liveness":
             pass
         else:
             pass
         # TODO add other data if available
         if vc_format in ["jwt_vc_json", "ldp_vc"]:
-            credential["evidence"][0]["id"] = "urn:id360:" + str(id_dossier)
-            credential["evidence"][0]["verificationMethod"] = dossier.get("id_verification_service")
-            credential["evidence"][0]["levelOfAssurance"] = dossier.get("level")
-            credential["evidence"][0]["dossier"] = id_dossier
-            credential["evidence"][0]["parcours"] = mode.journey_oidc
             credential["issuer"] = ISSUER_DID
             credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
             credential['id'] = "urn:uuid:random"  # for preview only
             logging.info(credential)
-        url = OIDC_URL
         if vc_format == "jwt_vc_json":
             cs = client_secret  
             issuer_id = ISSUER_ID_JWT
@@ -334,10 +337,6 @@ def oidc_id360callback(code: str):
         elif vc_format == "vc+sd-jwt":
             cs = client_secret_sd_jwt
             issuer_id = ISSUER_ID_SD_JWT
-        else:
-            logging.error("vc format error")
-            cs = client_secret  
-            issuer_id = ISSUER_ID_JWT
 
         headers = {
             'Content-Type': 'application/json',
@@ -353,7 +352,7 @@ def oidc_id360callback(code: str):
             "callback": mode.server+"/id360/oidc4vc_callback",
             'issuer_id': issuer_id
         }
-        resp = requests.post(url, headers=headers, data=json.dumps(data))
+        resp = requests.post(OIDC_URL, headers=headers, data=json.dumps(data))
         logging.info("status code = %s", resp.status_code)
         logging.info(resp.json())
         try:
@@ -386,9 +385,11 @@ def oidc_issuer_stream():
         for message in pubsub.listen():
             if message['type'] == 'message':
                 yield 'data: %s\n\n' % message['data'].decode()
-    headers = {"Content-Type": "text/event-stream",
-               "Cache-Control": "no-cache",
-               "X-Accel-Buffering": "no"}
+    headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"
+    }
     return Response(event_stream(), headers=headers)
 
 

@@ -1,0 +1,23 @@
+{
+    "@context": ["https://www.w3.org/2018/credentials/v1",
+        {
+            "Liveness" : {
+                "@id": "https://github.com/TalaoDAO/context#liveness",
+                "@context": {
+                    "@version": 1.1,
+                    "@protected": true,
+                    "schema" : "https://schema.org/",
+                    "id": "@id",
+                    "type": "@type"
+                }
+            }
+        }
+    ],
+    "id": "",
+    "type": ["VerifiableCredential", "Liveness"],
+    "issuer": "",
+    "issuanceDate": "",
+    "credentialSubject" : {
+        "type" : "Liveness"
+    }
+}

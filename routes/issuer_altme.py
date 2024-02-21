@@ -33,18 +33,12 @@ def init_app(app, red_app, mode_app):
     red = red_app
     mode = mode_app
     app.add_url_rule('/id360/get_code',  view_func=get_code, methods=['GET'])
-    app.add_url_rule('/id360/authenticate/<code>',
-                     view_func=login, methods=['GET'])
-    app.add_url_rule('/id360/issuer/<code>',
-                     view_func=issuer, methods=['GET'])
-    app.add_url_rule('/id360/issuer_stream',
-                     view_func=issuer_stream, methods=['GET'])
-    app.add_url_rule('/id360/callback_id360/<code>',
-                     view_func=id360callback, methods=['GET', 'POST'])
-    app.add_url_rule('/id360/issuer_endpoint/<code>',
-                     view_func=issuer_endpoint, methods=['GET', 'POST'])
-    app.add_url_rule('/id360/error/code_error',
-                     view_func=error, methods=['GET'])
+    app.add_url_rule('/id360/authenticate/<code>', view_func=login, methods=['GET'])
+    app.add_url_rule('/id360/issuer/<code>', view_func=issuer, methods=['GET'])
+    app.add_url_rule('/id360/issuer_stream', view_func=issuer_stream, methods=['GET'])
+    app.add_url_rule('/id360/callback_id360/<code>', view_func=id360callback, methods=['GET', 'POST'])
+    app.add_url_rule('/id360/issuer_endpoint/<code>', view_func=issuer_endpoint, methods=['GET', 'POST'])
+    app.add_url_rule('/id360/error/code_error', view_func=error, methods=['GET'])
     app.add_url_rule('/id360/success', view_func=success, methods=['GET'])
     return
 
@@ -65,15 +59,14 @@ def loginID360() -> str:
     try:
         response = requests.post(
             mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
-    except:
+    except Exception:
         logging.error("loginID360 request failed")
         return
     if response.status_code == 200:
         red.set("token", response.json()["token"])
         return True
     else:
-        logging.error("loginID360 returned status %s",
-                      str(response.status_code))
+        logging.error("loginID360 returned status %s", str(response.status_code))
         return
 
 
@@ -83,7 +76,7 @@ def create_dossier(code: str, did: str, journey: str, language: str) -> str:
     """
     try:
         token = red.get("token").decode()
-    except:
+    except Exception:
         loginID360()
     token = red.get("token").decode()
     headers = {
@@ -106,13 +99,13 @@ def create_dossier(code: str, did: str, journey: str, language: str) -> str:
             headers=headers,
             json=json_data,
         )
-    except:
+    except Exception:
         logging.error("create_dossier request failed")
         return
     if response.status_code == 200:
         try:
             temp_dict = json.loads(red.get(code))
-        except:
+        except Exception:
             logging.error("redis expired %s", code)
             return
         temp_dict["id_dossier"] = response.json()["id"]
@@ -122,8 +115,7 @@ def create_dossier(code: str, did: str, journey: str, language: str) -> str:
         loginID360()
         return create_dossier(code, did, journey, language)
     else:
-        logging.error("create_dossier returned status %s",
-                      str(response.status_code))
+        logging.error("create_dossier returned status %s", str(response.status_code))
         return
 
 
@@ -140,7 +132,7 @@ def get_dossier(id_dossier: str) -> dict:
     try:
         response = requests.get(mode.url + 'api/1.0.0/enrollment/' +
                                 str(id_dossier)+'/report?allow_draft=false', headers=headers)
-    except:
+    except Exception:
         logging.error("get_dossier request failed")
         return
     if response.status_code == 200:
@@ -149,8 +141,7 @@ def get_dossier(id_dossier: str) -> dict:
         logging.warning("dossier "+str(id_dossier)+" expiré")
         return "expired"
     else:
-        logging.error("error requesting dossier status : %s",
-                      response.status_code)
+        logging.error("error requesting dossier status : %s", response.status_code)
         return response.status_code
 
 
@@ -159,8 +150,7 @@ def pep(firstname: str, lastname: str):
     Function checking pep sanctions by name and lastname
     see https://pepchecker.com/
     """
-    logging.info("testing pep for %s %s", firstname,
-                 lastname)  #  mettre des %s
+    logging.info("testing pep for %s %s", firstname, lastname)  #  mettre des %s
     response = requests.get(PEP_URL + 'check?firstName=' + firstname +
                             '&lastName=' + lastname, headers={'api-key':  PROD_API_KEY_PEP})
     logging.info('PEP = %s', response.json())
@@ -201,8 +191,7 @@ def get_code():
         logging.warning("api key error")
         return jsonify("client not found"), 404
     wallet_callback = WALLETS.get(client_id)[1]
-    print(client_id)
-    print("allet call back = ", wallet_callback)
+    logging.info("wallet call back = %s", wallet_callback)
     code = str(uuid.uuid1())
     red.setex(code, CODE_LIFE, json.dumps({
         "client_id": client_id,
@@ -216,13 +205,11 @@ def login(code: str):
     """
     first route redirecting user to id360 ui or issuer if a kyc he already completed a kyc
     """
-    
     try: 
-        print(red.get(code))
         did = json.loads(red.get(code))["did"]
         wallet_callback = json.loads(red.get(code))['wallet_callback']
         client_id = json.loads(red.get(code))['client_id']
-    except:
+    except Exception:
         return redirect(url_for('error', code_error="internal_error"))
     try:
         vc_type = request.args['vc_type']
@@ -277,7 +264,7 @@ def issuer(code: str):
     """
     try:
         json.loads(red.get(code))
-    except:
+    except Exception:
         logging.error("redis expired %s", code)
         return redirect(url_for('error', code_error="internal_error"))
     if session.get('logged'):
@@ -286,7 +273,7 @@ def issuer(code: str):
             code_error = json.loads(red.get(code))["code_error"]
             card = json.loads(red.get(code))["vc_type"]
             return redirect(url_for('error', code_error=code_error, card=card))
-        except:
+        except Exception:
             wallet_callback = json.loads(red.get(code))["wallet_callback"]
             vc_type = json.loads(red.get(code))["vc_type"]
             if vc_type == "VerifiableId":
@@ -314,9 +301,11 @@ def issuer_stream():
         for message in pubsub.listen():
             if message['type'] == 'message':
                 yield 'data: %s\n\n' % message['data'].decode()
-    headers = {"Content-Type": "text/event-stream",
-               "Cache-Control": "no-cache",
-               "X-Accel-Buffering": "no"}
+    headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"
+    }
     return Response(event_stream(), headers=headers)
 
 
@@ -344,8 +333,7 @@ def id360callback(code: str):
     did = json.loads(red.get(code))["did"]
     vc_type = json.loads(red.get(code))["vc_type"]
 
-    logging.info('callback for wallet DID = %s is %s',
-                 did, request.get_json()["status"])
+    logging.info('callback for wallet DID = %s is %s', did, request.get_json()["status"])
 
     dossier = request.get_json()
 
