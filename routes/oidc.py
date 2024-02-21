@@ -304,6 +304,7 @@ def oidc_id360callback(code: str):
                 credential['is_over_15'] = True if (now-timestamp > ONE_YEAR*15) else False
                 credential['is_over_18'] = True if (now-timestamp > ONE_YEAR*18) else False
                 credential['is_over_21'] = True if (now-timestamp > ONE_YEAR*21) else False
+                credential['is_over_50'] = True if (now-timestamp > ONE_YEAR*50) else False
                 credential['is_over_65'] = True if (now-timestamp > ONE_YEAR*65) else False
             except Exception:
                 credential['given_name'] = "Unknown"
