@@ -1,3 +1,8 @@
+"""
+
+https://talao.co/id360/oidc4vc?format=ldp_vc&type=over18
+"""
+
 import requests
 import logging
 import uuid
@@ -15,6 +20,8 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 CREDENTIAL_LIFE = 360  # in days
 ONE_YEAR = 31556926  # seconds
 
+VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential"]
+VC_FORMAT_SUPPORTED = ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]
 
 red = None
 mode = None
@@ -178,9 +185,6 @@ def get_image(url):
 
 
 def login_oidc():
-    """
-    @format = ldp_vc | jwt_vc_json | vcsd-jwt
-    """
     code = str(uuid.uuid4())
     format = request.args.get("format")
     type = request.args.get("type")
@@ -191,17 +195,25 @@ def login_oidc():
         
     if not type or type.lower() == "verifiableid":
         type = "VerifiableId"
+    elif type.lower() == "over13":
+        type = "Over13"
     elif type.lower() == "over18":
         type = "Over18"
     elif type.lower() == "over15":
         type = "Over15"
+    elif type.lower() == "over21":
+        type = "Over21"
+    elif type.lower() == "over65":
+        type = "Over65"
+    elif type.lower() == "over50":
+        type = "Over50"
     elif type.lower() == "liveness":
         type = "Liveness"
     elif type.lower() == "identitycredential":
         type = "IdentityCredential"
     logging.info("VC format = %s", format)
     logging.info("VC type = %s", type)
-    if type.lower() not in ["over18", "over15", "Liveness", "verifiableid", "identitycredential"] or format.lower() not in ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]:
+    if type not in VC_TYPE_SUPPORTED or format not in VC_FORMAT_SUPPORTED:
         return jsonify("This VC type or VC format is not supported")
     return redirect(create_dossier(code, format, type))
 
@@ -228,6 +240,20 @@ def oidc_id360callback(code: str):
     """
     Callback route for ID360
     """
+    def manage_error(id_dossier, code):
+        event_data = json.dumps({
+            "type": "KYC",
+            "status": "KO",
+            "code": code,
+            "url": ""})
+        red.publish('issuer', event_data)
+        red.setex(code, CODE_LIFE, json.dumps({
+            "id_dossier": id_dossier,
+            "KYC": "KO",
+            "url": ""
+        }))
+        return
+    
     try:
         if request.headers["api-key"] != ID360_API_KEY:
             return jsonify("Unauthorized"), 403
@@ -249,23 +275,12 @@ def oidc_id360callback(code: str):
 
     logging.info('callback for code = %s is %s', code, request.get_json()["status"])
     if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
-        event_data = json.dumps(
-            {"type": "KYC", "status": "KO", "code": code, "url": ""})
-        red.publish('issuer', event_data)
-        red.setex(code, CODE_LIFE, json.dumps(
-            {"id_dossier": id_dossier, "KYC": "KO", "url": ""}))
+        manage_error(id_dossier, code)
+        
     elif request.get_json()["status"] == "OK":
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
         identity = dossier["identity"]
-    
-        """
-        try:
-            images = dossier.get("steps").get("id_document").get(
-                "input_files").get("id_document_image")
-        except AttributeError:
-            images = False
-        """    
         if vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
         elif vc_format == "ldp_vc":
@@ -285,6 +300,7 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = identity["first_names"][0]
                 credential['family_name'] = identity["name"]
                 credential['birthdate'] = birth_date
+                credential['is_over_13'] = True if (now-timestamp > ONE_YEAR*13) else False
                 credential['is_over_15'] = True if (now-timestamp > ONE_YEAR*15) else False
                 credential['is_over_18'] = True if (now-timestamp > ONE_YEAR*18) else False
                 credential['is_over_21'] = True if (now-timestamp > ONE_YEAR*21) else False
@@ -310,12 +326,27 @@ def oidc_id360callback(code: str):
             credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date", "Unknown")
         elif vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18:
             logging.waring("age below 18")
+            manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15:
             logging.waring("age below 15")
+            manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13:
             logging.waring("age below 13")
+            manage_error(id_dossier, code)
+            return jsonify("Unauthorized"), 403
+        elif vc_type == "Over21" and (now-timestamp) < ONE_YEAR*21:
+            logging.waring("age below 13")
+            manage_error(id_dossier, code)
+            return jsonify("Unauthorized"), 403
+        elif vc_type == "Over50" and (now-timestamp) < ONE_YEAR*50:
+            logging.waring("age below 50")
+            manage_error(id_dossier, code)
+            return jsonify("Unauthorized"), 403
+        elif vc_type == "Over65" and (now-timestamp) < ONE_YEAR*65:
+            logging.waring("age below 65")
+            manage_error(id_dossier, code)
             return jsonify("Unauthorized"), 403
         elif vc_type == "Liveness":
             pass
