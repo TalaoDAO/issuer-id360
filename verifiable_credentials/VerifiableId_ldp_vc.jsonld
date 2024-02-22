@@ -15,22 +15,8 @@
           "gender": "schema:gender",
           "dateOfBirth": "schema:birthDate",
           "placeOfBirth": "schema:birthPlace",
-          "personalIdentifier": "schema:identifier"
-        }
-      },
-      "DocumentVerification": {
-        "@id": "https://github.com/TalaoDAO/context#VerificationMethod.jsonld",
-        "@context": {
-          "@version": 1.1,
-          "@protected": true,
-          "schema": "https://schema.org/",
-          "id": "@id",
-          "type": "@type",
-          "verifier": "schema:legalName",
-          "verificationMethod": "schema:identifier",
-          "dossier" : "schema:identifie",
-          "parcours" : "schema:identifier",
-          "levelOfAssurance": "https://ec.europa.eu/digital-building-blocks/wikis/display/DIGITAL/eIDAS+Levels+of+Assurance"
+          "personalIdentifier": "schema:identifier",
+          "dateIssued": "schema:dateIssued"
         }
       }
     }
@@ -38,19 +24,9 @@
   "id": "",
   "type": [
     "VerifiableCredential",
-    "VerifiableAttestation",
     "VerifiableId"
   ],
   "credentialSubject": {
     "type": "VerifiableId"
-  },
-  "evidence": [
-    {
-      "id": "urn:id360:<dossier_id>",
-      "type": [
-        "DocumentVerification"
-      ],
-      "verifier": "La Poste - Docaposte"
-    }
-  ]
+  }
 }
