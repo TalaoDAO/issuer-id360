@@ -27,10 +27,12 @@ red = None
 mode = None
 OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
 
-ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json
-ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc
-ISSUER_ID_SD_JWT = "allekzsiuo"
+ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json draft 11
+ISSUER_ID_JWT_13 = "celebrwtox" # jwt_vc_json draft 13
+ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc draft 11
+ISSUER_ID_SD_JWT = "allekzsiuo" # baseline draft 13
 client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
+client_secret_jwt_13 = json.load(open("keys.json", "r"))["client_secret_jwt_13"]  #jwt_vc_json draft 13 
 client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc
 client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt
 
@@ -76,7 +78,7 @@ def loginID360() -> bool:
         return
 
 
-def create_dossier(code: str, format: str, type: str) -> str:
+def create_dossier(code: str, format: str, type: str, draft: str) -> str:
     """
     ID360 API call to create dossier on ID360
     """
@@ -117,7 +119,8 @@ def create_dossier(code: str, format: str, type: str) -> str:
         red.setex(code, CODE_LIFE, json.dumps({
             "id_dossier": response.json()["id"],
             "vc_format": format,
-            "vc_type": type
+            "vc_type": type,
+            "vc_draft": draft
         }))
         url = mode.url + 'static/process_ui/index.html#/enrollment/' + \
             response.json()["api_key"] + "?lang=en"
@@ -186,36 +189,40 @@ def get_image(url):
 
 def login_oidc():
     code = str(uuid.uuid4())
-    format = request.args.get("format")
-    type = request.args.get("type")
-    if not format:
+    vc_format = request.args.get("format")
+    vc_type = request.args.get("type")
+    vc_draft = request.args.get('draft')
+
+    if not vc_format or vc_format.lower() == "jwt_vc_json":
         format = "jwt_vc_json"
-    elif format == "vcsd-jwt":
+    elif vc_format == "vcsd-jwt":
         format = "vc+sd-jwt"
+    elif vc_format == "ldp_vc":
+        format = "ldp_vc"
+    else:
+        return jsonify("This VC format is not supported %s", vc_format)
         
-    if not type or type.lower() == "verifiableid":
+    if not vc_type or vc_type.lower() == "verifiableid":
         type = "VerifiableId"
-    elif type.lower() == "over13":
-        type = "Over13"
-    elif type.lower() == "over18":
-        type = "Over18"
-    elif type.lower() == "over15":
-        type = "Over15"
-    elif type.lower() == "over21":
-        type = "Over21"
-    elif type.lower() == "over65":
-        type = "Over65"
-    elif type.lower() == "over50":
-        type = "Over50"
-    elif type.lower() == "liveness":
-        type = "Liveness"
-    elif type.lower() == "identitycredential":
+    elif vc_type.lower() == "identitycredential":
         type = "IdentityCredential"
-    logging.info("VC format = %s", format)
-    logging.info("VC type = %s", type)
-    if type not in VC_TYPE_SUPPORTED or format not in VC_FORMAT_SUPPORTED:
-        return jsonify("This VC type or VC format is not supported")
-    return redirect(create_dossier(code, format, type))
+    else:
+        type = vc_type.capitalize()
+    if type not in VC_TYPE_SUPPORTED:
+        return jsonify("This VC type is not supported %s", vc_type)
+    
+    if not vc_draft and format == "vc+sd-jwt":
+        draft = "13"
+    elif not vc_draft and format == "jwt_vc_json":
+        draft = "11"
+    else:
+        draft = vc_draft
+
+    logging.info("format = %s", format)
+    logging.info("type = %s", type)
+    logging.info("draft = %s", draft)
+
+    return redirect(create_dossier(code, format, type, draft))
 
 
 def oidc4vc_callback():
@@ -265,6 +272,7 @@ def oidc_id360callback(code: str):
         id_dossier = code_data["id_dossier"] # an integer
         vc_format = code_data['vc_format']
         vc_type = code_data["vc_type"]
+        vc_draft = code_data["vc_draft"]
     except Exception:
         logging.error("redis expired %s", code)
         red.setex(code, CODE_LIFE, json.dumps({
@@ -360,9 +368,12 @@ def oidc_id360callback(code: str):
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
             credential['id'] = "urn:uuid:random"  # for preview only
             logging.info(credential)
-        if vc_format == "jwt_vc_json":
+        if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
             issuer_id = ISSUER_ID_JWT
+        elif vc_format == "jwt_vc_json" and vc_draft == "13":
+            cs = client_secret_jwt_13  
+            issuer_id = ISSUER_ID_JWT_13
         elif vc_format == "ldp_vc":
             cs = client_secret_json_ld
             issuer_id = ISSUER_ID_JSON_LD
