@@ -129,7 +129,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
     elif response.status_code == 401:
         # refresh token
         loginID360()
-        return create_dossier(code, format, type)
+        return create_dossier(code, format, type, draft)
     else:
         logging.error("create_dossier returned status = %s", str(response.status_code))
         return None
