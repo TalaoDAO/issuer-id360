@@ -213,7 +213,7 @@ def login_oidc():
     
     if not vc_draft and format == "vc+sd-jwt":
         draft = "13"
-    elif not vc_draft and format == "jwt_vc_json":
+    elif not vc_draft and format in ["ldp_vc", "jwt_vc_json"]:
         draft = "11"
     else:
         draft = vc_draft
