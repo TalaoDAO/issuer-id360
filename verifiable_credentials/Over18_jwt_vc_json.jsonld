@@ -7,15 +7,6 @@
     "credentialSubject" : {
         "type" : "Over18",
         "ageOver" : "18",
-        "is_over18": true
-    },
-    "evidence": [
-        {
-          "id": "",
-          "type": [
-            "DocumentVerification"
-          ],
-          "verifier": "Docaposte ID360"
-        }
-    ]
+        "is_over_18": true
+    }
 }

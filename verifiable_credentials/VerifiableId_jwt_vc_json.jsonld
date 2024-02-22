@@ -8,14 +8,5 @@
     ],
     "credentialSubject": {
       "type": "VerifiableId"
-    },
-    "evidence": [
-      {
-        "id": "",
-        "type": [
-          "DocumentVerification"
-        ],
-        "verifier": "Docaposte ID360"
-      }
-    ]
+    }
   }

@@ -305,7 +305,7 @@ def oidc_id360callback(code: str):
         now = time.time()
         if vc_format == 'vc+sd-jwt':
             try:
-                credential['given_name'] = identity["first_names"][0]
+                credential['given_name'] = identity["first_name"]
                 credential['family_name'] = identity["name"]
                 credential['birthdate'] = birth_date
                 credential['is_over_13'] = True if (now-timestamp > ONE_YEAR*13) else False
@@ -325,7 +325,7 @@ def oidc_id360callback(code: str):
             except Exception:
                 logging.error("no familyName in dossier")
             try:
-                credential["credentialSubject"]["firstName"] = identity["first_names"][0]
+                credential["credentialSubject"]["firstName"] = identity["first_name"]
             except Exception:
                 logging.error("no firstName in dossier")
             try:

@@ -408,18 +408,17 @@ async def issuer_endpoint(code: str):
         if vc_type == "VerifiableId":
             try:
                 credential["credentialSubject"]["familyName"] = dossier["identity"]["name"]
-            except:
+            except Exception:
                 logging.error("no familyName in dossier")
             try:
-                credential["credentialSubject"]["firstName"] = dossier["identity"]["first_names"][0]
-            except:
+                credential["credentialSubject"]["firstName"] = dossier["identity"]["first_name"]
+            except Exception:
                 logging.error("no firstName in dossier")
             try:
                 credential["credentialSubject"]["gender"] = dossier["identity"]["gender"]
-            except:
+            except Exception:
                 logging.error("no gender in dossier")
-            credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get(
-                "birth_date", "Not available")
+            credential["credentialSubject"]["dateOfBirth"] = dossier["identity"].get("birth_date", "Not available")
             # TODO add other data if available
             credential["evidence"][0]["id"] = "urn:id360:" + \
                 str(json.loads(red.get(code))["id_dossier"])
