@@ -1,7 +1,7 @@
 {
     "@context": ["https://www.w3.org/2018/credentials/v1",
         {
-            "Over65" : {
+            "Over21" : {
                 "@id": "https://github.com/TalaoDAO/context#over21",
                 "@context": {
                     "@version": 1.1,

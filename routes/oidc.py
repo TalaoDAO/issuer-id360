@@ -320,7 +320,7 @@ def oidc_id360callback(code: str):
                 credential['birthdate'] = "Unknown"
                 credential['is_over_18'] = True
         elif vc_type == "VerifiableId":
-            credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+            credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
             try:
                 credential["credentialSubject"]["familyName"] = identity["name"]
             except Exception:
