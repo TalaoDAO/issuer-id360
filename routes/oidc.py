@@ -1,5 +1,10 @@
 """
 
+https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=identitycredential
+
+https://talao.co/id360/oidc4vc?vc_format=jwt_vc_json&draft=13&vc_format=verifiableid
+
+
 https://talao.co/id360/oidc4vc?format=ldp_vc&type=over18
 """
 
@@ -100,7 +105,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
     json_data = {
         'callback_url': mode.server+'/id360/oidc4vc_callback_id360/' + code,
         'browser_callback_url': mode.server+'/id360/oidc4vc_wait/' + code,
-        'client_reference': "Talao tests",
+        'client_reference': "Talao OIDC4VC issuer",
         'callback_headers': {
             'code': code,
             'api-key': ID360_API_KEY,  # passer api key prod
@@ -288,6 +293,7 @@ def oidc_id360callback(code: str):
     elif request.get_json()["status"] == "OK":
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
+        print("dossier = ", dossier)
         identity = dossier["identity"]
         if vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
@@ -301,6 +307,7 @@ def oidc_id360callback(code: str):
         birth_date = identity.get("birth_date")
         if not birth_date:
             logging.warning('No birth date in dossier)')
+            birth_date = "1900-00-00"
         timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
         now = time.time()
         if vc_format == 'vc+sd-jwt':
@@ -308,57 +315,36 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birthdate'] = birth_date
-                credential['is_over_13'] = True if (now-timestamp > ONE_YEAR*13) else False
-                credential['is_over_15'] = True if (now-timestamp > ONE_YEAR*15) else False
-                credential['is_over_18'] = True if (now-timestamp > ONE_YEAR*18) else False
-                credential['is_over_21'] = True if (now-timestamp > ONE_YEAR*21) else False
-                credential['is_over_50'] = True if (now-timestamp > ONE_YEAR*50) else False
-                credential['is_over_65'] = True if (now-timestamp > ONE_YEAR*65) else False
+                for age in [13, 15, 18, 21, 50, 65]:
+                    credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             except Exception:
                 credential['given_name'] = "Unknown"
                 credential['family_name'] = "Unknown"
                 credential['birthdate'] = "Unknown"
-                credential['is_over_18'] = True
         elif vc_type == "VerifiableId":
             credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
             try:
                 credential["credentialSubject"]["familyName"] = identity["name"]
             except Exception:
-                logging.error("no familyName in dossier")
+                logging.error("no name in dossier")
             try:
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
             except Exception:
-                logging.error("no firstName in dossier")
+                logging.error("no first_names in dossier")
             try:
                 credential["credentialSubject"]["gender"] = identity["gender"]
             except Exception:
                 logging.error("no gender in dossier")
-            credential["credentialSubject"]["dateOfBirth"] = identity.get("birth_date", "Unknown")
-        elif vc_type == "Over18" and (now-timestamp) < ONE_YEAR*18:
-            logging.waring("age below 18")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Over15" and (now-timestamp) < ONE_YEAR*15:
-            logging.warning("age below 15")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Over13" and (now-timestamp) < ONE_YEAR*13:
-            logging.warning("age below 13")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Over21" and (now-timestamp) < ONE_YEAR*21:
-            logging.warning("age below 13")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Over50" and (now-timestamp) < ONE_YEAR*50:
-            logging.warning("age below 50")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Over65" and (now-timestamp) < ONE_YEAR*65:
-            logging.warning("age below 65")
-            manage_error(id_dossier, code)
-            return jsonify("Unauthorized"), 403
-        elif vc_type == "Liveness":
+            credential["credentialSubject"]["dateOfBirth"] = birth_date
+        for age in [13, 15, 18, 21, 50, 65]:
+            if vc_type == "Over" + str(age):
+                if (now-timestamp) < ONE_YEAR * age:
+                    break
+                else:
+                    logging.waring("age below " + str(age))
+                    manage_error(id_dossier, code)
+                    return jsonify("Unauthorized"), 403
+        if vc_type == "Liveness":
             pass
         else:
             pass
@@ -368,7 +354,7 @@ def oidc_id360callback(code: str):
             credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
             credential['id'] = "urn:uuid:random"  # for preview only
-            logging.info(credential)
+            logging.info("credential = %s", credential)
         if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
             issuer_id = ISSUER_ID_JWT
