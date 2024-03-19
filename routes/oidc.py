@@ -296,7 +296,7 @@ def oidc_id360callback(code: str):
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': # IN
-            payload = dossier["external_methods"]["id_num"]["results"]["id_num_out_token"]["payload"]
+            payload = dossier["external_methods"]["id_num"]["results"]["id_num_out_token"][0]["payload"]
         else:  # 'SVID_ID360',
             identity = dossier["identity"]
         if vc_format == "jwt_vc_json":
