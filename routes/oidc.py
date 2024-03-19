@@ -321,7 +321,7 @@ def oidc_id360callback(code: str):
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
-                credential['birthdate'] = birth_date
+                credential['birth_date'] = birth_date
                 credential["gender"] = 1 if payload["gender"] == "male" else 0
                 credential["issuing_country"] = "FR",
                 credential['email'] = payload["email"]
@@ -331,7 +331,7 @@ def oidc_id360callback(code: str):
             else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
-                credential['birthdate'] = birth_date
+                credential['birth_date'] = birth_date
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
