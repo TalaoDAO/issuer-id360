@@ -340,7 +340,7 @@ def oidc_id360callback(code: str):
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
-                credential["credentialSubject"]["gender"] = identity["gender"]
+                credential["credentialSubject"]["gender"] = payload["gender"]
                 credential["credentialSubject"]["dateOfBirth"] = birth_date
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
