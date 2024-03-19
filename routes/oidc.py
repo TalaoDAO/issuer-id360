@@ -55,6 +55,8 @@ def init_app(app, red_app, mode_app):
     app.add_url_rule('/id360/oidc4vc_intro', view_func=intro, methods=['GET'])
 
 
+    
+
 def loginID360() -> bool:
     """
     ID360 API call for login
@@ -293,8 +295,10 @@ def oidc_id360callback(code: str):
     elif request.get_json()["status"] == "OK":
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
-        print("dossier = ", dossier)
-        identity = dossier["identity"]
+        if dossier['id_verification_service'] == 'IdNumericExternalMethod': # IN
+            payload = dossier["external_methods"]["results"]["id_num_out_token"]["payload"]
+        else:  # 'SVID_ID360',
+            identity = dossier["identity"]
         if vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
         elif vc_format == "ldp_vc":
@@ -304,38 +308,46 @@ def oidc_id360callback(code: str):
         else: # ldp_vc
             vc_filename = vc_type + '.jsonld'
         credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
-        birth_date = identity.get("birth_date")
+        if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+            birth_date = payload.get('birthdate')
+        else:
+            birth_date = identity.get("birth_date")
         if not birth_date:
             logging.warning('No birth date in dossier)')
             birth_date = "1900-00-00"
         timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
         now = time.time()
-        if vc_format == 'vc+sd-jwt':
-            try:
+        if vc_format == 'vc+sd-jwt'and vc_type in ["IdentityCredential", "EudiPid"]:
+            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+                credential['given_name'] = payload["given_name"]
+                credential['family_name'] = payload["family_name"]
+                credential['birthdate'] = birth_date
+                credential["gender"] = 1 if payload["gender"] == "male" else 0
+                credential["issuing_country"] = "FR",
+                credential['email'] = payload["email"]
+                for age in [13, 15, 18, 21, 50, 65]:
+                   credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+            else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birthdate'] = birth_date
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
-            except Exception:
-                credential['given_name'] = "Unknown"
-                credential['family_name'] = "Unknown"
-                credential['birthdate'] = "Unknown"
+               
         elif vc_type == "VerifiableId":
             credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
-            try:
-                credential["credentialSubject"]["familyName"] = identity["name"]
-            except Exception:
-                logging.error("no name in dossier")
-            try:
-                credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
-            except Exception:
-                logging.error("no first_names in dossier")
-            try:
+            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+                credential["credentialSubject"]["familyName"] = payload["family_name"]
+                credential["credentialSubject"]["firstName"] = payload["given_name"]
                 credential["credentialSubject"]["gender"] = identity["gender"]
-            except Exception:
-                logging.error("no gender in dossier")
-            credential["credentialSubject"]["dateOfBirth"] = birth_date
+                credential["credentialSubject"]["dateOfBirth"] = birth_date
+            else:
+                credential["credentialSubject"]["familyName"] = identity["name"]
+                credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
+                credential["credentialSubject"]["gender"] = identity["gender"]
+                credential["credentialSubject"]["dateOfBirth"] = birth_date      
+        else:
+            pass          
         for age in [13, 15, 18, 21, 50, 65]:
             if vc_type == "Over" + str(age):
                 if (now-timestamp) < ONE_YEAR * age:
