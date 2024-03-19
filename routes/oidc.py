@@ -25,7 +25,7 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 CREDENTIAL_LIFE = 360  # in days
 ONE_YEAR = 31556926  # seconds
 
-VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential"]
+VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid"]
 VC_FORMAT_SUPPORTED = ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]
 
 red = None
@@ -54,8 +54,6 @@ def init_app(app, red_app, mode_app):
     app.add_url_rule('/id360/get_status_kyc/<code>', view_func=get_status_kyc, methods=['GET'])
     app.add_url_rule('/id360/oidc4vc_intro', view_func=intro, methods=['GET'])
 
-
-    
 
 def loginID360() -> bool:
     """
@@ -211,6 +209,8 @@ def login_oidc():
         
     if not vc_type or vc_type.lower() == "verifiableid":
         type = "VerifiableId"
+    elif vc_type.lower() == "eudipid":
+        type = "EudiPid"
     elif vc_type.lower() == "identitycredential":
         type = "IdentityCredential"
     else:
@@ -309,15 +309,15 @@ def oidc_id360callback(code: str):
             vc_filename = vc_type + '.jsonld'
         credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-            birth_date = payload.get('birthdate')
+            birth_date = payload.get('birthdate')[:10]
         else:
-            birth_date = identity.get("birth_date")
+            birth_date = identity.get("birth_date")[:10]
         if not birth_date:
             logging.warning('No birth date in dossier)')
             birth_date = "1900-00-00"
         timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
         now = time.time()
-        if vc_format == 'vc+sd-jwt'and vc_type in ["IdentityCredential", "EudiPid"]:
+        if vc_format == 'vc+sd-jwt'and vc_type == "IdentityCredential":
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
@@ -334,7 +334,25 @@ def oidc_id360callback(code: str):
                 credential['birthdate'] = birth_date
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
-               
+        
+        elif vc_format == 'vc+sd-jwt'and vc_type == "EudiPid":
+            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+                credential['given_name'] = payload["given_name"]
+                credential['family_name'] = payload["family_name"]
+                credential['birth_date'] = birth_date
+                credential["gender"] = 1 if payload["gender"] == "male" else 0
+                credential["issuing_country"] = "FR",
+                credential['email'] = payload["email"]
+                credential['phone_number'] = payload["phone_number"]
+                for age in [13, 15, 18, 21, 50, 65]:
+                   credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+            else:
+                credential['given_name'] = ' '.join(identity["first_names"])
+                credential['family_name'] = identity["name"]
+                credential['birth_date'] = birth_date
+                for age in [13, 15, 18, 21, 50, 65]:
+                    credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+        
         elif vc_type == "VerifiableId":
             credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -364,7 +382,7 @@ def oidc_id360callback(code: str):
         # TODO add other data if available
         if vc_format in ["jwt_vc_json", "ldp_vc"]:
             credential["issuer"] = ISSUER_DID
-            credential['issuanceDate'] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+            credential['issuanceDate'] = datetime.now().replace(microsecond=0).isoformat() + "Z"
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
             credential['id'] = "urn:uuid:random"  # for preview only
             logging.info("credential = %s", credential)
