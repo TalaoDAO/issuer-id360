@@ -296,7 +296,7 @@ def oidc_id360callback(code: str):
         id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': # IN
-            payload = dossier["external_methods"]["results"]["id_num_out_token"]["payload"]
+            payload = dossier["external_methods"]["id_num"]["results"]["id_num_out_token"]["payload"]
         else:  # 'SVID_ID360',
             identity = dossier["identity"]
         if vc_format == "jwt_vc_json":
@@ -325,6 +325,7 @@ def oidc_id360callback(code: str):
                 credential["gender"] = 1 if payload["gender"] == "male" else 0
                 credential["issuing_country"] = "FR",
                 credential['email'] = payload["email"]
+                credential['phone_number'] = payload["phone_number"]
                 for age in [13, 15, 18, 21, 50, 65]:
                    credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             else:
