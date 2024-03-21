@@ -353,13 +353,32 @@ def oidc_id360callback(code: str):
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
+        elif vc_format == 'jwt_vc_json' and vc_type == "VerifiableId":
+            credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
+            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+                credential["credentialSubject"]["familyName"] = payload["family_name"]
+                credential["credentialSubject"]["firstName"] = payload["given_name"]
+                credential["credentialSubject"]["dateOfBirth"] = birth_date
+                credential['credentialSubject']['email'] = payload["email"]
+                credential['credentialSubject']['phone_number'] = payload["phone_number"]
+                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
+                credential['credentialSubject']["issuing_country"] = "FR",
+            else:
+                credential["credentialSubject"]["familyName"] = identity["name"]
+                credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
+                credential["credentialSubject"]["gender"] = identity["gender"]
+                credential["credentialSubject"]["dateOfBirth"] = birth_date      
+
         elif vc_type == "VerifiableId":
             credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
-                credential["credentialSubject"]["gender"] = payload["gender"]
                 credential["credentialSubject"]["dateOfBirth"] = birth_date
+                credential['credentialSubject']['email'] = payload["email"]
+                credential['credentialSubject']['phone_number'] = payload["phone_number"]
+                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
+                credential['credentialSubject']["issuing_country"] = "FR",
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
@@ -384,7 +403,7 @@ def oidc_id360callback(code: str):
             credential["issuer"] = ISSUER_DID
             credential['issuanceDate'] = datetime.now().replace(microsecond=0).isoformat() + "Z"
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-            credential['id'] = "urn:uuid:random"  # for preview only
+            #credential['id'] = "urn:uuid:random"  # for preview only
             logging.info("credential = %s", credential)
         if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
