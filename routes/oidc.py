@@ -326,12 +326,14 @@ def oidc_id360callback(code: str):
                 credential["issuing_country"] = "FR",
                 credential['email'] = payload["email"]
                 credential['phone_number'] = payload["phone_number"]
+                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
                 for age in [13, 15, 18, 21, 50, 65]:
                    credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
+                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
@@ -342,6 +344,7 @@ def oidc_id360callback(code: str):
                 credential['birth_date'] = birth_date
                 credential["gender"] = 1 if payload["gender"] == "male" else 0
                 credential["issuing_country"] = "FR",
+                credential["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10],
                 credential['email'] = payload["email"]
                 credential['phone_number'] = payload["phone_number"]
                 for age in [13, 15, 18, 21, 50, 65]:
@@ -350,11 +353,11 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
+                credential["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10],
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format == 'jwt_vc_json' and vc_type == "VerifiableId":
-            credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
+        elif vc_format == 'jwt_vc_json' and vc_type == "VerifiableId": # DIIP
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
@@ -363,14 +366,16 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
                 credential['credentialSubject']["issuing_country"] = "FR",
+                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
-                credential["credentialSubject"]["gender"] = identity["gender"]
-                credential["credentialSubject"]["dateOfBirth"] = birth_date      
+                credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 0
+                credential["credentialSubject"]["dateOfBirth"] = birth_date 
+                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+   
 
         elif vc_type == "VerifiableId":
-            credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
@@ -379,11 +384,14 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
                 credential['credentialSubject']["issuing_country"] = "FR",
+                credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
                 credential["credentialSubject"]["gender"] = identity["gender"]
-                credential["credentialSubject"]["dateOfBirth"] = birth_date      
+                credential["credentialSubject"]["dateOfBirth"] = birth_date 
+                credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
+
         else:
             pass          
         for age in [13, 15, 18, 21, 50, 65]:
