@@ -323,7 +323,7 @@ def oidc_id360callback(code: str):
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
                 credential["gender"] = 1 if payload["gender"] == "male" else 0
-                credential["issuing_country"] = "FR",
+                credential["issuing_country"] = "FR"
                 credential['email'] = payload["email"]
                 credential['phone_number'] = payload["phone_number"]
                 credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
@@ -343,7 +343,7 @@ def oidc_id360callback(code: str):
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
                 credential["gender"] = 1 if payload["gender"] == "male" else 0
-                credential["issuing_country"] = "FR",
+                credential["issuing_country"] = "FR"
                 credential["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10],
                 credential['email'] = payload["email"]
                 credential['phone_number'] = payload["phone_number"]
@@ -365,7 +365,7 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['email'] = payload["email"]
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
-                credential['credentialSubject']["issuing_country"] = "FR",
+                credential['credentialSubject']["issuing_country"] = "FR"
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
@@ -383,7 +383,7 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['email'] = payload["email"]
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
-                credential['credentialSubject']["issuing_country"] = "FR",
+                credential['credentialSubject']["issuing_country"] = "FR"
                 credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
