@@ -373,7 +373,6 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 0
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
-   
 
         elif vc_type == "VerifiableId":
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -399,7 +398,7 @@ def oidc_id360callback(code: str):
                 if (now-timestamp) < ONE_YEAR * age:
                     break
                 else:
-                    logging.waring("age below " + str(age))
+                    logging.warning("age below " + str(age))
                     manage_error(id_dossier, code)
                     return jsonify("Unauthorized"), 403
         if vc_type == "Liveness":
@@ -437,7 +436,7 @@ def oidc_id360callback(code: str):
             "pre-authorized_code": True,
             "user_pin_required": False,
             #"user_pin": str(six_digit_code),
-            "callback": mode.server+"/id360/oidc4vc_callback",
+            "callback": mode.server + "/id360/oidc4vc_callback",
             'issuer_id': issuer_id
         }
         resp = requests.post(OIDC_URL, headers=headers, data=json.dumps(data))
