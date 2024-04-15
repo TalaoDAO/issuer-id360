@@ -316,6 +316,7 @@ def oidc_id360callback(code: str):
             logging.warning('No birth date in dossier)')
             birth_date = "1900-00-00"
         timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
+        print('timestamp = ', timestamp)
         now = time.time()
         if vc_format == 'vc+sd-jwt'and vc_type == "IdentityCredential":
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -328,7 +329,7 @@ def oidc_id360callback(code: str):
                 credential['phone_number'] = payload["phone_number"]
                 credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
                 for age in [13, 15, 18, 21, 50, 65]:
-                   credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                    credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
@@ -348,7 +349,7 @@ def oidc_id360callback(code: str):
                 credential['email'] = payload["email"]
                 credential['phone_number'] = payload["phone_number"]
                 for age in [13, 15, 18, 21, 50, 65]:
-                   credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                    credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
@@ -391,20 +392,21 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
 
-        else:
-            pass          
-        for age in [13, 15, 18, 21, 50, 65]:
-            if vc_type == "Over" + str(age):
-                if (now-timestamp) < ONE_YEAR * age:
-                    break
-                else:
-                    logging.warning("age below " + str(age))
-                    manage_error(id_dossier, code)
-                    return jsonify("Unauthorized"), 403
-        if vc_type == "Liveness":
+        elif vc_type == "Over" + str(age):        
+            if (now-timestamp) > ONE_YEAR * age:
+                pass
+            else:
+                logging.warning("age below " + str(age))
+                manage_error(id_dossier, code)
+                return jsonify("Unauthorized"), 403
+        
+        elif vc_type == "Liveness":
             pass
+        
         else:
+            logging.error("VC type not supported %s", vc_type)
             pass
+        
         # TODO add other data if available
         if vc_format in ["jwt_vc_json", "ldp_vc"]:
             credential["issuer"] = ISSUER_DID
