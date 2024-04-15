@@ -392,7 +392,8 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
 
-        elif vc_type == "Over" + str(age):        
+        elif vc_type in ["Over13", "Over15", "Over18", "Over21", "Over50", "Over65"]:
+            age = int(vc_type[4:6])        
             if (now-timestamp) > ONE_YEAR * age:
                 pass
             else:
