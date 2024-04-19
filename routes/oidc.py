@@ -338,7 +338,7 @@ def oidc_id360callback(code: str):
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format == 'vc+sd-jwt'and vc_type == "EudiPid":
+        elif vc_format == 'vc+sd-jwt' and vc_type == "EudiPid":
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
@@ -384,19 +384,17 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
                 credential['credentialSubject']["issuing_country"] = "FR"
-                credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
                 credential["credentialSubject"]["gender"] = identity["gender"]
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
-                credential["credentialSubject"]["dateIssued"] = datetime.utcnow().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
 
         elif vc_type in ["Over13", "Over15", "Over18", "Over21", "Over50", "Over65"]:
             age = int(vc_type[4:6])        
-            if (now-timestamp) > ONE_YEAR * age:
-                pass
-            else:
+            if (now-timestamp) < ONE_YEAR * age:
                 logging.warning("age below " + str(age))
                 manage_error(id_dossier, code)
                 return jsonify("Unauthorized"), 403
