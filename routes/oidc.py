@@ -36,10 +36,13 @@ ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json draft 11
 ISSUER_ID_JWT_13 = "celebrwtox" # jwt_vc_json draft 13
 ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc draft 11
 ISSUER_ID_SD_JWT = "allekzsiuo" # baseline draft 13
+ISSUER_ID_JWT_VC = "" # EBSI draft 11
 client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
 client_secret_jwt_13 = json.load(open("keys.json", "r"))["client_secret_jwt_13"]  #jwt_vc_json draft 13 
 client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc
 client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt
+client_secret_jwt_vc = json.load(open("keys.json", "r"))["client_secret"]  # sd_jwt
+
 
 
 def init_app(app, red_app, mode_app):
@@ -204,6 +207,8 @@ def login_oidc():
         format = "vc+sd-jwt"
     elif vc_format == "ldp_vc":
         format = "ldp_vc"
+    elif vc_format == "jwt_vc":
+        format = "jwt_vc"
     else:
         return jsonify("This VC format is not supported %s", vc_format)
         
@@ -213,6 +218,8 @@ def login_oidc():
         type = "EudiPid"
     elif vc_type.lower() == "identitycredential":
         type = "IdentityCredential"
+    elif vc_type.lower() == "individualverifiableattestation":
+        type = "IndividualVerifiableAttestation"
     else:
         type = vc_type.capitalize()
     if type not in VC_TYPE_SUPPORTED:
@@ -358,7 +365,7 @@ def oidc_id360callback(code: str):
                 for age in [13, 15, 18, 21, 50, 65]:
                     credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format == 'jwt_vc_json' and vc_type == "VerifiableId": # DIIP
+        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type in ['VerifiableId', 'IndividualVerifiableAttestation']: # DIIP
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
