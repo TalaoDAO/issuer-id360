@@ -25,7 +25,7 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 CREDENTIAL_LIFE = 360  # in days
 ONE_YEAR = 31556926  # seconds
 
-VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid"]
+VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid", "IndividualVerifiableAttestation"]
 VC_FORMAT_SUPPORTED = ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]
 
 red = None
@@ -36,7 +36,7 @@ ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json draft 11
 ISSUER_ID_JWT_13 = "celebrwtox" # jwt_vc_json draft 13
 ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc draft 11
 ISSUER_ID_SD_JWT = "allekzsiuo" # baseline draft 13
-ISSUER_ID_JWT_VC = "" # EBSI draft 11
+ISSUER_ID_JWT_VC = "glrafobuwu" # EBSI draft 11
 client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
 client_secret_jwt_13 = json.load(open("keys.json", "r"))["client_secret_jwt_13"]  #jwt_vc_json draft 13 
 client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc
@@ -423,6 +423,9 @@ def oidc_id360callback(code: str):
         if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
             issuer_id = ISSUER_ID_JWT
+        if vc_format == "jwt_vc" and vc_draft == "11":
+            cs = client_secret_jwt_vc
+            issuer_id = ISSUER_ID_JWT_VC
         elif vc_format == "jwt_vc_json" and vc_draft == "13":
             cs = client_secret_jwt_13  
             issuer_id = ISSUER_ID_JWT_13
