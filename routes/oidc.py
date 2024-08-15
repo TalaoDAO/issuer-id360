@@ -316,6 +316,8 @@ def oidc_id360callback(code: str):
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
         elif vc_format == "ldp_vc":
             vc_filename = vc_type + '_ldp_vc.jsonld'
+        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid":
+            vc_filename = 'Pid.json'
         elif vc_format == 'vc+sd-jwt':
             vc_filename = 'IdentityCredential.json'
         else: # ldp_vc
