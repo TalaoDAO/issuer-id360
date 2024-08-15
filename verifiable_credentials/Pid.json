@@ -1,0 +1,45 @@
+{
+  "vct": "urn:eu.europa.ec.eudi:pid:1",
+
+  "given_name": "",
+  "family_name": "",
+  "birthdate": "",
+
+  "address": { 
+    "formatted": "",        
+    "street_address": "",
+    "locality": "",
+    "region": "",
+    "postal_code": "",
+    "country": "",
+    "disclosure" : []
+    },
+
+  "place_of_birth": { 
+    "locality": "",
+    "region": "",
+    "country": "",
+    "disclosure": []
+    },
+
+    "nationalities": [
+      {"disclosure": []}
+    ],
+    
+    "age_equal_or_over": {   
+        "12": true,        
+        "14": true,       
+        "16": true,           
+        "18": true,            
+        "21": true,            
+        "65": false,
+        "disclosure" : []            
+    },
+    "gender": "",
+    "issuing_country": "Unknown",
+    "issuing_authority": "Unknown",
+
+  
+    "disclosure": ["vct", "status"]
+}
+
