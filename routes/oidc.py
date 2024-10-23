@@ -368,14 +368,17 @@ def oidc_id360callback(code: str):
             for age in [13, 15, 18, 21, 50, 65]:
                 credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid":
+        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birthdate'] = birth_date
                 credential["gender"] = payload["gender"]
                 credential["issuing_country"] = "FR"
+                credential["issuing_authority"] = "FR"
                 credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                if payload["typ"] == "ID":
+                    credential["nationalities"] = ["FR"]
             else:
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
@@ -384,7 +387,7 @@ def oidc_id360callback(code: str):
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type in ['VerifiableId', 'IndividualVerifiableAttestation']: # DIIP
+        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type in ['VerifiableId', 'IndividualVerifiableAttestation']: # DIIP V2.1
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
@@ -489,6 +492,15 @@ def oidc_id360callback(code: str):
             "id_dossier": id_dossier,
             "KYC": "OK",
             "url": url}))
+        
+        data = {
+            "vc":  vc_type.lower(),
+            "count": "1"
+        }
+        try:
+            requests.post('https://issuer.talao.co/counter/update', data=data)
+        except Exception:
+            logging.warning("error updating issuer counter")
     return jsonify("ok")
 
 
