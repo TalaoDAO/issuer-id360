@@ -493,6 +493,7 @@ def oidc_id360callback(code: str):
             "KYC": "OK",
             "url": url}))
         
+        # update counter
         data = {
             "vc":  vc_type.lower(),
             "count": "1"
@@ -501,6 +502,7 @@ def oidc_id360callback(code: str):
             requests.post('https://issuer.talao.co/counter/update', data=data)
         except Exception:
             logging.warning("error updating issuer counter")
+        logging.warning("issuer counter has been updated")
     return jsonify("ok")
 
 
