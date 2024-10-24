@@ -1,6 +1,8 @@
 """
 
 https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=identitycredential
+https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=pid
+https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=ageproof
 
 https://talao.co/id360/oidc4vc?vc_format=jwt_vc_json&draft=13&vc_format=verifiableid
 
@@ -25,7 +27,7 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 CREDENTIAL_LIFE = 360  # in days
 ONE_YEAR = 31556926  # seconds
 
-VC_TYPE_SUPPORTED = ["Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid", "Pid", "IndividualVerifiableAttestation"]
+VC_TYPE_SUPPORTED = ["AgeProof", "Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid", "Pid", "IndividualVerifiableAttestation"]
 VC_FORMAT_SUPPORTED = ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]
 
 red = None
@@ -218,6 +220,8 @@ def login_oidc():
         type = "EudiPid"
     elif vc_type.lower() == "pid":
         type = "Pid"
+    elif vc_type.lower() == "ageproof":
+        type = "AgeProof"
     elif vc_type.lower() == "identitycredential":
         type = "IdentityCredential"
     elif vc_type.lower() == "individualverifiableattestation":
@@ -387,6 +391,10 @@ def oidc_id360callback(code: str):
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
+        elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
+            for age in [12, 14, 16, 18, 21, 65]:
+                credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+            
         elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type in ['VerifiableId', 'IndividualVerifiableAttestation']: # DIIP V2.1
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
