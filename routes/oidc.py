@@ -1,10 +1,10 @@
 """
 
-https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=identitycredential
-https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=pid
-https://talao.co/id360/oidc4vc?vc_format=vcsd-jwt&draft=13&vc_format=ageproof
+https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=identitycredential
+https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=pid
+https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=ageproof
 
-https://talao.co/id360/oidc4vc?vc_format=jwt_vc_json&draft=13&vc_format=verifiableid
+https://talao.co/id360/oidc4vc?format=jwt_vc_json&draft=13&type=verifiableid
 
 
 https://talao.co/id360/oidc4vc?format=ldp_vc&type=over18
@@ -322,6 +322,8 @@ def oidc_id360callback(code: str):
             vc_filename = vc_type + '_ldp_vc.jsonld'
         elif vc_format == 'vc+sd-jwt' and vc_type == "Pid":
             vc_filename = 'Pid.json'
+        elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof":
+            vc_filename = 'AgeProof.json'
         elif vc_format == 'vc+sd-jwt':
             vc_filename = 'IdentityCredential.json'
         else: # ldp_vc
