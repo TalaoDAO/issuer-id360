@@ -419,15 +419,18 @@ def oidc_id360callback(code: str):
 
         elif vc_type == "VerifiableId" and vc_format == "jwt_vc_json": # diip V21.
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-                credential["credentialSubject"]["given_name"] = payload["family_name"]
-                credential["credentialSubject"]["family_ame"] = payload["given_name"]
+                credential["credentialSubject"]["given_name"] = payload["given_name"]
+                credential["credentialSubject"]["family_name"] = payload["family_name"]
                 credential["credentialSubject"]["birth_date"] = birth_date
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
-                credential["credentialSubject"]["given_name"] = identity["name"]
-                credential["credentialSubject"]["family_name"] = ' '.join(identity["first_names"])
-                credential["credentialSubject"]["gender"] = identity["gender"]
+                credential["credentialSubject"]["family_name"] = identity["name"]
+                credential["credentialSubject"]["given_name"] = ' '.join(identity["first_names"])
+                if identity['gender'] == 'M':
+                    credential["credentialSubject"]["gender"] = 1
+                else:
+                    credential["credentialSubject"]["gender"] = 0
                 credential["credentialSubject"]["birth_date"] = birth_date 
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             credential['credentialSubject']["issuing_country"] = "FR"
