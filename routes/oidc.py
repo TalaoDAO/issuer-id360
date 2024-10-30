@@ -8,6 +8,9 @@ https://talao.co/id360/oidc4vc?format=jwt_vc_json&draft=13&type=verifiableid
 
 
 https://talao.co/id360/oidc4vc?format=ldp_vc&type=over18
+
+
+https://talao.co/id360/oidc4vc?format=ldp_vc&draft=11&type=verifiableid
 """
 
 import requests
@@ -397,7 +400,7 @@ def oidc_id360callback(code: str):
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
             
-        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type in ['VerifiableId', 'IndividualVerifiableAttestation']: # DIIP V2.1
+        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type == 'IndividualVerifiableAttestation': # DIIP V2.1
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
@@ -414,23 +417,23 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
 
-        elif vc_type == "VerifiableId":
+        elif vc_type == "VerifiableId" and vc_format == "jwt_vc_json": # diip V21.
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-                credential["credentialSubject"]["familyName"] = payload["family_name"]
-                credential["credentialSubject"]["firstName"] = payload["given_name"]
-                credential["credentialSubject"]["dateOfBirth"] = birth_date
-                credential['credentialSubject']['email'] = payload["email"]
-                credential['credentialSubject']['phone_number'] = payload["phone_number"]
+                credential["credentialSubject"]["given_name"] = payload["family_name"]
+                credential["credentialSubject"]["family_ame"] = payload["given_name"]
+                credential["credentialSubject"]["birth_date"] = birth_date
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
-                credential['credentialSubject']["issuing_country"] = "FR"
-                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
-                credential["credentialSubject"]["familyName"] = identity["name"]
-                credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
+                credential["credentialSubject"]["given_name"] = identity["name"]
+                credential["credentialSubject"]["family_name"] = ' '.join(identity["first_names"])
                 credential["credentialSubject"]["gender"] = identity["gender"]
-                credential["credentialSubject"]["dateOfBirth"] = birth_date 
-                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
-
+                credential["credentialSubject"]["birth_date"] = birth_date 
+                credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+            credential['credentialSubject']["issuing_country"] = "FR"
+            for age in [12, 14, 16, 18, 21, 65]:
+                credential["credentialSubject"]['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                
         elif vc_type in ["Over13", "Over15", "Over18", "Over21", "Over50", "Over65"]:
             age = int(vc_type[4:6])        
             if (now-timestamp) < ONE_YEAR * age:
