@@ -387,7 +387,7 @@ def oidc_id360callback(code: str):
             credential["issuing_country"] = "FR"
             credential["issuing_authority"] = "FR"
             for age in [12, 14, 16, 18, 21, 65]:
-                credential['age_over_'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
         elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
             for age in [12, 14, 16, 18, 21, 65]:
