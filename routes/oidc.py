@@ -30,7 +30,19 @@ CODE_LIFE = 600  # in seconds the delay between the call of the API to get the c
 CREDENTIAL_LIFE = 360  # in days
 ONE_YEAR = 31556926  # seconds
 
-VC_TYPE_SUPPORTED = ["AgeProof", "Over18", "Over21", "Over13", "Over15", "Over50", "Over65", "Liveness", "VerifiableId", "IdentityCredential", "EudiPid", "Pid", "IndividualVerifiableAttestation"]
+VC_TYPE_SUPPORTED = [
+    "AgeProof",
+    "Over18",
+    "Over21",
+    "Over13",
+    "Over15",
+    "Over50",
+    "Over65",
+    "Liveness",
+    "VerifiableId", # jwt_vc_json and ldp_vc
+    "Pid", # sd-jwt
+    "IndividualVerifiableAttestation" # EBSI
+]
 VC_FORMAT_SUPPORTED = ["jwt_vc_json", "ldp_vc", "vc+sd-jwt"]
 
 red = None
@@ -219,16 +231,12 @@ def login_oidc():
         
     if not vc_type or vc_type.lower() == "verifiableid":
         type = "VerifiableId"
-    elif vc_type.lower() == "eudipid":
-        type = "EudiPid"
     elif vc_type.lower() == "pid":
         type = "Pid"
     elif vc_type.lower() == "ageproof":
         type = "AgeProof"
     elif vc_type.lower() == "identitycredential":
         type = "IdentityCredential"
-    elif vc_type.lower() == "individualverifiableattestation":
-        type = "IndividualVerifiableAttestation"
     else:
         type = vc_type.capitalize()
     if type not in VC_TYPE_SUPPORTED:
@@ -341,66 +349,8 @@ def oidc_id360callback(code: str):
             birth_date = "1900-00-00"
         timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
         now = time.time()
-        if vc_format == 'vc+sd-jwt'and vc_type == "IdentityCredential":
-            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-                credential['given_name'] = payload["given_name"]
-                credential['family_name'] = payload["family_name"]
-                credential['birth_date'] = birth_date
-                credential["gender"] = 1 if payload["gender"] == "male" else 0
-                credential["issuing_country"] = "FR"
-                credential['email'] = payload["email"]
-                credential['phone_number'] = payload["phone_number"]
-                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-            else:
-                credential['given_name'] = ' '.join(identity["first_names"])
-                credential['family_name'] = identity["name"]
-                credential['birth_date'] = birth_date
-                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-            for age in [13, 15, 18, 21, 50, 65]:
-                credential['is_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
-        elif vc_format == 'vc+sd-jwt' and vc_type == "EudiPid":
-            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-                credential['given_name'] = payload["given_name"]
-                credential['family_name'] = payload["family_name"]
-                credential['birth_date'] = birth_date
-                credential["gender"] = 1 if payload["gender"] == "male" else 0
-                credential["issuing_country"] = "FR"
-                credential["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10],
-                credential['email'] = payload["email"]
-                credential['phone_number'] = payload["phone_number"]
-            else:
-                credential['given_name'] = ' '.join(identity["first_names"])
-                credential['family_name'] = identity["name"]
-                credential['birth_date'] = birth_date
-                credential["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10],
-            for age in [13, 15, 18, 21, 50, 65]:
-                credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
-        
-        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3
-            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-                credential['given_name'] = payload["given_name"]
-                credential['family_name'] = payload["family_name"]
-                credential['birthdate'] = birth_date
-                credential["gender"] = payload["gender"]
-                credential["issuing_country"] = "FR"
-                credential["issuing_authority"] = "FR"
-                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-                if payload["typ"] == "ID":
-                    credential["nationalities"] = ["FR"]
-            else:
-                credential['given_name'] = ' '.join(identity["first_names"])
-                credential['family_name'] = identity["name"]
-                credential['birthdate'] = birth_date
-                credential['dateIssued'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-            for age in [12, 14, 16, 18, 21, 65]:
-                credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
-        
-        elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
-            for age in [12, 14, 16, 18, 21, 65]:
-                credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
-            
-        elif vc_format in ['jwt_vc_json', 'jwt_vc'] and vc_type == 'IndividualVerifiableAttestation': # DIIP V2.1
+        if vc_format == 'jwt_vc' and vc_type == 'IndividualVerifiableAttestation': # EBSI
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["familyName"] = payload["family_name"]
                 credential["credentialSubject"]["firstName"] = payload["given_name"]
@@ -416,8 +366,34 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 0
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+        
+        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3
+            if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
+                credential['given_name'] = payload["given_name"]
+                credential['family_name'] = payload["family_name"]
+                credential['birth_date'] = birth_date
+                credential["gender"] = payload["gender"]
+                if payload["typ"] == "ID":
+                    credential["nationalities"] = ["FR"]
+            else:
+                if identity['gender'] == 'M':
+                    credential["gender"] = 1
+                else:
+                    credential["gender"] = 0
+                credential['given_name'] = ' '.join(identity["first_names"])
+                credential['family_name'] = identity["name"]
+                credential['birth_date'] = birth_date
+            credential['issuance_date'] = datetime.now().replace(microsecond=0).isoformat()[:10]
+            credential["issuing_country"] = "FR"
+            credential["issuing_authority"] = "FR"
+            for age in [12, 14, 16, 18, 21, 65]:
+                credential['age_over_'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+        
+        elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
+            for age in [12, 14, 16, 18, 21, 65]:
+                credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
 
-        elif vc_type == "VerifiableId" and vc_format == "jwt_vc_json": # diip V21.
+        elif vc_type == "VerifiableId" : # diip V21 and Default
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["given_name"] = payload["given_name"]
                 credential["credentialSubject"]["family_name"] = payload["family_name"]
