@@ -1,38 +1,37 @@
 {
-  "@context": [
+"@context": [
     "https://www.w3.org/2018/credentials/v1",
     {
-      "VerifiableId": {
-        "@id": "https://github.com/TalaoDAO/context#verifiableid",
-        "@context": {
-          "@version": 1.1,
-          "@protected": true,
-          "schema": "https://schema.org/",
-          "id": "@id",
-          "type": "@type",
-          "birth_date": "schema:birthDate",
-          "given_name": "schema:givenName",
-          "family_name": "schema:familyName",
-          "gender": "schema:gender",
-          "issuing_country": "schema:country",
-          "issuance_date": "schema:dateIssued",
-          "age_over_12": "schema:requiredMinAge",
-          "age_over_14": "schema:requiredMinAge",
-          "age_over_16": "schema:requiredMinAge",
-          "age_over_18": "schema:requiredMinAge",
-          "age_over_21": "schema:requiredMinAge",
-          "age_over-65": "schema:requiredMinAge"
-
+        "VerifiableId": {
+            "@id": "https://github.com/TalaoDAO/context#verifiableid",
+            "@context": {
+                "@version": 1.1,
+                "@protected": true,
+                "schema": "https://schema.org/",
+                "id": "@id",
+                "type": "@type",
+                "birth_date": "schema:birthDate",
+                "given_name": "schema:givenName",
+                "family_name": "schema:familyName",
+                "gender": "schema:gender",
+                "issuing_country": "schema:country",
+                "issuance_date": "schema:dateIssued",
+                "age_over_12": "schema:requiredMinAge",
+                "age_over_14": "schema:requiredMinAge",
+                "age_over_16": "schema:requiredMinAge",
+                "age_over_18": "schema:requiredMinAge",
+                "age_over_21": "schema:requiredMinAge",
+                "age_over_65": "schema:requiredMinAge"
+            }
         }
-      }
     }
-  ],
-  "id": "",
-  "type": [
+],
+"id": "",
+"type": [
     "VerifiableCredential",
     "VerifiableId"
-  ],
-  "credentialSubject": {
+],
+"credentialSubject": {
     "type": "VerifiableId"
-  }
+}
 }
