@@ -10,16 +10,18 @@
           "schema": "https://schema.org/",
           "id": "@id",
           "type": "@type",
-          "firstName": "schema:givenName",
-          "familyName": "schema:familyName",
+          "given_name": "schema:givenName",
+          "family_name": "schema:familyName",
           "gender": "schema:gender",
-          "email": "schema:email",
-          "phone_number": "schema:telephone",
           "issuing_country": "schema:country",
-          "dateOfBirth": "schema:birthDate",
-          "placeOfBirth": "schema:birthPlace",
-          "personalIdentifier": "schema:identifier",
-          "dateIssued": "schema:dateIssued"
+          "issuance_date": "schema:dateIssued",
+          "age_over_12": "schema:requiredMinAge",
+          "age_over_14": "schema:requiredMinAge",
+          "age_over_16": "schema:requiredMinAge",
+          "age_over_18": "schema:requiredMinAge",
+          "age_over_21": "schema:requiredMinAge",
+          "age_over-65": "schema:requiredMinAge"
+
         }
       }
     }

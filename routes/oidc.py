@@ -1,7 +1,10 @@
 """
 
 https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=identitycredential
+
+PID
 https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=pid
+
 https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=ageproof
 
 https://talao.co/id360/oidc4vc?format=jwt_vc_json&draft=13&type=verifiableid
