@@ -330,7 +330,9 @@ def oidc_id360callback(code: str):
         else:  # 'SVID_ID360',
             identity = dossier["identity"]
             print("identity from KYC = ", identity)
-        if vc_format == "jwt_vc_json":
+        if vc_type == "VerifiableId":
+            vc_filename = "VerifiableId.jsonld"
+        elif vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
         elif vc_format == "ldp_vc":
             vc_filename = vc_type + '_ldp_vc.jsonld'
@@ -413,8 +415,6 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["birth_date"] = birth_date 
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             credential['credentialSubject']["issuing_country"] = "FR"
-            for age in [12, 14, 16, 18, 21, 65]:
-                credential["credentialSubject"]['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
                 
         elif vc_type in ["Over13", "Over15", "Over18", "Over21", "Over50", "Over65"]:
             age = int(vc_type[4:6])        
