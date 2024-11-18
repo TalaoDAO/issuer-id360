@@ -1,18 +1,4 @@
 {
-  "vct": "urn:eu.europa.ec.eudi:pid:1",
-  "given_name": "",
-  "family_name": "",
-  "birth_date": "",
-  "nationality": "FR",
-  "age_over 12": true,
-  "age_over 14": true,
-  "age_over 16": true,
-  "age_over 18": true,
-  "age_over 21": true,
-  "age_over 65": true,            
-  "gender": 1,
-  "issuing_country": "Unknown",
-  "issuing_authority": "Unknown",
-  "disclosure": ["vct", "status"]
+  "vct": "urn:eu.europa.ec.eudi:pid:1"
 }
 

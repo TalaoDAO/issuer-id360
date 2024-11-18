@@ -329,15 +329,17 @@ def oidc_id360callback(code: str):
             print("payload from IN = ", payload)
         else:  # 'SVID_ID360',
             identity = dossier["identity"]
-            print("identity from KYC = ", identity)
-        if vc_type == "VerifiableId":
+            logging.info("identity from KYC = %s", identity)
+        
+        # Get correct credential file
+        if vc_type == "VerifiableId" and vc_format in ["ldp_vc", "jwt_vc_json", "jwt_vc_json-ld"]:
             vc_filename = "VerifiableId.jsonld"
+        elif vc_type == "Pid" and vc_format == 'vc+sd-jwt':
+            vc_filename = 'Pid.json'
         elif vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
         elif vc_format == "ldp_vc":
             vc_filename = vc_type + '_ldp_vc.jsonld'
-        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid":
-            vc_filename = 'Pid.json'
         elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof":
             vc_filename = 'AgeProof.json'
         elif vc_format == 'vc+sd-jwt':
