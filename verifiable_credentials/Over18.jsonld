@@ -9,18 +9,7 @@
                     "schema" : "https://schema.org/",
                     "id": "@id",
                     "type": "@type",
-                    "kycProvider" : "https://github.com/TalaoDAO/context#provider",
-                    "kycMethod" : "https://github.com/TalaoDAO/context#kycMethod",
                     "ageOver" : "https://github.com/TalaoDAO/context#ageover",
-                    "kycId" : "https://github.com/TalaoDAO/context#kycid",
-                    "issuedBy" : {
-                        "@id" : "schema:issuedBy",
-                        "@context" : {
-                            "@protected": true,
-                            "logo": {"@id" : "schema:image", "@type" : "@id"},
-                            "name" : "schema:name"
-                        }
-                    }
                 }
             }
         }
@@ -31,12 +20,6 @@
     "issuanceDate": "",
     "credentialSubject" : {
         "type" : "Over18",
-        "ageOver" : "18",
-        "kycProvider" : "",
-        "kycId" : "",
-        "kycMethod" : "",
-        "issuedBy": {
-            "name": "Altme"
-        }
+        "ageOver" : "18"
     }
 }

@@ -3,7 +3,7 @@
     "https://www.w3.org/2018/credentials/v1",
     {
         "VerifiableId": {
-            "@id": "https://github.com/TalaoDAO/context#verifiableid",
+            "@id": "https://doc.wallet-provider.io/wallet/vc_type/#VerifiableId",
             "@context": {
                 "@version": 1.1,
                 "@protected": true,

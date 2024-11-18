@@ -55,14 +55,14 @@ OIDC_URL = "https://talao.co/sandbox/oidc4vc/issuer/api"
 ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json draft 11
 ISSUER_ID_JWT_13 = "celebrwtox" # jwt_vc_json draft 13
 ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc draft 11
+ISSUER_LDP_VC = "jpcyexdyqh" # ldp_vc draft 13
 ISSUER_ID_SD_JWT = "allekzsiuo" # baseline draft 13
 ISSUER_ID_JWT_VC = "glrafobuwu" # EBSI draft 11
 client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
 client_secret_jwt_13 = json.load(open("keys.json", "r"))["client_secret_jwt_13"]  #jwt_vc_json draft 13 
-client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc
+client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc 11 and 13
 client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt
 client_secret_jwt_vc = json.load(open("keys.json", "r"))["client_secret"]  # sd_jwt
-
 
 
 def init_app(app, red_app, mode_app):
@@ -396,7 +396,7 @@ def oidc_id360callback(code: str):
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
 
-        elif vc_type == "VerifiableId" : # diip V21 and Default
+        elif vc_type == "VerifiableId": # jwt_vc_json, jwt_vc_json-ld, ldp_vc
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential["credentialSubject"]["given_name"] = payload["given_name"]
                 credential["credentialSubject"]["family_name"] = payload["family_name"]
@@ -428,14 +428,16 @@ def oidc_id360callback(code: str):
         
         else:
             logging.error("VC type not supported %s", vc_type)
-            pass
         
         # TODO add other data if available
-        if vc_format in ["jwt_vc_json", "ldp_vc"]:
-            credential["issuer"] = ISSUER_DID
+        if vc_format in ["jwt_vc_json", "ldp_vc", "jwt_vc_json-ld", "jwt_vc"]:
+            credential["issuer"] = {
+                "id": ISSUER_DID,
+                "name": "Talao",
+                "description": "See https://talao.io"
+            }
             credential['issuanceDate'] = datetime.now().replace(microsecond=0).isoformat() + "Z"
             credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
-            #credential['id'] = "urn:uuid:random"  # for preview only
             logging.info("credential = %s", credential)
         if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
@@ -446,9 +448,12 @@ def oidc_id360callback(code: str):
         elif vc_format == "jwt_vc_json" and vc_draft == "13":
             cs = client_secret_jwt_13  
             issuer_id = ISSUER_ID_JWT_13
-        elif vc_format == "ldp_vc":
+        elif vc_format == "ldp_vc" and vc_draft == "11":
             cs = client_secret_json_ld
             issuer_id = ISSUER_ID_JSON_LD
+        elif vc_format == "ldp_vc" and vc_draft == "13":
+            cs = client_secret_json_ld
+            issuer_id = ISSUER_LDP_VC
         elif vc_format == "vc+sd-jwt":
             cs = client_secret_sd_jwt
             issuer_id = ISSUER_ID_SD_JWT
