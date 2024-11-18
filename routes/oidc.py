@@ -347,6 +347,7 @@ def oidc_id360callback(code: str):
         else: # ldp_vc
             vc_filename = vc_type + '.jsonld'
         credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
+        
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
             birth_date = payload.get('birthdate')[:10]
         else:
@@ -379,14 +380,11 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
-                credential["gender"] = payload["gender"]
+                credential["gender"] = 1 if payload['gender'] == 'male' else 0
                 if payload["typ"] == "ID":
                     credential["nationalities"] = ["FR"]
             else:
-                if identity['gender'] == 'M':
-                    credential["gender"] = 1
-                else:
-                    credential["gender"] = 0
+                credential["gender"] = 1 if identity['gender'] == 'M' else 0
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
@@ -410,10 +408,7 @@ def oidc_id360callback(code: str):
             else:
                 credential["credentialSubject"]["family_name"] = identity["name"]
                 credential["credentialSubject"]["given_name"] = ' '.join(identity["first_names"])
-                if identity['gender'] == 'M':
-                    credential["credentialSubject"]["gender"] = 1
-                else:
-                    credential["credentialSubject"]["gender"] = 0
+                credential["credentialSubject"]["gender"] = 1 if identity['gender'] == 'M' else 0
                 credential["credentialSubject"]["birth_date"] = birth_date 
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             credential['credentialSubject']["issuing_country"] = "FR"
