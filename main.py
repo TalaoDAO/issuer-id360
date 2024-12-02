@@ -11,11 +11,12 @@ import environment
 import redis
 import logging
 from flask_mobility import Mobility
-from routes import oidc
+from routes import oidc, issuer_altme
 import os
 import message
 from flask_babel import Babel
 from ip2geotools.databases.noncommercial import DbIpCity
+
 
 app = Flask(__name__)
 babel = Babel(app)
@@ -29,7 +30,7 @@ mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 
-#issuer_altme.init_app(app, red, mode)
+issuer_altme.init_app(app, red, mode)
 #customer_api.init_app(app, red, mode)
 oidc.init_app(app, red, mode)
 
