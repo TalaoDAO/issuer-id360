@@ -4,6 +4,7 @@ import sys
 import json
 logging.basicConfig(level=logging.INFO)
 
+ngrok = "https://32c4275aca1c.ngrok.app"
 
 class currentMode():
     def __init__(self, myenv):
@@ -11,10 +12,10 @@ class currentMode():
         self.myenv = myenv
 
         # En Prod chez AWS
+        self.port = 3000
         if self.myenv == 'aws':
             self.server = "https://talao.co"
             self.IP = 'localhost'
-            self.port = 3000
             self.journey_fr = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
             self.journey = "e7831d5d-0111-48ec-b9ab-ce6cc5886d73"
             self.journey_oidc = "cf30908f-d1a9-4109-8248-5b68df16c6b8"
@@ -27,9 +28,8 @@ class currentMode():
             self.password_customers = json.load(
                 open("keys.json", "r"))['password']
         elif self.myenv == 'local':
-            self.server = "https://08af-2a01-cb00-91cf-7f00-d423-3c45-ddc3-82f7.ngrok-free.app"
+            self.server = ngrok
             self.IP = extract_ip()
-            self.port = 3000
             self.journey = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
             self.journey_oidc = "2ebe20ac-f801-4daa-9d7f-bf0a6354ab2e"
             self.url = 'https://preprod.id360docaposte.com/'

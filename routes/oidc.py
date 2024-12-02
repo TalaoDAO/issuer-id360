@@ -20,7 +20,6 @@ import requests
 import logging
 import uuid
 import ciso8601
-from datetime import datetime, timedelta
 import time
 import json
 from flask import jsonify, redirect, render_template, request, Response
@@ -89,7 +88,7 @@ def loginID360() -> bool:
     }
     json_data = {
         'username': mode.username,
-        'password': mode.password,
+        'password': mode.password
     }
     try:
         response = requests.post(mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
@@ -97,7 +96,7 @@ def loginID360() -> bool:
         logging.error("loginID360 connection failed")
         return
     if response.status_code == 200:
-        token =  response.json()["token"]
+        token = response.json()["token"]
         logging.info("token ok from ID360 = %s", token)
         red.set("token", token)
         return True
@@ -135,14 +134,11 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
         },
     }
     try:
-        response = requests.post(
-            mode.url + 'api/1.0.0/process/' + mode.journey_oidc + '/enrollment/',
-            headers=headers,
-            json=json_data,
-        )
+        url = mode.url + 'api/1.0.0/process/' + mode.journey_oidc + '/enrollment/'
+        response = requests.post(url, headers=headers, json=json_data)
     except Exception:
         logging.error("create_dossier request failed")
-        return None
+        return
     if response.status_code == 200:
         red.setex(code, CODE_LIFE, json.dumps({
             "id_dossier": response.json()["id"],
@@ -255,7 +251,6 @@ def login_oidc():
     logging.info("format = %s", format)
     logging.info("type = %s", type)
     logging.info("draft = %s", draft)
-
     return redirect(create_dossier(code, format, type, draft))
 
 
@@ -326,7 +321,7 @@ def oidc_id360callback(code: str):
             manage_error(id_dossier, code)
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': # IN
             payload = dossier["external_methods"]["id_num"]["results"]["id_num_out_token"][0]["payload"]
-            print("payload from IN = ", payload)
+            logging.info("payload from IN = %s", payload)
         else:  # 'SVID_ID360',
             identity = dossier["identity"]
             logging.info("identity from KYC = %s", identity)
@@ -365,13 +360,13 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["dateOfBirth"] = birth_date
                 credential['credentialSubject']['email'] = payload["email"]
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
-                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
+                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 2
                 credential['credentialSubject']["issuing_country"] = "FR"
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
-                credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 0
+                credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 2
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
         
@@ -380,7 +375,7 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
-                credential["gender"] = 1 if payload['gender'] == 'male' else 0
+                credential["gender"] = 1 if payload['gender'] == 'male' else 2
                 if payload["typ"] == "ID":
                     credential["nationalities"] = ["FR"]
             else:
@@ -403,13 +398,13 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["given_name"] = payload["given_name"]
                 credential["credentialSubject"]["family_name"] = payload["family_name"]
                 credential["credentialSubject"]["birth_date"] = birth_date
-                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 0
+                credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 2
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             else:
                 credential["credentialSubject"]["family_name"] = identity["name"]
                 credential["credentialSubject"]["given_name"] = ' '.join(identity["first_names"])
-                credential["credentialSubject"]["gender"] = 1 if identity['gender'] == 'M' else 0
-                credential["credentialSubject"]["birth_date"] = birth_date 
+                credential["credentialSubject"]["gender"] = 1 if identity['gender'] == 'M' else 2
+                credential["credentialSubject"]["birth_date"] = birth_date
                 credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
             credential['credentialSubject']["issuing_country"] = "FR"
                 

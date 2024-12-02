@@ -4,7 +4,7 @@
     {
       "@vocab": "https://schema.org/",
       "VerifiableId": {
-        "@id": "https://eu-digital-identity-wallet.github.io/eudi-doc-architecture-and-reference-framework/1.4.0/annexes/annex-3/annex-3.01-pid-rulebook/",
+        "@id": "https://doc.wallet-provider.io/vc_type#verifiableid",
         "@context": {
           "@version": 1.1,
           "@protected": true,
