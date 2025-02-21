@@ -171,8 +171,8 @@ def get_dossier(id_dossier: str) -> dict:
     }
     try:
         response = requests.get(mode.url + 'api/1.0.0/enrollment/' +
-                                str(id_dossier)+'/report?allow_draft=false',
-                                headers=headers)
+                                str(id_dossier)+ '/report?allow_draft=false',
+                                headers=headers, timeout=10)
     except Exception:
         logging.error("get_dossier request connexion failed")
         return
@@ -375,11 +375,11 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
-                credential["gender"] = 1 if payload['gender'] == 'male' else 2
+                credential["sex"] = 1 if payload['gender'] == 'male' else 2
                 if payload["typ"] == "ID":
                     credential["nationalities"] = ["FR"]
             else:
-                credential["gender"] = 1 if identity['gender'] == 'M' else 0
+                credential["sex"] = 1 if identity['gender'] == 'M' else 0
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
