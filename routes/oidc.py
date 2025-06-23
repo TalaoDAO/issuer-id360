@@ -156,7 +156,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
         return create_dossier(code, format, type, draft)
     else:
         logging.error("create_dossier returned status = %s", str(response.status_code))
-        return None
+        return
 
 
 def get_dossier(id_dossier: str) -> dict:
@@ -251,7 +251,10 @@ def login_oidc():
     logging.info("format = %s", format)
     logging.info("type = %s", type)
     logging.info("draft = %s", draft)
-    return redirect(create_dossier(code, format, type, draft))
+    redirect_link = create_dossier(code, format, type, draft)
+    if not redirect_link:
+        jsonify("KYC provider failed")
+    return redirect(redirect_link)
 
 
 def oidc4vc_callback():
