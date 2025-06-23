@@ -74,7 +74,6 @@ def init_app(app, red_app, mode_app):
     app.add_url_rule('/id360/oidc4vc_callback_id360/<code>', view_func=oidc_id360callback, methods=['GET', 'POST'])
     app.add_url_rule('/id360/oidc4vc_stream', view_func=oidc_issuer_stream, methods=['GET'])
     app.add_url_rule('/id360/get_status_kyc/<code>', view_func=get_status_kyc, methods=['GET'])
-    app.add_url_rule('/id360/oidc4vc_intro', view_func=intro, methods=['GET'])
 
 
 def loginID360() -> bool:
@@ -118,7 +117,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
         logging.info("token in create_dossier = %s", token)
     except Exception:
         logging.error("create_dossier request failed")
-        return None
+        return
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -140,6 +139,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
         logging.error("create_dossier request failed")
         return
     if response.status_code == 200:
+        # normal exit with url to redirect to ID360 UX
         red.setex(code, CODE_LIFE, json.dumps({
             "id_dossier": response.json()["id"],
             "vc_format": format,
@@ -151,7 +151,7 @@ def create_dossier(code: str, format: str, type: str, draft: str) -> str:
         logging.info("url = %s",url)
         return url
     elif response.status_code == 401:
-        # refresh token
+        # need to refresh the token
         loginID360()
         return create_dossier(code, format, type, draft)
     else:
@@ -164,7 +164,11 @@ def get_dossier(id_dossier: str) -> dict:
     ID360 API call to get user data
 
     """
-    token = red.get("token").decode()
+    try:
+        token = red.get("token").decode()
+        logging.error("token expired in redis")
+    except:
+        return
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -180,10 +184,10 @@ def get_dossier(id_dossier: str) -> dict:
         return response.json()
     elif response.status_code == 404:
         logging.warning("dossier %s expired", str(id_dossier))
-        return "expired"
+        return
     else:
         logging.error("error requesting dossier status : %s",response.status_code)
-        return response.status_code
+        return
 
 
 def get_image(url):
@@ -191,7 +195,11 @@ def get_image(url):
     ID360 API call to get user document image
 
     """
-    token = red.get("token").decode()
+    try:
+        token = red.get("token").decode()
+    except:
+        logging.error("token expired in redis")
+        return
     headers = {
         'accept': 'application/json',
         'Authorization': 'Token ' + token,
@@ -212,6 +220,7 @@ def get_image(url):
 
 
 def login_oidc():
+    """Entry point for wallet"""
     code = str(uuid.uuid4())
     vc_format = request.args.get("format")
     vc_type = request.args.get("type")
@@ -253,7 +262,7 @@ def login_oidc():
     logging.info("draft = %s", draft)
     redirect_link = create_dossier(code, format, type, draft)
     if not redirect_link:
-        jsonify("KYC provider failed")
+        return jsonify("KYC provider failed")
     return redirect(redirect_link)
 
 
@@ -519,5 +528,3 @@ def oidc_issuer_stream():
     return Response(event_stream(), headers=headers)
 
 
-def intro():
-    return render_template("intro.html")
