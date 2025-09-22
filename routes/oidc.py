@@ -79,7 +79,7 @@ def init_app(app, red_app, mode_app):
 def loginID360() -> bool:
     """
     ID360 API call for login
-    set token if ok False if not
+    set token in redis if ok return False if not
     """
     headers = {
         'accept': 'application/json',
@@ -96,7 +96,7 @@ def loginID360() -> bool:
         return
     if response.status_code == 200:
         token = response.json()["token"]
-        logging.info("token ok from ID360 = %s", token)
+        logging.info("Get a new token from ID360 = %s", token)
         red.set("token", token)
         return True
     else:
@@ -278,8 +278,8 @@ def oidc4vc_wait(code):
 
 def get_status_kyc(code):
     try:
-        logging.info(json.loads(red.get(code)))
-        return jsonify(status=json.loads(red.get(code))["KYC"], url=json.loads(red.get(code))["url"])
+        code_data = json.loads(red.get(code))
+        return jsonify(status=code_data["KYC"], url=code_data["url"])
     except (KeyError, TypeError):
         return jsonify(status="None")
 
@@ -327,7 +327,6 @@ def oidc_id360callback(code: str):
         manage_error(id_dossier, code)
         
     elif request.get_json()["status"] == "OK":
-        id_dossier = json.loads(red.get(code))["id_dossier"]
         dossier = get_dossier(id_dossier)
         if not dossier:
             manage_error(id_dossier, code)
