@@ -389,14 +389,17 @@ def oidc_id360callback(code: str):
                 credential["sex"] = 1 if payload['gender'] == 'male' else 2
                 if payload["typ"] == "ID":
                     credential["nationalities"] = ["FR"]
+                credential["issuing_country"] = "FR"
+                credential["issuing_authority"] = "FR"
             else:
                 credential["sex"] = 1 if identity['gender'] == 'M' else 0
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
             credential['issuance_date'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-            credential["issuing_country"] = "FR"
-            credential["issuing_authority"] = "FR"
+            logging.info("identity data : %s", json.dumps(identity, indent=2))
+            #credential["issuing_country"] = "FR"
+            #credential["issuing_authority"] = "FR"
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
