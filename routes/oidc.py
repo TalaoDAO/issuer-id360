@@ -397,7 +397,6 @@ def oidc_id360callback(code: str):
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
             credential['issuance_date'] = datetime.now().replace(microsecond=0).isoformat()[:10]
-            logging.info("identity data : %s", json.dumps(identity, indent=2))
             #credential["issuing_country"] = "FR"
             #credential["issuing_authority"] = "FR"
             for age in [12, 14, 16, 18, 21, 65]:
