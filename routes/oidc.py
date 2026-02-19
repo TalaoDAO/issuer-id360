@@ -355,7 +355,17 @@ def oidc_id360callback(code: str):
             vc_filename = 'IdentityCredential.json'
         else: # ldp_vc
             vc_filename = vc_type + '.jsonld'
-        credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
+        
+        try:
+            credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
+        except Exception:
+            logging.error("VC in incorretc format")
+            red.setex(code, CODE_LIFE, json.dumps({
+                "code_error": "414",
+                "vc_type": vc_type
+            }))
+            return jsonify("ok")
+            
         
         # fetch birth date
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -366,16 +376,11 @@ def oidc_id360callback(code: str):
         if not birth_date:
             logging.warning('No birth date in dossier)')
             birth_date = "1900-01-01"
-            
-        #birth_dt = datetime.fromisoformat(birth_date).replace(tzinfo=timezone.utc)
-        #timestamp = birth_dt.timestamp()
-        #now = datetime.now(timezone.utc).replace(microsecond=0)
         
         birth_dt = datetime.fromisoformat(birth_date).replace(tzinfo=timezone.utc)
         birth_ts = birth_dt.timestamp()
         now = datetime.now(timezone.utc).replace(microsecond=0)
         now_ts = now.timestamp()
-        
         
         if vc_format == 'jwt_vc' and vc_type == 'IndividualVerifiableAttestation': # EBSI
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
