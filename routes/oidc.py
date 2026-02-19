@@ -481,15 +481,15 @@ def oidc_id360callback(code: str):
         elif vc_format == "ldp_vc" and vc_draft == "13":
             cs = client_secret_json_ld
             issuer_id = ISSUER_LDP_VC
-        elif vc_format == "vc+sd-jwt":
-            cs = client_secret_sd_jwt
-            issuer_id = ISSUER_ID_SD_JWT
         elif vc_format in ["vc+sd-jwt", "dc_sd_jwt"] and vc_draft == "15":
             cs = client_secret_sd_jwt
             issuer_id = ISSUER_ID_SD_JWT_15
         elif vc_format in ["vc+sd-jwt", "dc_sd_jwt"] and vc_draft == "18":
             cs = client_secret_sd_jwt
             issuer_id = ISSUER_ID_SD_JWT_18
+        elif vc_format in ["vc+sd-jwt", "dc_sd_jwt"]:
+            cs = client_secret_sd_jwt
+            issuer_id = ISSUER_ID_SD_JWT   # baseline (draft 13)
 
         headers = {
             'Content-Type': 'application/json',
