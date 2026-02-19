@@ -57,8 +57,7 @@ def loginID360() -> str:
         'password': mode.password,
     }
     try:
-        response = requests.post(
-            mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
+        response = requests.post(mode.url + 'api/1.0.0/user/login/', headers=headers, json=json_data)
     except Exception:
         logging.error("loginID360 request failed")
         return
@@ -130,8 +129,8 @@ def get_dossier(id_dossier: str) -> dict:
         'Authorization': 'Token ' + token,
     }
     try:
-        response = requests.get(mode.url + 'api/1.0.0/enrollment/' +
-                                str(id_dossier)+'/report?allow_draft=false', headers=headers)
+        url = mode.url + 'api/1.0.0/enrollment/' + str(id_dossier)+'/report?allow_draft=false'
+        response = requests.get(url, headers=headers, timeout=10)
     except Exception:
         logging.error("get_dossier request failed")
         return

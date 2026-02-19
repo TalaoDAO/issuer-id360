@@ -19,13 +19,12 @@ https://talao.co/id360/oidc4vc?format=ldp_vc&draft=11&type=verifiableid
 import requests
 import logging
 import uuid
-import ciso8601
-import time
 import json
 from flask import jsonify, redirect, render_template, request, Response
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from id360 import ID360_API_KEY, ISSUER_DID
 import base64
+from dateutil.relativedelta import relativedelta
 
 
 CODE_LIFE = 600  # in seconds the delay between the call of the API to get the code and the reding of the authentication QRcode by the wallet
@@ -55,12 +54,15 @@ ISSUER_ID_JWT = "vqzljjitre" # jwt_vc_json draft 11
 ISSUER_ID_JWT_13 = "celebrwtox" # jwt_vc_json draft 13
 ISSUER_ID_JSON_LD = "lbeuegiasm" # ldp_vc draft 11
 ISSUER_LDP_VC = "jpcyexdyqh" # ldp_vc draft 13
+ISSUER_ID_SD_JWT_15 = "gcnbeysnzw" #  draft 15
+ISSUER_ID_SD_JWT_18 = "akvyisiady" #  draft 18
 ISSUER_ID_SD_JWT = "allekzsiuo" # baseline draft 13
+
 ISSUER_ID_JWT_VC = "glrafobuwu" # EBSI draft 11
 client_secret = json.load(open("keys.json", "r"))["client_secret"]  #jwt_vc_json 
 client_secret_jwt_13 = json.load(open("keys.json", "r"))["client_secret_jwt_13"]  #jwt_vc_json draft 13 
 client_secret_json_ld = json.load(open("keys.json", "r"))["client_secret_json_ld"]  # ldp_vc 11 and 13
-client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt
+client_secret_sd_jwt = json.load(open("keys.json", "r"))["client_secret_sd_jwt"]  # sd_jwt, draft 13, 15, 18
 client_secret_jwt_vc = json.load(open("keys.json", "r"))["client_secret"]  # sd_jwt
 
 
@@ -266,6 +268,7 @@ def login_oidc():
     return redirect(redirect_link)
 
 
+# browser callback endpoint
 def oidc4vc_callback():
     if request.args.get("error"):
         return render_template("error.html", error=request.args.get("error").replace("_", " "), error_description=request.args.get("error_description"))
@@ -321,12 +324,15 @@ def oidc_id360callback(code: str):
             "vc_type": "VerifiableId"
         }))
         return jsonify("ok")
-
-    logging.info('callback for code = %s is %s', code, request.get_json()["status"])
-    if request.get_json()["status"] in ["CANCELED", "FAILED", "KO"]:
+    
+    body = request.get_json(silent=True) or {}
+    status = body.get("status")
+    logging.info('callback for code = %s is %s', code, status)
+    
+    if status in ["CANCELED", "FAILED", "KO"]:
         manage_error(id_dossier, code)
         
-    elif request.get_json()["status"] == "OK":
+    elif status == "OK":
         dossier = get_dossier(id_dossier)
         if not dossier:
             manage_error(id_dossier, code)
@@ -340,7 +346,7 @@ def oidc_id360callback(code: str):
         # Get correct credential file
         if vc_type == "VerifiableId" and vc_format in ["ldp_vc", "jwt_vc_json", "jwt_vc_json-ld"]:
             vc_filename = "VerifiableId.jsonld"
-        elif vc_type == "Pid" and vc_format == 'vc+sd-jwt':
+        elif vc_type == "Pid" and vc_format in ['dc_sd_jwt', 'vc+sd-jwt']:
             vc_filename = 'Pid.json'
         elif vc_format == "jwt_vc_json":
             vc_filename = vc_type + '_jwt_vc_json.jsonld'
@@ -354,15 +360,25 @@ def oidc_id360callback(code: str):
             vc_filename = vc_type + '.jsonld'
         credential = json.load(open('./verifiable_credentials/' + vc_filename,'r'))
         
+        # fetch birth date
         if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
-            birth_date = payload.get('birthdate')[:10]
+            raw = payload.get('birthdate')
         else:
-            birth_date = identity.get("birth_date")[:10]
+            raw = identity.get("birth_date")
+        birth_date = (raw or "")[:10] 
         if not birth_date:
             logging.warning('No birth date in dossier)')
-            birth_date = "1900-00-00"
-        timestamp = time.mktime(ciso8601.parse_datetime(birth_date).timetuple())
-        now = time.time()
+            birth_date = "1900-01-01"
+            
+        #birth_dt = datetime.fromisoformat(birth_date).replace(tzinfo=timezone.utc)
+        #timestamp = birth_dt.timestamp()
+        #now = datetime.now(timezone.utc).replace(microsecond=0)
+        
+        birth_dt = datetime.fromisoformat(birth_date).replace(tzinfo=timezone.utc)
+        birth_ts = birth_dt.timestamp()
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now_ts = now.timestamp()
+        
         
         if vc_format == 'jwt_vc' and vc_type == 'IndividualVerifiableAttestation': # EBSI
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -373,22 +389,22 @@ def oidc_id360callback(code: str):
                 credential['credentialSubject']['phone_number'] = payload["phone_number"]
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 2
                 credential['credentialSubject']["issuing_country"] = "FR"
-                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["dateIssued"] = now.isoformat().replace("+00:00", "Z")
             else:
                 credential["credentialSubject"]["familyName"] = identity["name"]
                 credential["credentialSubject"]["firstName"] = ' '.join(identity["first_names"])
                 credential["credentialSubject"]["gender"] = 1 if identity["gender"] == "male" else 2
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
-                credential["credentialSubject"]["dateIssued"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["dateIssued"] = now.isoformat().replace("+00:00", "Z")
         
-        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3
+        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3, ARF
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
                 credential["sex"] = 1 if payload['gender'] == 'male' else 2
                 if payload["typ"] == "ID":
-                    credential["nationalities"] = ["FR"]
+                    credential["nationality"] = ["FR"]
                 credential["issuing_country"] = "FR"
                 credential["issuing_authority"] = "FR"
             else:
@@ -396,15 +412,23 @@ def oidc_id360callback(code: str):
                 credential['given_name'] = ' '.join(identity["first_names"])
                 credential['family_name'] = identity["name"]
                 credential['birth_date'] = birth_date
-            credential['issuance_date'] = datetime.now().replace(microsecond=0).isoformat()[:10]
+            credential['issuance_date'] = now.isoformat().replace("+00:00", "Z")
+            credential['expiry_date'] = (now + relativedelta(years=5)).isoformat().replace("+00:00", "Z")
             #credential["issuing_country"] = "FR"
             #credential["issuing_authority"] = "FR"
+            
             for age in [12, 14, 16, 18, 21, 65]:
-                credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                credential[f'age_over_{age}'] = (now_ts - birth_ts) > (ONE_YEAR * age)
+
+            #for age in [12, 14, 16, 18, 21, 65]:
+            #    credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
         elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
             for age in [12, 14, 16, 18, 21, 65]:
-                credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
+                credential['age_equal_or_over'][str(age)] = (now_ts - birth_ts) > (ONE_YEAR * age)
+
+            #for age in [12, 14, 16, 18, 21, 65]:
+            #    credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
 
         elif vc_type == "VerifiableId": # jwt_vc_json, jwt_vc_json-ld, ldp_vc
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
@@ -412,19 +436,21 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["family_name"] = payload["family_name"]
                 credential["credentialSubject"]["birth_date"] = birth_date
                 credential['credentialSubject']["gender"] = 1 if payload["gender"] == "male" else 2
-                credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["issuance_date"] = now.isoformat().replace("+00:00", "Z")
             else:
                 credential["credentialSubject"]["family_name"] = identity["name"]
                 credential["credentialSubject"]["given_name"] = ' '.join(identity["first_names"])
                 credential["credentialSubject"]["gender"] = 1 if identity['gender'] == 'M' else 2
                 credential["credentialSubject"]["birth_date"] = birth_date
-                credential["credentialSubject"]["issuance_date"] = datetime.now().replace(microsecond=0).isoformat()[:10]
+                credential["credentialSubject"]["issuance_date"] = now.isoformat().replace("+00:00", "Z")
             credential['credentialSubject']["issuing_country"] = "FR"
                 
         elif vc_type in ["Over13", "Over15", "Over18", "Over21", "Over50", "Over65"]:
-            age = int(vc_type[4:6])        
-            if (now-timestamp) < ONE_YEAR * age:
-                logging.warning("age below " + str(age))
+            age = int(vc_type[4:6])
+            if (now_ts - birth_ts) < (ONE_YEAR * age):
+            #age = int(vc_type[4:6])  
+            #if (now-timestamp) < ONE_YEAR * age:
+                logging.warning("age below %s", str(age))
                 manage_error(id_dossier, code)
                 return jsonify("Unauthorized"), 403
         
@@ -441,13 +467,13 @@ def oidc_id360callback(code: str):
                 "name": "Talao",
                 "description": "See https://talao.io"
             }
-            credential['issuanceDate'] = datetime.now().replace(microsecond=0).isoformat() + "Z"
-            credential['expirationDate'] = (datetime.now() + timedelta(days=CREDENTIAL_LIFE)).isoformat() + "Z"
+            credential['issuanceDate'] = now.isoformat().replace("+00:00", "Z")
+            credential['expirationDate'] = (now + timedelta(days=CREDENTIAL_LIFE)).isoformat().replace("+00:00", "Z")
             logging.info("credential = %s", credential)
         if vc_format == "jwt_vc_json" and vc_draft == "11":
             cs = client_secret  
             issuer_id = ISSUER_ID_JWT
-        if vc_format == "jwt_vc" and vc_draft == "11":
+        elif vc_format == "jwt_vc" and vc_draft == "11":
             cs = client_secret_jwt_vc
             issuer_id = ISSUER_ID_JWT_VC
         elif vc_format == "jwt_vc_json" and vc_draft == "13":
@@ -462,6 +488,12 @@ def oidc_id360callback(code: str):
         elif vc_format == "vc+sd-jwt":
             cs = client_secret_sd_jwt
             issuer_id = ISSUER_ID_SD_JWT
+        elif vc_format in ["vc+sd-jwt", "dc_sd_jwt"] and vc_draft == "15":
+            cs = client_secret_sd_jwt
+            issuer_id = ISSUER_ID_SD_JWT_15
+        elif vc_format in ["vc+sd-jwt", "dc_sd_jwt"] and vc_draft == "18":
+            cs = client_secret_sd_jwt
+            issuer_id = ISSUER_ID_SD_JWT_18
 
         headers = {
             'Content-Type': 'application/json',
