@@ -4,6 +4,9 @@ https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=identitycredential
 
 PID
 https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=pid
+https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=15&type=pid
+
+
 
 https://talao.co/id360/oidc4vc?format=vcsd-jwt&draft=13&type=ageproof
 
@@ -230,7 +233,7 @@ def login_oidc():
 
     if not vc_format or vc_format.lower() == "jwt_vc_json":
         format = "jwt_vc_json"
-    elif vc_format == "vcsd-jwt":
+    elif vc_format in ["vc-sd-jwt", "dc-sd-jwt", "vc_sd_jwt", "dc_sd_jwt", "vcsd-jwt"]:
         format = "vc+sd-jwt"
     elif vc_format == "ldp_vc":
         format = "ldp_vc"
@@ -249,19 +252,13 @@ def login_oidc():
         type = "IdentityCredential"
     else:
         type = vc_type.capitalize()
+        
     if type not in VC_TYPE_SUPPORTED:
         return jsonify("This VC type is not supported %s", vc_type)
     
-    if not vc_draft and format == "vc+sd-jwt":
-        draft = "13"
-    elif not vc_draft and format in ["ldp_vc", "jwt_vc_json"]:
-        draft = "11"
-    else:
-        draft = vc_draft
-
     logging.info("format = %s", format)
     logging.info("type = %s", type)
-    logging.info("draft = %s", draft)
+    logging.info("draft = %s", vc_draft)
     redirect_link = create_dossier(code, format, type, draft)
     if not redirect_link:
         return jsonify("KYC provider failed")
@@ -397,13 +394,13 @@ def oidc_id360callback(code: str):
                 credential["credentialSubject"]["dateOfBirth"] = birth_date 
                 credential["credentialSubject"]["dateIssued"] = now.isoformat().replace("+00:00", "Z")
         
-        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": # DIIP V3, ARF
+        elif vc_format == 'vc+sd-jwt' and vc_type == "Pid": 
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
                 credential['given_name'] = payload["given_name"]
                 credential['family_name'] = payload["family_name"]
                 credential['birth_date'] = birth_date
                 credential["sex"] = 1 if payload['gender'] == 'male' else 2
-                if payload["typ"] == "ID":
+                if payload.get("typ") == "ID":
                     credential["nationality"] = ["FR"]
                 credential["issuing_country"] = "FR"
                 credential["issuing_authority"] = "FR"
@@ -419,16 +416,10 @@ def oidc_id360callback(code: str):
             
             for age in [12, 14, 16, 18, 21, 65]:
                 credential[f'age_over_{age}'] = (now_ts - birth_ts) > (ONE_YEAR * age)
-
-            #for age in [12, 14, 16, 18, 21, 65]:
-            #    credential['age_over_' + str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
         
         elif vc_format == 'vc+sd-jwt' and vc_type == "AgeProof": # DIIP V3
             for age in [12, 14, 16, 18, 21, 65]:
                 credential['age_equal_or_over'][str(age)] = (now_ts - birth_ts) > (ONE_YEAR * age)
-
-            #for age in [12, 14, 16, 18, 21, 65]:
-            #    credential['age_equal_or_over'][str(age)] = True if (now-timestamp > ONE_YEAR * age) else False
 
         elif vc_type == "VerifiableId": # jwt_vc_json, jwt_vc_json-ld, ldp_vc
             if dossier['id_verification_service'] == 'IdNumericExternalMethod': 
