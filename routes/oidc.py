@@ -259,7 +259,7 @@ def login_oidc():
     logging.info("format = %s", format)
     logging.info("type = %s", type)
     logging.info("draft = %s", vc_draft)
-    redirect_link = create_dossier(code, format, type, draft)
+    redirect_link = create_dossier(code, format, type, vc_draft)
     if not redirect_link:
         return jsonify("KYC provider failed")
     return redirect(redirect_link)
