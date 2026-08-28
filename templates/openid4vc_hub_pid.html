@@ -211,8 +211,8 @@
   @media (max-width: 680px) {
     .issuance-grid { gap: 16px; }
     .issuance-info { grid-row: 2; padding: 28px 22px; }
-    .qr-panel { grid-row: 1; padding: 26px 20px; }
-    .qr-frame { order: 4; padding: 13px; }
+    .qr-panel { display: flex; grid-row: 1; padding: 26px 20px; }
+    .qr-frame { display: none; }
     .qr-frame img { width: min(66vw, 260px); }
     .status-row { align-items: flex-start; flex-direction: column; }
     .desktop-only { display: none; }
@@ -228,7 +228,8 @@
     <section id="issuance-workspace" class="issuance-grid">
       <article class="panel qr-panel">
         <p class="eyebrow">Secure offer</p>
-        <h2>Scan with your wallet</h2>
+        <h2 class="desktop-only">Scan with your wallet</h2>
+        <h2 class="mobile-only" style="display:none">Open in your wallet</h2>
         <p class="device-hint desktop-only">
           Open your wallet on your smartphone, then scan this QR code to get your Identity Card.
         </p>
@@ -255,7 +256,7 @@
         <p class="eyebrow">Your digital identity</p>
         <h1>Get your European Identity Card</h1>
         <p id="status-message" class="lead" aria-live="polite">
-          Your offer is ready. Scan the QR code or open it in your wallet to continue.
+          Your offer is ready. Scan the QR code with your wallet to receive your Identity Card.
         </p>
 
         <ol class="steps" aria-label="Issuance progress">
@@ -265,7 +266,7 @@
           </li>
           <li id="step-wallet" class="step is-active">
             <span class="step-number">2</span>
-            <span><strong>Connect your wallet</strong><span>Scan the QR code or use the mobile button.</span></span>
+            <span><strong>Connect your wallet</strong><span>Follow the instructions in your wallet.</span></span>
           </li>
           <li id="step-issued" class="step">
             <span class="step-number">3</span>
@@ -404,7 +405,9 @@
 
       statusPill.className = "status-pill";
       statusPill.textContent = "Waiting for wallet";
-      statusMessage.textContent = "Scan the QR code or open the offer in your wallet to continue.";
+      statusMessage.textContent = window.matchMedia("(max-width: 680px)").matches
+        ? "Tap “Open in my wallet” to get your Identity Card."
+        : "Scan the QR code with your wallet to receive your Identity Card.";
     }
 
     function updateExpiry() {
