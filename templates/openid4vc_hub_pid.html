@@ -1,102 +1,464 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PID issuance</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 20px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 22px; margin-top: 18px; }
-    .qr { text-align: center; }
-    .qr img { width: min(420px, 88vw); height: auto; }
-    .wallet-button { display: inline-block; margin-top: 18px; padding: 14px 20px; border-radius: 9px; background: #1769aa; color: white; font-weight: 700; text-decoration: none; }
-    .status { font-size: 23px; font-weight: 700; }
-    .pending { color: #765b00; }
-    .success { color: #08752d; }
-    .failure { color: #a31616; }
-    .muted { color: #666; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f6f6; padding: 12px; border-radius: 8px; }
-  </style>
-</head>
-<body>
-  <h1>European PID</h1>
+{% extends "openid4vc_hub_base.html" %}
 
-  <div class="card">
-    <div id="status" class="status pending">Waiting for wallet...</div>
-    <div id="message" class="muted">Scan the QR code or open the offer directly on this device.</div>
-  </div>
+{% block title %}Get my Identity Card{% endblock %}
 
-  <div class="card qr">
-    <img src="{{ qr_image }}" alt="PID credential offer QR code">
-    <br>
-    <a class="wallet-button" href="{{ qr_code_content }}">Open in Wallet</a>
-  </div>
-
-  <div class="card">
-    <strong>Issuance ID</strong>
-    <pre>{{ issuance_id }}</pre>
-
-    <details>
-      <summary>Credential offer deeplink</summary>
-      <pre>{{ qr_code_content }}</pre>
-    </details>
-
-    <details open>
-      <summary>Issuance status</summary>
-      <pre id="polling-response">Waiting for first status response...</pre>
-    </details>
-  </div>
-
-<script>
-const statusUrl = {{ status_url|tojson }};
-let stopped = false;
-
-function updateState(payload) {
-  const status = payload.status || "pending";
-  const statusEl = document.getElementById("status");
-  const messageEl = document.getElementById("message");
-
-  if (status === "completed") {
-    stopped = true;
-    statusEl.className = "status success";
-    statusEl.textContent = "✓ PID issued successfully";
-    messageEl.textContent = "The wallet completed the PID issuance.";
-  } else if (status === "failed" || status === "expired") {
-    stopped = true;
-    statusEl.className = "status failure";
-    statusEl.textContent = "✗ " + status;
-    messageEl.textContent = payload.error_description || "The issuance did not complete.";
-  } else {
-    statusEl.className = "status pending";
-    statusEl.textContent = status;
-    messageEl.textContent = "Waiting for wallet completion...";
+{% block styles %}
+  .issuance-grid {
+    align-items: stretch;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
   }
-}
 
-async function poll() {
-  if (stopped) return;
-  try {
-    const response = await fetch(statusUrl, {headers: {"Accept": "application/json"}});
-    const payload = await response.json();
-    document.getElementById("polling-response").textContent = JSON.stringify(payload, null, 2);
+  .qr-panel {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 34px;
+    text-align: center;
+  }
 
-    if (!response.ok) {
-      const statusEl = document.getElementById("status");
-      statusEl.className = "status failure";
-      statusEl.textContent = "Status check failed";
-      document.getElementById("message").textContent = payload.error_description || payload.error || ("HTTP " + response.status);
-      if (response.status < 500) stopped = true;
-    } else {
-      updateState(payload);
+  .qr-frame {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: 0 16px 34px rgba(8, 27, 58, 0.1);
+    margin: 8px 0 22px;
+    padding: 18px;
+    position: relative;
+  }
+
+  .qr-frame::before, .qr-frame::after {
+    border-color: var(--blue-600);
+    border-style: solid;
+    content: "";
+    height: 34px;
+    position: absolute;
+    width: 34px;
+  }
+
+  .qr-frame::before {
+    border-width: 3px 0 0 3px;
+    border-radius: 9px 0 0;
+    left: 8px;
+    top: 8px;
+  }
+
+  .qr-frame::after {
+    border-width: 0 3px 3px 0;
+    border-radius: 0 0 9px;
+    bottom: 8px;
+    right: 8px;
+  }
+
+  .qr-frame img {
+    display: block;
+    height: auto;
+    image-rendering: pixelated;
+    max-width: 100%;
+    width: 286px;
+  }
+
+  .device-hint {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    margin: 0 0 20px;
+    max-width: 360px;
+  }
+
+  .wallet-button {
+    display: none;
+    min-width: 250px;
+  }
+
+  .issuance-info {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(30px, 5vw, 58px);
+  }
+
+  .issuance-info h1 { max-width: 690px; }
+  .issuance-info .lead { max-width: 640px; }
+
+  .status-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .expiry {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .steps {
+    display: grid;
+    gap: 18px;
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+  }
+
+  .step {
+    align-items: flex-start;
+    color: var(--muted);
+    display: grid;
+    gap: 13px;
+    grid-template-columns: 34px 1fr;
+  }
+
+  .step-number {
+    align-items: center;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    display: flex;
+    font-size: 0.78rem;
+    font-weight: 900;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+  }
+
+  .step strong { color: var(--ink); display: block; font-size: 0.9rem; margin: 2px 0 3px; }
+  .step span:last-child { font-size: 0.8rem; line-height: 1.45; }
+  .step.is-active .step-number { background: var(--blue-100); border-color: #bfd6fa; color: var(--blue-700); }
+  .step.is-done .step-number { background: var(--success); border-color: var(--success); color: white; }
+
+  .result-panel {
+    margin: 5vh auto 0;
+    max-width: 720px;
+    padding: clamp(34px, 7vw, 68px);
+    text-align: center;
+  }
+
+  .result-panel .icon-circle { margin-bottom: 22px; }
+  .result-panel .lead { margin-left: auto; margin-right: auto; max-width: 540px; }
+  .result-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 28px; }
+
+  .modal-backdrop {
+    align-items: center;
+    background: rgba(6, 21, 46, 0.72);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 20px;
+    position: fixed;
+    z-index: 50;
+  }
+
+  .success-modal {
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+    max-width: 520px;
+    overflow: hidden;
+    padding: 42px;
+    position: relative;
+    text-align: center;
+    width: 100%;
+  }
+
+  .success-modal::before {
+    background: linear-gradient(90deg, var(--success), var(--cyan-400), var(--blue-600));
+    content: "";
+    height: 6px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  .success-modal h2 { font-size: clamp(1.8rem, 5vw, 2.4rem); margin: 18px 0 12px; }
+  .success-modal p { color: var(--muted); line-height: 1.6; }
+  .success-modal .button { margin-top: 12px; width: 100%; }
+  .success-modal:focus { outline: none; }
+
+  .confetti { inset: 0; overflow: hidden; pointer-events: none; position: absolute; }
+  .confetti span {
+    animation: confetti-fall 1.2s ease-out both;
+    background: var(--blue-600);
+    border-radius: 2px;
+    height: 10px;
+    left: var(--x);
+    position: absolute;
+    top: -16px;
+    transform: rotate(var(--r));
+    width: 7px;
+  }
+  .confetti span:nth-child(3n) { background: var(--cyan-400); }
+  .confetti span:nth-child(3n + 1) { background: #f4b740; }
+
+  @keyframes confetti-fall {
+    0% { opacity: 0; transform: translateY(0) rotate(0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(330px) rotate(520deg); }
+  }
+
+  @media (max-width: 860px) {
+    .issuance-grid { grid-template-columns: 1fr; }
+    .issuance-info { grid-row: 1; }
+    .qr-panel { grid-row: 2; }
+  }
+
+  @media (max-width: 680px) {
+    .issuance-grid { gap: 16px; }
+    .issuance-info { grid-row: 2; padding: 28px 22px; }
+    .qr-panel { grid-row: 1; padding: 26px 20px; }
+    .qr-frame { order: 4; padding: 13px; }
+    .qr-frame img { width: min(66vw, 260px); }
+    .status-row { align-items: flex-start; flex-direction: column; }
+    .desktop-only { display: none; }
+    .mobile-only { display: block !important; }
+    .wallet-button { display: inline-flex; min-width: 0; order: 3; }
+    .success-modal { border-radius: 24px; padding: 34px 24px 26px; }
+    .result-actions { display: grid; }
+  }
+{% endblock %}
+
+{% block content %}
+  <main class="content">
+    <section id="issuance-workspace" class="issuance-grid">
+      <article class="panel qr-panel">
+        <p class="eyebrow">Secure offer</p>
+        <h2>Scan with your wallet</h2>
+        <p class="device-hint desktop-only">
+          Open your wallet on your smartphone, then scan this QR code to get your Identity Card.
+        </p>
+        <p class="device-hint mobile-only" style="display:none">
+          You are on mobile: open the offer directly in your wallet.
+        </p>
+        <div class="qr-frame">
+          <img src="{{ qr_image }}" alt="European Identity Card offer QR code">
+        </div>
+        <a id="wallet-link" class="button wallet-button" href="{{ qr_code_content }}">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7.5h15.5v11H4a2 2 0 0 1-2-2v-11a2 2 0 0 0 2 2Zm0 0h13V4.8A1.8 1.8 0 0 0 15.2 3H4a2 2 0 1 0 0 4.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M15.5 12h5.8v4h-5.8a2 2 0 1 1 0-4Z" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          Open in my wallet
+        </a>
+      </article>
+
+      <article class="panel issuance-info">
+        <div class="status-row">
+          <span id="status-pill" class="status-pill" aria-live="polite">Waiting for wallet</span>
+          <span id="expiry" class="expiry"></span>
+        </div>
+        <p class="eyebrow">Your digital identity</p>
+        <h1>Get your European Identity Card</h1>
+        <p id="status-message" class="lead" aria-live="polite">
+          Your offer is ready. Scan the QR code or open it in your wallet to continue.
+        </p>
+
+        <ol class="steps" aria-label="Issuance progress">
+          <li id="step-offer" class="step is-done">
+            <span class="step-number">✓</span>
+            <span><strong>Offer created</strong><span>Your Identity Card has been prepared securely.</span></span>
+          </li>
+          <li id="step-wallet" class="step is-active">
+            <span class="step-number">2</span>
+            <span><strong>Connect your wallet</strong><span>Scan the QR code or use the mobile button.</span></span>
+          </li>
+          <li id="step-issued" class="step">
+            <span class="step-number">3</span>
+            <span><strong>Identity Card received</strong><span>A confirmation will appear when issuance is complete.</span></span>
+          </li>
+        </ol>
+
+        <details class="technical-details">
+          <summary>Technical details</summary>
+          <code>Issuance: {{ issuance_id }}</code>
+          <pre id="polling-response">Waiting for the first status…</pre>
+        </details>
+      </article>
+    </section>
+
+    <section id="success-page" class="panel result-panel" hidden>
+      <span class="icon-circle success" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.2 4.2L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <p class="eyebrow">Issuance complete</p>
+      <h1>Your Identity Card is in your wallet</h1>
+      <p class="lead">Congratulations, your digital identity has been issued successfully. You can now return to your wallet and use it.</p>
+      <div class="result-actions">
+        <a class="button" href="/id360">Issue another Identity Card</a>
+      </div>
+      <details class="technical-details">
+        <summary>Issuance reference</summary>
+        <code>{{ issuance_id }}</code>
+      </details>
+    </section>
+
+    <section id="failure-page" class="panel result-panel" hidden>
+      <span class="icon-circle danger" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5m0 3.5v.1M4.7 19h14.6c1.2 0 2-1.3 1.4-2.3L13.4 4.1a1.6 1.6 0 0 0-2.8 0L3.3 16.7c-.6 1 .2 2.3 1.4 2.3Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </span>
+      <p class="eyebrow">Issuance interrupted</p>
+      <h1 id="failure-title">Unable to get your Identity Card</h1>
+      <p id="failure-message" class="lead">The offer could not be completed.</p>
+      <div class="result-actions">
+        <a class="button" href="/id360">Try again</a>
+      </div>
+    </section>
+  </main>
+{% endblock %}
+
+{% block scripts %}
+  <div id="success-modal" class="modal-backdrop" hidden>
+    <section class="success-modal" role="dialog" aria-modal="true" aria-labelledby="success-title" tabindex="-1">
+      <div class="confetti" aria-hidden="true">
+        <span style="--x:8%;--r:18deg"></span><span style="--x:17%;--r:48deg"></span>
+        <span style="--x:27%;--r:80deg"></span><span style="--x:39%;--r:26deg"></span>
+        <span style="--x:50%;--r:62deg"></span><span style="--x:61%;--r:15deg"></span>
+        <span style="--x:72%;--r:70deg"></span><span style="--x:83%;--r:35deg"></span>
+        <span style="--x:92%;--r:55deg"></span>
+      </div>
+      <span class="icon-circle success" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.2 4.2L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <h2 id="success-title">Congratulations!</h2>
+      <p>Your Identity Card has been received by your wallet.</p>
+      <button id="close-success" class="button" type="button">View confirmation</button>
+    </section>
+  </div>
+
+  <script>
+    const statusUrl = {{ status_url|tojson }};
+    const expiresAt = {{ expires_at|tojson }};
+    let stopped = false;
+
+    const workspace = document.getElementById("issuance-workspace");
+    const successPage = document.getElementById("success-page");
+    const failurePage = document.getElementById("failure-page");
+    const successModal = document.getElementById("success-modal");
+    const statusPill = document.getElementById("status-pill");
+    const statusMessage = document.getElementById("status-message");
+    const pollingResponse = document.getElementById("polling-response");
+
+    function setStepState(id, state, label) {
+      const step = document.getElementById(id);
+      const number = step.querySelector(".step-number");
+      step.classList.toggle("is-active", state === "active");
+      step.classList.toggle("is-done", state === "done");
+      if (state === "done") number.textContent = "✓";
+      else if (label) number.textContent = label;
     }
-  } catch (error) {
-    document.getElementById("message").textContent = "Status check failed: " + error;
-  }
 
-  if (!stopped) window.setTimeout(poll, 1500);
-}
+    function showSuccess() {
+      stopped = true;
+      workspace.hidden = true;
+      failurePage.hidden = true;
+      successPage.hidden = false;
+      successModal.hidden = false;
+      successModal.querySelector(".success-modal").focus();
+    }
 
-poll();
-</script>
-</body>
-</html>
+    function showFailure(status, description) {
+      stopped = true;
+      workspace.hidden = true;
+      successPage.hidden = true;
+      failurePage.hidden = false;
+      document.getElementById("failure-title").textContent =
+        status === "expired" ? "This offer has expired" : "Unable to get your Identity Card";
+      document.getElementById("failure-message").textContent = description || (
+        status === "expired"
+          ? "The time limit has been reached. You can create a new offer."
+          : "The wallet could not complete issuance. You can try again."
+      );
+      failurePage.querySelector(".button").focus();
+    }
+
+    function updateState(payload) {
+      const status = payload.status || "pending";
+
+      if (status === "completed") {
+        setStepState("step-wallet", "done", "✓");
+        setStepState("step-issued", "done", "✓");
+        showSuccess();
+        return;
+      }
+
+      if (status === "failed" || status === "expired") {
+        showFailure(status, payload.error_description || payload.error);
+        return;
+      }
+
+      if (status === "in_progress" || status === "partially_issued") {
+        statusPill.className = "status-pill is-progress";
+        statusPill.textContent = status === "in_progress" ? "Wallet connected" : "Finalizing";
+        statusMessage.textContent = status === "in_progress"
+          ? "Your wallet accepted the offer. Your Identity Card is being issued…"
+          : "Your Identity Card is almost ready. Keep this page open for a few more moments.";
+        setStepState("step-wallet", "done", "✓");
+        setStepState("step-issued", "active", "3");
+        return;
+      }
+
+      statusPill.className = "status-pill";
+      statusPill.textContent = "Waiting for wallet";
+      statusMessage.textContent = "Scan the QR code or open the offer in your wallet to continue.";
+    }
+
+    function updateExpiry() {
+      if (!expiresAt || stopped) return;
+      const remaining = new Date(expiresAt).getTime() - Date.now();
+      if (!Number.isFinite(remaining)) return;
+      if (remaining <= 0) {
+        showFailure("expired");
+        return;
+      }
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      document.getElementById("expiry").textContent = remaining > 3600000
+        ? "Offer active"
+        : `Expires in ${minutes}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    async function poll() {
+      if (stopped) return;
+      try {
+        const response = await fetch(statusUrl, {
+          headers: {"Accept": "application/json"},
+          cache: "no-store",
+        });
+        const payload = await response.json();
+        pollingResponse.textContent = JSON.stringify(payload, null, 2);
+
+        if (!response.ok) {
+          if (response.status < 500) {
+            showFailure("failed", payload.error_description || payload.error);
+            return;
+          }
+          statusMessage.textContent = "Connection temporarily unavailable. Retrying…";
+        } else {
+          updateState(payload);
+        }
+      } catch (error) {
+        statusMessage.textContent = "Connection temporarily unavailable. Retrying…";
+      }
+
+      if (!stopped) window.setTimeout(poll, 1500);
+    }
+
+    document.getElementById("close-success").addEventListener("click", () => {
+      successModal.hidden = true;
+      successPage.querySelector(".button").focus();
+    });
+
+    if (window.matchMedia("(max-width: 680px)").matches) {
+      statusMessage.textContent = "Tap “Open in my wallet” to get your Identity Card.";
+    }
+
+    updateExpiry();
+    window.setInterval(updateExpiry, 1000);
+    poll();
+  </script>
+{% endblock %}

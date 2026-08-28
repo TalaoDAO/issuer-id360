@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#081b3a">
+  <title>{% block title %}European Identity Card{% endblock %}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --navy-950: #06152e;
+      --navy-900: #081b3a;
+      --navy-800: #102d57;
+      --blue-700: #1557b0;
+      --blue-600: #246bce;
+      --blue-100: #eaf2ff;
+      --cyan-400: #5ad8e6;
+      --ink: #13213a;
+      --muted: #667085;
+      --line: #dce5f1;
+      --surface: #ffffff;
+      --surface-soft: #f5f8fc;
+      --success: #087a55;
+      --success-soft: #e9f8f2;
+      --warning: #9a6700;
+      --warning-soft: #fff6dc;
+      --danger: #b42318;
+      --danger-soft: #fff0ee;
+      --shadow: 0 24px 70px rgba(8, 27, 58, 0.13);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; overflow-x: hidden; }
+
+    body {
+      background:
+        radial-gradient(circle at 8% 8%, rgba(90, 216, 230, 0.18), transparent 28rem),
+        radial-gradient(circle at 90% 18%, rgba(36, 107, 206, 0.15), transparent 30rem),
+        linear-gradient(180deg, #f7faff 0%, #eef3f9 100%);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    a, button { -webkit-tap-highlight-color: transparent; }
+
+    button, a { font: inherit; }
+
+    .page {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .topbar {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 24px 28px;
+      width: 100%;
+    }
+
+    .brand {
+      align-items: center;
+      display: inline-flex;
+      line-height: 0;
+      text-decoration: none;
+    }
+
+    .brand-logo {
+      display: block;
+      height: 68px;
+      object-fit: contain;
+      width: 68px;
+    }
+
+    .secure-label {
+      align-items: center;
+      color: #41617f;
+      display: flex;
+      font-size: 0.78rem;
+      font-weight: 700;
+      gap: 7px;
+      letter-spacing: 0.02em;
+    }
+
+    .secure-dot {
+      background: #12a36f;
+      border: 3px solid #dff7ee;
+      border-radius: 50%;
+      height: 12px;
+      width: 12px;
+    }
+
+    .content {
+      flex: 1;
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 20px 28px 56px;
+      width: 100%;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(220, 229, 241, 0.95);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .eyebrow {
+      color: var(--blue-700);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      margin: 0 0 12px;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    h1 {
+      color: var(--navy-950);
+      font-size: clamp(2rem, 4vw, 3.35rem);
+      letter-spacing: -0.045em;
+      line-height: 1.04;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      color: var(--navy-950);
+      font-size: 1.3rem;
+      letter-spacing: -0.025em;
+    }
+
+    .lead {
+      color: #51627a;
+      font-size: clamp(1rem, 1.5vw, 1.12rem);
+      line-height: 1.65;
+    }
+
+    .button {
+      align-items: center;
+      background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
+      border: 0;
+      border-radius: 14px;
+      box-shadow: 0 12px 24px rgba(21, 87, 176, 0.23);
+      color: white;
+      cursor: pointer;
+      display: inline-flex;
+      font-weight: 800;
+      gap: 9px;
+      justify-content: center;
+      min-height: 52px;
+      padding: 14px 20px;
+      text-decoration: none;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .button:hover {
+      box-shadow: 0 16px 30px rgba(21, 87, 176, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .button:focus-visible, summary:focus-visible {
+      outline: 3px solid rgba(36, 107, 206, 0.32);
+      outline-offset: 3px;
+    }
+
+    .button-secondary {
+      background: white;
+      border: 1px solid var(--line);
+      box-shadow: none;
+      color: var(--navy-800);
+    }
+
+    .button-secondary:hover { box-shadow: 0 10px 24px rgba(8, 27, 58, 0.09); }
+
+    .status-pill {
+      align-items: center;
+      background: var(--warning-soft);
+      border-radius: 999px;
+      color: var(--warning);
+      display: inline-flex;
+      font-size: 0.78rem;
+      font-weight: 800;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 12px;
+    }
+
+    .status-pill::before {
+      animation: pulse 1.8s ease-out infinite;
+      background: currentColor;
+      border-radius: 50%;
+      content: "";
+      height: 8px;
+      width: 8px;
+    }
+
+    .status-pill.is-progress { background: var(--blue-100); color: var(--blue-700); }
+    .status-pill.is-success { background: var(--success-soft); color: var(--success); }
+    .status-pill.is-success::before { animation: none; }
+    .status-pill.is-danger { background: var(--danger-soft); color: var(--danger); }
+    .status-pill.is-danger::before { animation: none; }
+
+    .icon-circle {
+      align-items: center;
+      background: var(--blue-100);
+      border-radius: 50%;
+      color: var(--blue-700);
+      display: inline-flex;
+      height: 70px;
+      justify-content: center;
+      width: 70px;
+    }
+
+    .icon-circle.success { background: var(--success-soft); color: var(--success); }
+    .icon-circle.danger { background: var(--danger-soft); color: var(--danger); }
+    .icon-circle svg { height: 34px; width: 34px; }
+
+    .technical-details {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 24px;
+      padding-top: 16px;
+    }
+
+    .technical-details summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 5px 0;
+    }
+
+    .technical-details code, .technical-details pre {
+      background: var(--surface-soft);
+      border-radius: 9px;
+      color: #42526a;
+      display: block;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.72rem;
+      margin: 10px 0 0;
+      overflow-wrap: anywhere;
+      padding: 10px;
+      white-space: pre-wrap;
+    }
+
+    .footer {
+      color: #78879a;
+      display: grid;
+      font-size: 0.76rem;
+      gap: 7px;
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 0 28px 28px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .footer strong { color: #53657c; font-size: 0.78rem; }
+
+    [hidden] { display: none !important; }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.9; }
+      70% { box-shadow: 0 0 0 7px transparent; opacity: 1; }
+      100% { box-shadow: 0 0 0 0 transparent; opacity: 0.9; }
+    }
+
+    @media (max-width: 680px) {
+      .topbar { padding: 18px 18px; }
+      .content { padding: 10px 16px 36px; }
+      .secure-label { display: none; }
+      .brand-logo { height: 56px; width: 56px; }
+      .panel { border-radius: 22px; }
+      .footer { padding: 0 18px 22px; }
+      .button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    {% block styles %}{% endblock %}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/id360" aria-label="Talao — return to the start">
+        <img class="brand-logo" src="{{ url_for('static', filename='talao-icon.png') }}" alt="Talao">
+      </a>
+      <span class="secure-label"><span class="secure-dot"></span>Secure connection</span>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <footer class="footer">
+      <span>Your data is processed only to prepare your Identity Card issuance.</span>
+      <strong>Web3 Digital Wallet © 2026</strong>
+    </footer>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
