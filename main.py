@@ -14,7 +14,7 @@ import environment
 from routes import oidc_openid4vc_hub
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/id360/static")
 with open("keys.json", "r", encoding="utf-8") as key_file:
     app.secret_key = json.dumps(json.load(key_file)["appSecretKey"])
 
