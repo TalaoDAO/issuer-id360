@@ -1,7 +1,9 @@
 import json
 
-ID360_API_KEY = json.load(open("keys.json", "r"))['id360ApiKey']
-ISSUER_VM = "did:web:app.altme.io:issuer#key-1"
-ISSUER_DID = "did:web:app.altme.io:issuer"
-ISSUER_KEY = json.dumps(json.load(open("keys.json", "r"))[
-                        'talao_Ed25519_private_key'])
+with open("keys.json", "r", encoding="utf-8") as key_file:
+    keys = json.load(key_file)
+
+ID360_API_KEY = keys["id360ApiKey"]
+OPENID4VC_HUB_API_KEY = keys["openid4vc-hub"]
+
+del keys

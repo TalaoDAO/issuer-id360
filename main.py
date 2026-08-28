@@ -5,25 +5,19 @@ Flow is available at https://swimlanes.io/u/LHNjN55XM
 
 """
 import json
-from flask import Flask, request, jsonify, send_file, redirect
-from flask_qrcode import QRcode
-import environment
-import redis
-import logging
-from flask_mobility import Mobility
-from routes import oidc
-from routes import issuer_altme
 import os
-import message
-from flask_babel import Babel
-from ip2geotools.databases.noncommercial import DbIpCity
+
+import redis
+from flask import Flask, render_template
+
+import environment
+from routes import oidc_openid4vc_hub
 
 
 app = Flask(__name__)
-babel = Babel(app)
-app.secret_key = json.dumps(json.load(open("keys.json", "r"))["appSecretKey"])
-QRcode(app)
-Mobility(app)
+with open("keys.json", "r", encoding="utf-8") as key_file:
+    app.secret_key = json.dumps(json.load(key_file)["appSecretKey"])
+
 myenv = os.getenv('MYENV')
 if not myenv:
     myenv = 'local'
@@ -31,48 +25,18 @@ mode = environment.currentMode(myenv)
 red = redis.Redis(host='127.0.0.1', port=6379, db=0)
 
 
-issuer_altme.init_app(app, red, mode)
-#customer_api.init_app(app, red, mode)
-oidc.init_app(app, red, mode)
+oidc_openid4vc_hub.init_app(app, red, mode)
 
 
 @app.errorhandler(500)
-def error_500(e):
-    """
-    For testing purpose
-    Send an email if problems
-    """
-    if mode.server in ['https://talao.co/']:
-        message.email('Error 500 issuer id360', 'contact@talao.io', str(e))
-    logging.warning("redirecting")
-    return redirect(mode.server + '/')
-
-
-@app.route('/id360/static/img/<filename>', methods=['GET'])
-def serve_static_img(filename: str):
-    try:
-        return send_file('./static/img/' + filename, download_name=filename)
-    except FileNotFoundError:
-        logging.error(filename+" not found")
-        return jsonify("not found"), 404
-
-
-@app.route('/id360/static/<filename>', methods=['GET'])
-def serve_static(filename: str):
-    try:
-        return send_file('./static/' + filename, download_name=filename)
-    except FileNotFoundError:
-        logging.error(filename+" not found")
-        return jsonify("not found"), 404
-    
-
-@app.route('/id360/ip', methods=['GET'])
-def ip():
-    ip_client = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    location = DbIpCity.get(ip_client)
-    logging.info(location.country)
-    return ('ok')
+def error_500(error):
+    app.logger.error("Unhandled server error", exc_info=error)
+    return render_template(
+        "openid4vc_hub_error.html",
+        error="internal_server_error",
+        error_description="An internal error prevented PID issuance.",
+    ), 500
 
 
 if __name__ == '__main__':
-    app.run(host=mode.IP, port=mode.port, debug=True)
+    app.run(host=mode.IP, port=mode.port, debug=myenv == 'local')

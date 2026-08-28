@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Identity verification</title>
+  <style>
+    body {
+      background: #f6f7f9;
+      color: #17202a;
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 24px;
+    }
+    main {
+      background: white;
+      border: 1px solid #dfe3e8;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgb(0 0 0 / 8%);
+      margin: 12vh auto 0;
+      max-width: 560px;
+      padding: 32px;
+      text-align: center;
+    }
+    .spinner {
+      animation: spin 1s linear infinite;
+      border: 5px solid #e4e8ec;
+      border-radius: 50%;
+      border-top-color: #1769aa;
+      height: 42px;
+      margin: 0 auto 24px;
+      width: 42px;
+    }
+    .failure { color: #a31616; }
+    .muted { color: #667085; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="spinner" class="spinner" aria-hidden="true"></div>
+    <h1 id="title">Identity verification in progress</h1>
+    <p id="message" class="muted">
+      Please keep this page open while ID360 processes your verification.
+    </p>
+  </main>
+
+  <script>
+    const statusUrl = {{ status_url|tojson }};
+    let stopped = false;
+
+    function fail(message) {
+      stopped = true;
+      document.getElementById("spinner").hidden = true;
+      document.getElementById("title").className = "failure";
+      document.getElementById("title").textContent = "Verification failed";
+      document.getElementById("message").textContent = message;
+    }
+
+    async function poll() {
+      if (stopped) return;
+
+      try {
+        const response = await fetch(statusUrl, {
+          headers: {"Accept": "application/json"},
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          fail(payload.error_description || payload.error || "Status check failed.");
+          return;
+        }
+
+        if (payload.status === "OK" && payload.url) {
+          stopped = true;
+          window.location.assign(payload.url);
+          return;
+        }
+
+        if (payload.status === "KO") {
+          fail("ID360 could not validate this identity.");
+          return;
+        }
+
+        if (payload.status === "CREATING") {
+          document.getElementById("message").textContent =
+            "Identity verified. Preparing the PID offer...";
+        } else if (payload.status === "None") {
+          fail("This verification session is unavailable or has expired.");
+          return;
+        }
+      } catch (error) {
+        document.getElementById("message").textContent =
+          "Temporary connection problem. Retrying...";
+      }
+
+      window.setTimeout(poll, 2000);
+    }
+
+    poll();
+  </script>
+</body>
+</html>

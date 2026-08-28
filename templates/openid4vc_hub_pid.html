@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PID issuance</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 32px auto; padding: 0 20px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 22px; margin-top: 18px; }
+    .qr { text-align: center; }
+    .qr img { width: min(420px, 88vw); height: auto; }
+    .wallet-button { display: inline-block; margin-top: 18px; padding: 14px 20px; border-radius: 9px; background: #1769aa; color: white; font-weight: 700; text-decoration: none; }
+    .status { font-size: 23px; font-weight: 700; }
+    .pending { color: #765b00; }
+    .success { color: #08752d; }
+    .failure { color: #a31616; }
+    .muted { color: #666; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f6f6; padding: 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>European PID</h1>
+
+  <div class="card">
+    <div id="status" class="status pending">Waiting for wallet...</div>
+    <div id="message" class="muted">Scan the QR code or open the offer directly on this device.</div>
+  </div>
+
+  <div class="card qr">
+    <img src="{{ qr_image }}" alt="PID credential offer QR code">
+    <br>
+    <a class="wallet-button" href="{{ qr_code_content }}">Open in Wallet</a>
+  </div>
+
+  <div class="card">
+    <strong>Issuance ID</strong>
+    <pre>{{ issuance_id }}</pre>
+
+    <details>
+      <summary>Credential offer deeplink</summary>
+      <pre>{{ qr_code_content }}</pre>
+    </details>
+
+    <details open>
+      <summary>Issuance status</summary>
+      <pre id="polling-response">Waiting for first status response...</pre>
+    </details>
+  </div>
+
+<script>
+const statusUrl = {{ status_url|tojson }};
+let stopped = false;
+
+function updateState(payload) {
+  const status = payload.status || "pending";
+  const statusEl = document.getElementById("status");
+  const messageEl = document.getElementById("message");
+
+  if (status === "completed") {
+    stopped = true;
+    statusEl.className = "status success";
+    statusEl.textContent = "✓ PID issued successfully";
+    messageEl.textContent = "The wallet completed the PID issuance.";
+  } else if (status === "failed" || status === "expired") {
+    stopped = true;
+    statusEl.className = "status failure";
+    statusEl.textContent = "✗ " + status;
+    messageEl.textContent = payload.error_description || "The issuance did not complete.";
+  } else {
+    statusEl.className = "status pending";
+    statusEl.textContent = status;
+    messageEl.textContent = "Waiting for wallet completion...";
+  }
+}
+
+async function poll() {
+  if (stopped) return;
+  try {
+    const response = await fetch(statusUrl, {headers: {"Accept": "application/json"}});
+    const payload = await response.json();
+    document.getElementById("polling-response").textContent = JSON.stringify(payload, null, 2);
+
+    if (!response.ok) {
+      const statusEl = document.getElementById("status");
+      statusEl.className = "status failure";
+      statusEl.textContent = "Status check failed";
+      document.getElementById("message").textContent = payload.error_description || payload.error || ("HTTP " + response.status);
+      if (response.status < 500) stopped = true;
+    } else {
+      updateState(payload);
+    }
+  } catch (error) {
+    document.getElementById("message").textContent = "Status check failed: " + error;
+  }
+
+  if (!stopped) window.setTimeout(poll, 1500);
+}
+
+poll();
+</script>
+</body>
+</html>
