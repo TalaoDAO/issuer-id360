@@ -53,6 +53,13 @@ def init_app(app, red_app, mode_app):
         view_func=login_oidc,
         methods=["GET"],
     )
+    # duplicate
+    app.add_url_rule(
+            "/id360/get_code",
+            endpoint="openid4vc_hub_login",
+            view_func=login_oidc,
+            methods=["GET"],
+        )
 
     app.add_url_rule(
         "/id360/callback/<code>",
