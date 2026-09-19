@@ -22,7 +22,7 @@ HUB_REQUEST_TIMEOUT = 10
 CALLBACK_LOCK_LIFE = 60
 
 # CORE PID configuration from the openid4vc-hub sandbox.
-OPENID4VC_HUB_ISSUER = "core-pid-issuer"
+OPENID4VC_HUB_ISSUER = "id360-issuer"
 OPENID4VC_HUB_PID_CONFIGURATION_ID = "eu.europa.ec.eudi.pid_jwt_vc"
 OPENID4VC_HUB_GRANT_TYPE = (
     "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -110,7 +110,7 @@ def _hub_headers() -> dict:
         "X-API-Key": api_key,
     }
 
-
+OPENID4VC_HUB_ISSUER
 def _hub_url(path: str) -> str:
     base_url = _hub_base_url()
     if not base_url:
@@ -201,7 +201,7 @@ def create_dossier(code: str, *, retry_on_unauthorized: bool = True) -> str | No
             return create_dossier(code, retry_on_unauthorized=False)
         return None
 
-    if response.status_code != 200:
+    if response.status_code != 200:OPENID4VC_HUB_ISSUER
         logging.error("create_dossier returned status = %s", response.status_code)
         return None
 
