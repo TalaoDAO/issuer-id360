@@ -201,7 +201,7 @@ def create_dossier(code: str, *, retry_on_unauthorized: bool = True) -> str | No
             return create_dossier(code, retry_on_unauthorized=False)
         return None
 
-    if response.status_code != 200:OPENID4VC_HUB_ISSUER
+    if response.status_code != 200:
         logging.error("create_dossier returned status = %s", response.status_code)
         return None
 
