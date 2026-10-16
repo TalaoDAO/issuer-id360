@@ -23,6 +23,7 @@ CALLBACK_LOCK_LIFE = 60
 
 # CORE PID configuration from the openid4vc-hub sandbox.
 OPENID4VC_HUB_ISSUER = "id360-issuer"
+OPENID4VC_HUB_GENERIC_ISSUER = "id360-issuer-generic"
 OPENID4VC_HUB_PID_CONFIGURATION_ID = "eu.europa.ec.eudi.pid_jwt_vc"
 OPENID4VC_HUB_GRANT_TYPE = (
     "urn:ietf:params:oauth:grant-type:pre-authorized_code"
@@ -60,6 +61,13 @@ def init_app(app, red_app, mode_app):
             view_func=login_oidc,
             methods=["GET"],
         )
+
+    app.add_url_rule(
+        "/id360/generic",
+        endpoint="openid4vc_hub_generic_login",
+        view_func=login_oidc_generic,
+        methods=["GET"],
+    )
 
     app.add_url_rule(
         "/id360/callback/<code>",
@@ -159,7 +167,10 @@ def _id360_token(*, refresh: bool = False) -> str | None:
     return token
 
 
-def create_dossier(code: str, *, retry_on_unauthorized: bool = True) -> str | None:
+def create_dossier(
+    code: str, *, issuer: str = OPENID4VC_HUB_ISSUER,
+    retry_on_unauthorized: bool = True,
+) -> str | None:
     """Create the ID360 dossier used to obtain PID claims."""
     token = _id360_token()
     if token is None:
@@ -198,7 +209,7 @@ def create_dossier(code: str, *, retry_on_unauthorized: bool = True) -> str | No
 
     if response.status_code == 401:
         if retry_on_unauthorized and _id360_token(refresh=True):
-            return create_dossier(code, retry_on_unauthorized=False)
+            return create_dossier(code, issuer=issuer, retry_on_unauthorized=False)
         return None
 
     if response.status_code != 200:
@@ -208,7 +219,7 @@ def create_dossier(code: str, *, retry_on_unauthorized: bool = True) -> str | No
     red.setex(
         code,
         ID360_SESSION_LIFE,
-        json.dumps({"id_dossier": response.json()["id"], "KYC": "PENDING"}),
+        json.dumps({"id_dossier": response.json()["id"], "KYC": "PENDING", "issuer": issuer}),
     )
     return (
         mode.url
@@ -261,6 +272,14 @@ def login_oidc():
     """Start ID360 identification before creating the Hub issuance."""
     code = str(uuid.uuid4())
     redirect_link = create_dossier(code)
+    if not redirect_link:
+        return jsonify(error="kyc_provider_failed"), 502
+    return redirect(redirect_link)
+
+
+def login_oidc_generic():
+    code = str(uuid.uuid4())
+    redirect_link = create_dossier(code, issuer=OPENID4VC_HUB_GENERIC_ISSUER)
     if not redirect_link:
         return jsonify(error="kyc_provider_failed"), 502
     return redirect(redirect_link)
@@ -373,9 +392,11 @@ def _build_pid_claims(dossier: dict) -> dict:
     return claims
 
 
-def _create_hub_pid_issuance(claims: dict) -> dict:
+def _create_hub_pid_issuance(
+    claims: dict, *, issuer: str = OPENID4VC_HUB_ISSUER
+) -> dict:
     payload = {
-        "issuer": OPENID4VC_HUB_ISSUER,
+        "issuer": issuer,
         "grant_type": OPENID4VC_HUB_GRANT_TYPE,
         "expires_in": HUB_ISSUANCE_LIFE,
         "credentials": [
@@ -497,7 +518,9 @@ def oidc_id360callback(code: str):
 
         try:
             claims = _build_pid_claims(dossier)
-            hub_issuance = _create_hub_pid_issuance(claims)
+            hub_issuance = _create_hub_pid_issuance(
+                claims, issuer=current_state.get("issuer", OPENID4VC_HUB_ISSUER)
+            )
         except (
             KeyError,
             TypeError,

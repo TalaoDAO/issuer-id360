@@ -20,7 +20,7 @@ La clé API OpenID4VC Hub reste côté serveur.
 - Python 3.10 ou plus récent ;
 - Redis sur `127.0.0.1:6379`, base `0` ;
 - un compte, un parcours et une clé de callback ID360 ;
-- une clé API OpenID4VC Hub autorisée à utiliser l’émetteur `core-pid-issuer` ;
+- une clé API OpenID4VC Hub autorisée à utiliser les émetteurs `id360-issuer` et `id360-issuer-generic` ;
 - une URL publique HTTPS permettant à ID360 de joindre le callback.
 
 ## Configuration
@@ -76,13 +76,15 @@ MYENV=aws gunicorn --bind 127.0.0.1:3000 main:app
 | Méthode | Route | Rôle |
 | --- | --- | --- |
 | `GET` | `/id360` | Démarre l’identification ID360. |
+| `GET` | `/id360/generic` | Démarre le même parcours avec l’émetteur `id360-issuer-generic`. |
+| `GET` | `/id360/get_code` | Alias de `/id360`. |
 | `GET`, `POST` | `/id360/callback/<code>` | Reçoit le résultat ID360. L’en-tête `api-key` est obligatoire. |
 | `GET` | `/id360/wait/<code>` | Affiche la page d’attente après le parcours ID360. |
 | `GET` | `/id360/kyc_status/<code>` | Indique au navigateur l’état du traitement ID360. |
 | `GET` | `/id360/offer/<code>` | Affiche le QR code de l’offre PID. |
 | `GET` | `/id360/status/<code>` | Transmet au navigateur l’état renvoyé par le Hub. |
 
-Les routes de callback, d’attente et d’offre sont générées par l’application. Un client normal démarre uniquement sur `/id360`.
+Les routes de callback, d’attente et d’offre sont générées par l’application. Un client démarre sur `/id360` ou `/id360/generic`. Le choix de l’émetteur est conservé côté serveur dans la session ID360 ; les autres paramètres sont identiques.
 
 ## États et durées de vie
 
@@ -108,7 +110,7 @@ Les attributs obligatoires sont `family_name`, `given_name`, `birthdate` et `sex
 
 La configuration Hub actuellement demandée est :
 
-- émetteur : `core-pid-issuer` ;
+- émetteur : `id360-issuer` pour `/id360`, `id360-issuer-generic` pour `/id360/generic` ;
 - configuration : `eu.europa.ec.eudi.pid_jwt_vc` ;
 - grant : `urn:ietf:params:oauth:grant-type:pre-authorized_code`.
 
